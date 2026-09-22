@@ -85,7 +85,7 @@ export async function DELETE(
     });
 
     if (vendor?.status === 'UNDER_REVIEW') {
-      const requiredTypes = ['ADDRESS_PROOF'];
+      const requiredTypes = ['ADDRESS_PROOF', 'PAN_CARD'];
       const remainingRequiredDocs = await prisma.vendor_documents.count({
         where: {
           vendorId: auth.vendorId,

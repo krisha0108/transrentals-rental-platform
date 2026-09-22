@@ -1,10 +1,11 @@
 {
   "name": "transrentals-web",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TransRentals - India's Largest Vehicle Rental Marketplace",
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=3072 next dev -H 0.0.0.0",
+    "check:migrations": "node scripts/check-migration-drift.mjs",
     "dev:turbo": "cross-env NODE_OPTIONS=--max-old-space-size=3072 next dev -H 0.0.0.0 --turbo",
     "dev:socket": "tsx server.ts",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",

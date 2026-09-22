@@ -13,10 +13,11 @@ import {
   CheckCircle2, ThumbsUp, Clock, ThumbsDown, PhoneOff, PhoneForwarded,
   XCircle, Award, Download, Store, RefreshCw, MapPin, Layers,
   Eye, X, User, Building2, Phone, Home, Calendar, MessageSquare, Bell, UserPlus, Mail, Briefcase,
-  Upload, AlertTriangle,
+  Upload, AlertTriangle, Flag,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SearchableSelect, type SelectOption } from './_components/SearchableSelect';
+import { getConversionState, CONVERTED_STATUSES } from '@/lib/call-report-conversion';
 import { MultiSelect } from './_components/MultiSelect';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
@@ -42,6 +43,10 @@ interface CallReport {
   locations: { id: string; name: string; slug: string; type: string }[];
   status: CallReportStatus;
   notes: string | null;
+  isFlagged: boolean;
+  flagReason: string | null;
+  flaggedAt: string | null;
+  flaggedByName: string | null;
   nextFollowUpDate: string | null;
   nextFollowUpTime: string | null;
   nextAction: string | null;
@@ -93,7 +98,7 @@ function formatDate(iso: string) {
 
 export default function ManagerCallReportsPage() {
   const [items, setItems] = useState<CallReport[]>([]);
-  const [counts, setCounts] = useState<{ total: number; byStatus: Record<string, number> }>({ total: 0, byStatus: {} });
+  const [counts, setCounts] = useState<{ total: number; byStatus: Record<string, number>; flagged: number }>({ total: 0, byStatus: {}, flagged: 0 });
   const [todayCount, setTodayCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,12 +110,13 @@ export default function ManagerCallReportsPage() {
   const [cityFilter, setCityFilter] = useState('');
   const [serviceFilter, setServiceFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
 
   // Drives the Clear all button — every filter this page applies.
   const activeFilterCount =
     (status !== 'all' ? 1 : 0) + (from ? 1 : 0) + (to ? 1 : 0) +
     (cityFilter ? 1 : 0) + (serviceFilter ? 1 : 0) + (locationFilter ? 1 : 0) +
-    (query.trim() ? 1 : 0);
+    (query.trim() ? 1 : 0) + (flaggedOnly ? 1 : 0);
 
   const clearFilters = () => {
     setStatus('all');
@@ -120,6 +126,7 @@ export default function ManagerCallReportsPage() {
     setServiceFilter('');
     setLocationFilter('');
     setQuery('');
+    setFlaggedOnly(false);
   };
 
   const [cityOptions, setCityOptions] = useState<SelectOption[]>([]);
@@ -127,6 +134,10 @@ export default function ManagerCallReportsPage() {
   const [locationOptions, setLocationOptions] = useState<SelectOption[]>([]);
 
   const [viewingReport, setViewingReport] = useState<CallReport | null>(null);
+  // The row waiting on a reason. Raising the flag needs one sentence of
+  // context, because an admin deciding whether to delete it only ever sees
+  // that sentence.
+  const [flaggingReport, setFlaggingReport] = useState<CallReport | null>(null);
 
   const reqRef = useRef(0);
 
@@ -174,13 +185,14 @@ export default function ManagerCallReportsPage() {
       if (cityFilter) params.set('city', cityFilter);
       if (serviceFilter) params.set('serviceId', serviceFilter);
       if (locationFilter) params.set('locationId', locationFilter);
+      if (flaggedOnly) params.set('flagged', 'true');
 
       const res = await fetch(`/api/manager/call-reports?${params.toString()}`);
       const data = await res.json();
       if (myReq !== reqRef.current) return;
       if (!res.ok) throw new Error(data?.error || 'Failed to load call reports');
       setItems(data.items || []);
-      setCounts(data.counts || { total: 0, byStatus: {} });
+      setCounts(data.counts || { total: 0, byStatus: {}, flagged: 0 });
       setTodayCount(data.todayCount || 0);
     } catch (e: any) {
       if (myReq !== reqRef.current) return;
@@ -188,7 +200,7 @@ export default function ManagerCallReportsPage() {
     } finally {
       if (myReq === reqRef.current) setLoading(false);
     }
-  }, [status, query, from, to, cityFilter, serviceFilter, locationFilter]);
+  }, [status, query, from, to, cityFilter, serviceFilter, locationFilter, flaggedOnly]);
 
   useEffect(() => { setLoading(true); load(); }, [load]);
 
@@ -206,6 +218,30 @@ export default function ManagerCallReportsPage() {
     } catch {
       setItems((prev) => prev.map((i) => (i.id === r.id ? { ...i, status: r.status } : i)));
       setError('Could not update status — please try again.');
+    }
+  };
+
+  // Raising a flag is optimistic like the status pill: the row updates at
+  // once and rolls back if the request fails, because the manager is usually
+  // working down a list and should not be made to wait on each one.
+  const submitFlag = async (r: CallReport, isFlagged: boolean, flagReason: string) => {
+    const previous = { isFlagged: r.isFlagged, flagReason: r.flagReason, flaggedAt: r.flaggedAt, flaggedByName: r.flaggedByName };
+    setItems((prev) => prev.map((i) => (i.id === r.id
+      ? { ...i, isFlagged, flagReason: isFlagged ? flagReason || null : null }
+      : i)));
+    setFlaggingReport(null);
+    try {
+      const res = await fetch(`/api/manager/call-reports/${r.id}/flag`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFlagged, flagReason }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data?.error || '');
+      load();
+    } catch {
+      setItems((prev) => prev.map((i) => (i.id === r.id ? { ...i, ...previous } : i)));
+      setError(isFlagged ? 'Could not flag this report — please try again.' : 'Could not remove the flag — please try again.');
     }
   };
 
@@ -368,7 +404,7 @@ export default function ManagerCallReportsPage() {
   const exportSheet = () => {
     const header = [
       'Date', 'Contact Type', 'Vendor Name', 'Company Name', 'Company Details', 'Phone', 'Email', 'Address', 'City',
-      'Service', 'Location', 'Status', 'Notes', 'Added By',
+      'Service', 'Location', 'Status', 'Notes', 'Added By', 'Flagged', 'Flag Reason',
     ];
     const rows = items.map((r) => [
       formatDate(r.callDate),
@@ -385,6 +421,8 @@ export default function ManagerCallReportsPage() {
       STATUS_META[r.status].label,
       (r.notes || '').replace(/\n/g, ' '),
       r.managerName || '',
+      r.isFlagged ? 'Yes' : '',
+      (r.flagReason || '').replace(/\n/g, ' '),
     ]);
     // A real workbook rather than a .csv, so it opens in Excel with proper columns
     // instead of everything crammed into column A — and so the file round-trips
@@ -484,6 +522,23 @@ export default function ManagerCallReportsPage() {
           </select>
           <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
+
+        {/* Flagged toggle — the count stays visible when the filter is on, so
+            you can see the set shrink as rows get resolved. */}
+        <button
+          type="button"
+          onClick={() => setFlaggedOnly((v) => !v)}
+          aria-pressed={flaggedOnly}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-semibold transition ${
+            flaggedOnly
+              ? 'bg-amber-500 border-amber-500 text-white'
+              : 'bg-white border-gray-200 text-gray-600 hover:border-amber-300 hover:text-amber-700'
+          }`}
+          title={flaggedOnly ? 'Showing only flagged reports' : 'Show only flagged reports'}
+        >
+          <Flag className="w-4 h-4" />
+          Flagged{counts.flagged ? ` (${counts.flagged})` : ''}
+        </button>
 
         <input
           type="date"
@@ -625,14 +680,19 @@ export default function ManagerCallReportsPage() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Notes</th>
                   <th className="px-4 py-3">Added By</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  {/* Pinned — the sheet is wide enough to scroll sideways and
+                      the view/flag/edit buttons must stay reachable. */}
+                  <th className="px-4 py-3 text-right sticky right-0 bg-gray-50 z-10 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {items.map((r) => {
                   const meta = STATUS_META[r.status];
                   return (
-                    <tr key={r.id} className="hover:bg-gray-50/60 transition-colors">
+                    <tr
+                      key={r.id}
+                      className={`transition-colors ${r.isFlagged ? 'bg-amber-50 hover:bg-amber-100/70' : 'bg-white hover:bg-gray-50'}`}
+                    >
                       <td className="px-4 py-3 whitespace-nowrap text-gray-600 tabular-nums">{formatDate(r.callDate)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
@@ -640,7 +700,20 @@ export default function ManagerCallReportsPage() {
                           <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${r.contactType === 'TRAVEL_AGENT' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
                             {r.contactType === 'TRAVEL_AGENT' ? 'Travel Agent' : 'Vendor'}
                           </span>
+                          {r.isFlagged && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-md bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[10px] font-semibold"
+                              title={r.flagReason || 'Flagged for admin review'}
+                            >
+                              <Flag className="w-2.5 h-2.5" /> Flagged
+                            </span>
+                          )}
                         </div>
+                        {r.isFlagged && r.flagReason && (
+                          <div className="text-[11px] text-amber-700/80 truncate max-w-[240px]" title={r.flagReason}>
+                            {r.flagReason}
+                          </div>
+                        )}
                         {r.companyName && r.companyName !== r.vendorName && (
                           <div className="text-xs text-gray-400">Contact: {r.vendorName}</div>
                         )}
@@ -688,7 +761,7 @@ export default function ManagerCallReportsPage() {
                       </td>
                       <td className="px-4 py-3 max-w-[220px] truncate text-gray-500" title={r.notes || ''}>{r.notes || '—'}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500">{r.managerName || '—'}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 sticky right-0 bg-inherit z-10 shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.08)]">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setViewingReport(r)}
@@ -696,6 +769,19 @@ export default function ManagerCallReportsPage() {
                             title="View"
                           >
                             <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          {/* Unflagging is one click — the reason only matters
+                              while the flag is up. */}
+                          <button
+                            onClick={() => (r.isFlagged ? submitFlag(r, false, '') : setFlaggingReport(r))}
+                            className={`p-1.5 rounded-lg transition ${
+                              r.isFlagged
+                                ? 'text-amber-600 bg-amber-100 hover:bg-amber-200'
+                                : 'text-gray-400 hover:text-amber-600 hover:bg-amber-50'
+                            }`}
+                            title={r.isFlagged ? 'Remove flag' : 'Flag for admin review'}
+                          >
+                            <Flag className="w-3.5 h-3.5" />
                           </button>
                           {r.canEdit && (
                             <Link
@@ -721,6 +807,14 @@ export default function ManagerCallReportsPage() {
         <ViewReportModal report={viewingReport} onClose={() => setViewingReport(null)} />
       )}
 
+      {flaggingReport && (
+        <FlagReportModal
+          report={flaggingReport}
+          onCancel={() => setFlaggingReport(null)}
+          onConfirm={(reason) => submitFlag(flaggingReport, true, reason)}
+        />
+      )}
+
       {importPreview && (
         <ImportPreviewModal
           preview={importPreview}
@@ -736,9 +830,128 @@ export default function ManagerCallReportsPage() {
   );
 }
 
+// Asks for the one line of context an admin will read before deciding whether
+// to delete the row. A native confirm() would be shorter but gives nowhere to
+// type that reason — and the reason is the whole point of the flag.
+const FLAG_PRESETS = [
+  'Duplicate entry',
+  'Wrong / invalid phone number',
+  'Bad import row',
+  'Not a real business',
+  'Already a vendor',
+];
+
+function FlagReportModal({
+  report: r,
+  onCancel,
+  onConfirm,
+}: {
+  report: CallReport;
+  onCancel: () => void;
+  onConfirm: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState('');
+
+  const submit = () => {
+    const trimmed = reason.trim();
+    if (!trimmed) return;
+    onConfirm(trimmed);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onCancel}>
+      <div
+        className="w-full max-w-md rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 px-6 py-5 border-b border-gray-100">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 shrink-0">
+              <Flag className="w-4.5 h-4.5" />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-gray-900">Flag this call report</h2>
+              <p className="text-xs text-gray-400 truncate">{r.companyName || r.vendorName}</p>
+            </div>
+          </div>
+          <button onClick={onCancel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition shrink-0">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-sm text-gray-500">
+            The row stays on your sheet and nothing is lost. An admin reviews flagged
+            rows and decides whether to delete them.
+          </p>
+
+          <div className="flex flex-wrap gap-1.5">
+            {FLAG_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setReason(preset)}
+                className={`px-2.5 py-1 rounded-full border text-xs font-medium transition ${
+                  reason === preset
+                    ? 'bg-amber-100 border-amber-300 text-amber-800'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-amber-300'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              Reason <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              maxLength={500}
+              autoFocus
+              placeholder="Why should an admin look at this row?"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition resize-none"
+            />
+            <p className="mt-1 text-[11px] text-gray-400">{reason.trim().length}/500</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3.5 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-100 transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!reason.trim()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            <Flag className="w-4 h-4" /> Flag report
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: () => void }) {
   const meta = STATUS_META[r.status];
   const StatusIcon = meta.icon;
+  const conversion = getConversionState(r);
+  // "Vendor Created" next to the vendor's own chip is the same fact twice:
+  // whether that chip is the linked profile (VD-1234) or "Already a Vendor",
+  // it already says this contact is on the books. Every other status —
+  // Follow-up, No Answer, Interested — still shows its pill, because nothing
+  // else in the modal carries it.
+  const statusIsSaidByChip =
+    conversion.kind !== 'offer' && (CONVERTED_STATUSES as readonly string[]).includes(r.status);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
@@ -760,21 +973,39 @@ function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: 
 
         <div className="p-6 space-y-5 text-sm">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.pill}`}>
-              <StatusIcon className="w-3.5 h-3.5" /> {meta.label}
-            </span>
+            {!statusIsSaidByChip && (
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.pill}`}>
+                <StatusIcon className="w-3.5 h-3.5" /> {meta.label}
+              </span>
+            )}
             <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${r.contactType === 'TRAVEL_AGENT' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
               {r.contactType === 'TRAVEL_AGENT' ? 'Travel Agent' : 'Vendor'}
             </span>
-            {r.vendor ? (
-              <Link href={`/manager/vendors/${r.vendor.id}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-                <Store className="w-3.5 h-3.5" /> {r.vendor.vid ? r.vendor.vid.toUpperCase() : 'View vendor profile'}
+            {r.isFlagged && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-semibold">
+                <Flag className="w-3.5 h-3.5" /> Flagged
+              </span>
+            )}
+            {/* What this contact already is — read from the link when there
+                is one, otherwise from the status. Offering "Ready to Become
+                Vendor" on a report already marked Vendor Created had the page
+                arguing with its own status field. */}
+            {conversion.kind === 'linked' ? (
+              <Link
+                href={conversion.target === 'vendor' ? `/manager/vendors/${conversion.id}` : `/manager/travel-agents/${conversion.id}`}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold ${conversion.target === 'vendor' ? 'text-emerald-600 hover:text-emerald-700' : 'text-indigo-600 hover:text-indigo-700'}`}
+              >
+                {conversion.target === 'vendor' ? <Store className="w-3.5 h-3.5" /> : <Briefcase className="w-3.5 h-3.5" />}
+                {conversion.label}
               </Link>
-            ) : r.travelAgent ? (
-              <Link href={`/manager/travel-agents/${r.travelAgent.id}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700">
-                <Briefcase className="w-3.5 h-3.5" /> {r.travelAgent.tid ? r.travelAgent.tid.toUpperCase() : 'View travel agent profile'}
-              </Link>
-            ) : r.canEdit && r.contactType === 'VENDOR' ? (
+            ) : conversion.kind === 'already' ? (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${conversion.target === 'vendor' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'}`}
+                title="Marked converted on the call sheet. No profile is linked to this report yet."
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> {conversion.label}
+              </span>
+            ) : r.canEdit && conversion.target === 'vendor' ? (
               <Link
                 href={`/manager/vendors/create?${new URLSearchParams({
                   businessName: r.companyName || r.vendorName || '',
@@ -806,6 +1037,22 @@ function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: 
               </Link>
             )}
           </div>
+
+          {r.isFlagged && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-600 mb-1.5 flex items-center gap-1.5">
+                <Flag className="w-3.5 h-3.5" /> Flagged for admin review
+              </p>
+              <p className="text-sm text-amber-900">{r.flagReason || 'No reason given.'}</p>
+              {(r.flaggedByName || r.flaggedAt) && (
+                <p className="mt-1.5 text-xs text-amber-700/80">
+                  {r.flaggedByName ? `by ${r.flaggedByName}` : ''}
+                  {r.flaggedByName && r.flaggedAt ? ' · ' : ''}
+                  {r.flaggedAt ? formatDate(r.flaggedAt) : ''}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Contact & Company */}
           <div className="rounded-xl border border-gray-100 p-4">

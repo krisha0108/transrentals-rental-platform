@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-  StatusBar, ScrollView, Image, Dimensions,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
+  StatusBar, ScrollView, Image, Dimensions, Animated, Keyboard,
+  useWindowDimensions,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getMessaging, getToken } from '@react-native-firebase/messaging';
-import { loginDriver, setDriverToken } from '../api/client';
+import { loginDriver, setDriverToken, getBaseURL, describeApiError } from '../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
+// Only the decorative circles use this — they are sized off the screen width
+// and never need to react to the keyboard. Everything that has to survive the
+// window resizing reads useWindowDimensions() inside the component instead.
+const { width } = Dimensions.get('window');
 const APP_LOGO = require('../../assets/driver_logo.png');
 
 export default function LoginScreen({ navigation }) {
@@ -22,6 +27,40 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
+
+  // The header used to be a fixed 38% of the screen height captured at import
+  // time. With the keyboard up, Android resizes the window but that header
+  // kept its original height, so it ate the shrunken screen and pushed the
+  // email and password fields out of sight. It now collapses while typing and
+  // springs back when the keyboard goes away.
+  const { height: winHeight } = useWindowDimensions();
+  const kb = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // iOS reports Will* before the keyboard animates in, Android only Did*.
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const animate = (to) => Animated.timing(kb, {
+      toValue: to,
+      duration: 220,
+      // Height cannot be driven natively; this animation is cheap enough.
+      useNativeDriver: false,
+    }).start();
+    const subShow = Keyboard.addListener(showEvt, () => animate(1));
+    const subHide = Keyboard.addListener(hideEvt, () => animate(0));
+    return () => { subShow.remove(); subHide.remove(); };
+  }, [kb]);
+
+  // Clamped so the header is neither a sliver on a short phone nor half the
+  // screen on a tall one.
+  const fullHeader = Math.min(Math.max(winHeight * 0.36, 210), 330);
+  const headerHeight = kb.interpolate({ inputRange: [0, 1], outputRange: [fullHeader, 96] });
+  const logoSize = kb.interpolate({ inputRange: [0, 1], outputRange: [92, 42] });
+  const logoRadius = kb.interpolate({ inputRange: [0, 1], outputRange: [26, 13] });
+  const logoGap = kb.interpolate({ inputRange: [0, 1], outputRange: [14, 6] });
+  const titleSize = kb.interpolate({ inputRange: [0, 1], outputRange: [26, 16] });
+  const subOpacity = kb.interpolate({ inputRange: [0, 0.5], outputRange: [1, 0], extrapolate: 'clamp' });
+  const subHeight = kb.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
 
   function validate() {
     const e = {};
@@ -51,7 +90,16 @@ export default function LoginScreen({ navigation }) {
         Alert.alert('Login Failed', res.data.error || 'Invalid credentials');
       }
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.error || 'Login failed. Please try again.');
+      // A failed sign-in is where a driver gets stuck hardest, so name the
+      // real cause. When the request never reached a server at all, also say
+      // which address was tried — in development that is almost always the
+      // whole story (wrong port, phone not on the same network, firewall).
+      let detail = describeApiError(err, 'Login failed. Please try again.');
+      if (__DEV__ && !err?.response) {
+        const base = await getBaseURL().catch(() => null);
+        if (base) detail += `\n\nTried: ${base}`;
+      }
+      Alert.alert('Login Failed', detail);
     } finally {
       setLoading(false);
     }
@@ -61,23 +109,32 @@ export default function LoginScreen({ navigation }) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#064E3B" />
 
-      {/* ── Green header ── */}
-      <LinearGradient
-        colors={['#064E3B', '#0D7A4E', '#16A34A']}
-        style={styles.header}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      >
-        {/* decorative circles */}
-        <View style={styles.circle1} />
-        <View style={styles.circle2} />
+      {/* ── Green header (collapses while the keyboard is up) ── */}
+      <Animated.View style={{ height: headerHeight }}>
+        <LinearGradient
+          colors={['#064E3B', '#0D7A4E', '#16A34A']}
+          style={styles.header}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        >
+          {/* decorative circles */}
+          <View style={styles.circle1} />
+          <View style={styles.circle2} />
 
-        {/* Logo */}
-        <View style={styles.logoRing}>
-          <Image source={APP_LOGO} style={styles.logoImg} resizeMode="cover" />
-        </View>
-        <Text style={styles.headerTitle}>Driver App</Text>
-        <Text style={styles.headerSub}>by TransRentals</Text>
-      </LinearGradient>
+          {/* Logo */}
+          <Animated.View
+            style={[
+              styles.logoRing,
+              { width: logoSize, height: logoSize, borderRadius: logoRadius, marginBottom: logoGap },
+            ]}
+          >
+            <Image source={APP_LOGO} style={styles.logoImg} resizeMode="cover" />
+          </Animated.View>
+          <Animated.Text style={[styles.headerTitle, { fontSize: titleSize }]}>Driver App</Animated.Text>
+          <Animated.Text style={[styles.headerSub, { opacity: subOpacity, height: subHeight }]}>
+            by TransRentals
+          </Animated.Text>
+        </LinearGradient>
+      </Animated.View>
 
       {/* ── White card ── */}
       <KeyboardAvoidingView
@@ -89,6 +146,9 @@ export default function LoginScreen({ navigation }) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
+          // Android scrolls a focused input into view by itself once the
+          // window resizes; this is the iOS equivalent.
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         >
           <Text style={styles.welcomeText}>Welcome back 👋</Text>
           <Text style={styles.welcomeSub}>Sign in to your driver account</Text>
@@ -200,7 +260,7 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    height: height * 0.38,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 20,
@@ -225,14 +285,10 @@ const styles = StyleSheet.create({
     left: -width * 0.1,
   },
   logoRing: {
-    width: 92,
-    height: 92,
-    borderRadius: 26,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.3)',
     padding: 5,
-    marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
@@ -241,7 +297,7 @@ const styles = StyleSheet.create({
   },
   logoImg: { width: '100%', height: '100%', borderRadius: 20 },
   headerTitle: {
-    fontSize: 26, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3,
+    fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3,
   },
   headerSub: {
     fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500',

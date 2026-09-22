@@ -65,7 +65,7 @@ const contactSchema = {
     email: 'book@transrentals.in',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: '215, Galaxy Business, 2nd Floor, SP Ring Road',
+      streetAddress: 'Shakti Dhar Complex, 2nd Floor, Bapunagar',
       addressLocality: 'Ahmedabad',
       addressRegion: 'Gujarat',
       postalCode: '382350',

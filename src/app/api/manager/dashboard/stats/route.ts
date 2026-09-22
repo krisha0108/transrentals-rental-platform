@@ -115,17 +115,31 @@ export async function GET(request: Request) {
       ...dateFilterObj,
     };
 
-    // Filter for tables with pickupCity/locationName field (bus, car, chauffeur, etc.)
+    // Filter for tables with a pickupCity field (bus, chauffeur, luxury, truck,
+    // packers — packers_bookings/packers_quote_requests use pickupCity too).
     const pickupCityFilter = {
       pickupCity: { in: assignedLocationNames },
       ...dateFilterObj,
     };
 
-    // Filter for tables with locationName field (packers, equipment, etc.)
-    const locationNameFilter = {
-      locationName: { in: assignedLocationNames },
+    // equipment_bookings/equipment_quote_requests have neither locationName nor
+    // pickupCity — their location column is deliveryCity.
+    const deliveryCityFilter = {
+      deliveryCity: { in: assignedLocationNames },
       ...dateFilterObj,
     };
+
+    // Every table's .count() below is wrapped in this instead of a bare
+    // `.catch(() => 0)` — a schema mismatch (wrong field name on a table)
+    // throws a Prisma validation error, and silently turning that into 0
+    // is exactly what hid the equipment/packers stats always reading zero
+    // for months. Still resilient (one bad table doesn't 500 the whole
+    // dashboard), but now it leaves a trace.
+    const countOrZero = (promise: Promise<number>, label: string): Promise<number> =>
+      promise.catch((error) => {
+        logger.error(`Manager dashboard stats: ${label} count failed`, error);
+        return 0;
+      });
 
     // Fetch total bookings from all services (COUNT, not fetch)
     // Only count services assigned to the manager
@@ -141,35 +155,35 @@ export async function GET(request: Request) {
     ] = await Promise.all([
       // bike-rental
       isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')
-        ? prisma.bike_bookings.count({ where: locationIdFilter }).catch(() => 0)
+        ? countOrZero(prisma.bike_bookings.count({ where: locationIdFilter }), 'bike_bookings')
         : Promise.resolve(0),
       // bus-rental
       isServiceAssigned('bus-rental') || isServiceAssigned('bus')
-        ? prisma.bus_bookings.count({ where: pickupCityFilter }).catch(() => 0)
+        ? countOrZero(prisma.bus_bookings.count({ where: pickupCityFilter }), 'bus_bookings')
         : Promise.resolve(0),
       // self-drive-car-rental
       isServiceAssigned('self-drive-car-rental') || isServiceAssigned('self-drive')
-        ? prisma.car_bookings.count({ where: locationIdFilter }).catch(() => 0)
+        ? countOrZero(prisma.car_bookings.count({ where: locationIdFilter }), 'car_bookings')
         : Promise.resolve(0),
       // chauffeur-driven-car-rental / car-rental
       isServiceAssigned('chauffeur-driven-car-rental') || isServiceAssigned('car-rental') || isServiceAssigned('chauffeur')
-        ? prisma.chauffeur_bookings.count({ where: pickupCityFilter }).catch(() => 0)
+        ? countOrZero(prisma.chauffeur_bookings.count({ where: pickupCityFilter }), 'chauffeur_bookings')
         : Promise.resolve(0),
-      // equipment-rental
+      // equipment-rental — equipment_bookings has no locationName/pickupCity, only deliveryCity
       isServiceAssigned('equipment-rental') || isServiceAssigned('equipment')
-        ? prisma.equipment_bookings.count({ where: locationNameFilter }).catch(() => 0)
+        ? countOrZero(prisma.equipment_bookings.count({ where: deliveryCityFilter }), 'equipment_bookings')
         : Promise.resolve(0),
       // luxury-car-rental / luxury
       isServiceAssigned('luxury-car-rental') || isServiceAssigned('luxury')
-        ? prisma.luxury_bookings.count({ where: pickupCityFilter }).catch(() => 0)
+        ? countOrZero(prisma.luxury_bookings.count({ where: pickupCityFilter }), 'luxury_bookings')
         : Promise.resolve(0),
-      // packers-and-movers / packers-movers
+      // packers-and-movers / packers-movers — packers_bookings has no locationName, uses pickupCity
       isServiceAssigned('packers-and-movers') || isServiceAssigned('packers-movers')
-        ? prisma.packers_bookings.count({ where: locationNameFilter }).catch(() => 0)
+        ? countOrZero(prisma.packers_bookings.count({ where: pickupCityFilter }), 'packers_bookings')
         : Promise.resolve(0),
       // truck-transport / truck
       isServiceAssigned('truck-transport') || isServiceAssigned('truck')
-        ? prisma.truck_bookings.count({ where: pickupCityFilter }).catch(() => 0)
+        ? countOrZero(prisma.truck_bookings.count({ where: pickupCityFilter }), 'truck_bookings')
         : Promise.resolve(0),
     ]);
 
@@ -189,31 +203,31 @@ export async function GET(request: Request) {
     ] = await Promise.all([
       // bike-rental
       isServiceAssigned('bike-rental') || isServiceAssigned('bike') || isServiceAssigned('bike-on-rent')
-        ? prisma.bike_quote_requests.count({ where: locationIdFilter }).catch(() => 0)
+        ? countOrZero(prisma.bike_quote_requests.count({ where: locationIdFilter }), 'bike_quote_requests')
         : Promise.resolve(0),
       // bus-rental
       isServiceAssigned('bus-rental') || isServiceAssigned('bus')
-        ? prisma.bus_quote_requests.count({ where: pickupCityFilter }).catch(() => 0)
+        ? countOrZero(prisma.bus_quote_requests.count({ where: pickupCityFilter }), 'bus_quote_requests')
         : Promise.resolve(0),
-      // equipment-rental
+      // equipment-rental — equipment_quote_requests has no locationName/pickupCity, only deliveryCity
       isServiceAssigned('equipment-rental') || isServiceAssigned('equipment')
-        ? prisma.equipment_quote_requests.count({ where: locationNameFilter }).catch(() => 0)
+        ? countOrZero(prisma.equipment_quote_requests.count({ where: deliveryCityFilter }), 'equipment_quote_requests')
         : Promise.resolve(0),
       // luxury-car-rental / luxury
       isServiceAssigned('luxury-car-rental') || isServiceAssigned('luxury')
-        ? prisma.luxury_quote_requests.count({ where: pickupCityFilter }).catch(() => 0)
+        ? countOrZero(prisma.luxury_quote_requests.count({ where: pickupCityFilter }), 'luxury_quote_requests')
         : Promise.resolve(0),
-      // packers-and-movers / packers-movers
+      // packers-and-movers / packers-movers — packers_quote_requests has no locationName, uses pickupCity
       isServiceAssigned('packers-and-movers') || isServiceAssigned('packers-movers')
-        ? prisma.packers_quote_requests.count({ where: locationNameFilter }).catch(() => 0)
+        ? countOrZero(prisma.packers_quote_requests.count({ where: pickupCityFilter }), 'packers_quote_requests')
         : Promise.resolve(0),
       // self-drive-car-rental
       isServiceAssigned('self-drive-car-rental') || isServiceAssigned('self-drive')
-        ? prisma.self_drive_quote_requests.count({ where: locationIdFilter }).catch(() => 0)
+        ? countOrZero(prisma.self_drive_quote_requests.count({ where: locationIdFilter }), 'self_drive_quote_requests')
         : Promise.resolve(0),
       // truck-transport / truck
       isServiceAssigned('truck-transport') || isServiceAssigned('truck')
-        ? prisma.truck_quote_requests.count({ where: pickupCityFilter }).catch(() => 0)
+        ? countOrZero(prisma.truck_quote_requests.count({ where: pickupCityFilter }), 'truck_quote_requests')
         : Promise.resolve(0),
     ]);
 

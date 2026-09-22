@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { stripPriceFromTitle, stripPricesFromText } from '@/lib/content/strip-prices';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
@@ -30,7 +30,7 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params for ALL locations
 // Generate static params from DATABASE - Only locations where bus-rental is available
 export async function generateStaticParams() {
   return getAllCityLocations();
@@ -74,9 +74,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 const PAGE_FAQS = [
-  { question: 'What is corporate bus rental and what does it cover?', answer: 'Corporate bus rental covers daily employee pick-up/drop, office event transportation, team outings, and airport transfers for groups.' },
-  { question: 'Can I get a fixed monthly contract for corporate bus rental?', answer: 'Yes, monthly fixed contracts with dedicated routes, fixed timings, and dedicated driver are available for corporate clients.' },
-  { question: 'Is GST invoice provided for corporate bus rental?', answer: 'Yes, GST-compliant invoices with SAC code are provided for all corporate bookings. Monthly consolidated billing is available.' },
+  { question: 'What is corporate bus rental and what does it cover?', answer: 'Corporate bus rental covers daily employee pick-up/drop, office event transportation, team outings, and airport transfers for groups.' },
+  { question: 'Can I get a fixed monthly contract for corporate bus rental?', answer: 'Yes, monthly fixed contracts with dedicated routes, fixed timings, and dedicated driver are available for corporate clients.' },
+  { question: 'Is GST invoice provided for corporate bus rental?', answer: 'Yes, GST-compliant invoices with SAC code are provided for all corporate bookings. Monthly consolidated billing is available.' },
   { question: 'What bus sizes are available for corporate hire?', answer: 'We offer 17, 20, 26, 32, and 49-seater buses for corporate use — AC and non-AC — based on employee count and route requirements.' },
 ];
 

@@ -24,6 +24,10 @@ export interface ManagerStats {
   // manager can act on the same shared, unscoped queue, so there's no
   // "assigned total" to build a coverage ratio against. Just a count.
   contactInquiries: { actioned: number };
+  // Call reports are the manager's own outbound work — vendor and travel-agent
+  // leads they chased. Like contact inquiries there is no assigned queue to
+  // measure coverage against, so this is a straight count of reports logged.
+  callReports: { logged: number; converted: number };
   actionBreakdown: Record<string, number>;
 }
 
@@ -41,6 +45,7 @@ export async function computeManagerStats(
     inquiries: { total: 0, actioned: 0, coveragePct: null },
     bookings: { total: 0, actioned: 0, coveragePct: null },
     contactInquiries: { actioned: 0 },
+    callReports: { logged: 0, converted: 0 },
     actionBreakdown: {},
   };
 
@@ -48,7 +53,7 @@ export async function computeManagerStats(
   // timestamp (createdAt / approvedAt), independent of location/service scope,
   // since createdById/approvedById already identifies the manager directly.
   const createdAtRange = 'createdAt' in dateFilterObj ? dateFilterObj.createdAt : undefined;
-  const [vendorsCreated, vendorsApproved, contactInquiriesActioned] = await Promise.all([
+  const [vendorsCreated, vendorsApproved, contactInquiriesActioned, callReportsLogged, callReportsConverted] = await Promise.all([
     prisma.vendors.count({
       where: { createdById: manager.id, ...(createdAtRange ? { createdAt: createdAtRange } : {}) },
     }).catch(() => 0),
@@ -60,6 +65,19 @@ export async function computeManagerStats(
     prisma.manager_action_logs.count({
       where: { recordType: 'CONTACT_INQUIRY', managerId: manager.id, ...dateFilterObj },
     }).catch(() => 0),
+    // Counted from the reports themselves rather than the action log: a report
+    // that is created and then followed up writes several log rows, and the
+    // headline number should be "leads worked", not "times touched".
+    prisma.manager_call_reports.count({
+      where: { managerId: manager.id, ...(createdAtRange ? { createdAt: createdAtRange } : {}) },
+    }).catch(() => 0),
+    prisma.manager_call_reports.count({
+      where: {
+        managerId: manager.id,
+        status: { in: ['CONVERTED', 'VENDOR_CREATED', 'TRAVEL_AGENT_CREATED'] },
+        ...(createdAtRange ? { createdAt: createdAtRange } : {}),
+      },
+    }).catch(() => 0),
   ]);
 
   if (assignedLocationIds.length === 0 || assignedServiceSlugs.length === 0) {
@@ -67,6 +85,7 @@ export async function computeManagerStats(
       ...empty,
       vendors: { created: vendorsCreated, approved: vendorsApproved },
       contactInquiries: { actioned: contactInquiriesActioned },
+      callReports: { logged: callReportsLogged, converted: callReportsConverted },
     };
   }
 
@@ -171,6 +190,7 @@ export async function computeManagerStats(
       coveragePct: bookingsTotal > 0 ? Math.round((bookingsActioned / bookingsTotal) * 100) : null,
     },
     contactInquiries: { actioned: contactInquiriesActioned },
+    callReports: { logged: callReportsLogged, converted: callReportsConverted },
     actionBreakdown: Object.fromEntries(breakdownGroups.map((g) => [g.actionType, g._count.actionType])),
   };
 }

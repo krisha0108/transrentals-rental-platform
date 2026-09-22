@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  PhoneCall,
   ArrowLeft, RefreshCw, Calendar, Users, UserPlus, ChevronRight, Mail,
   Search, FileText, CheckCircle2, Target, ShieldAlert, X, Crown, Flame, Briefcase,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ interface ManagerPerf {
   inquiries: CoverageStat;
   bookings: CoverageStat;
   contactInquiries: { actioned: number };
+  callReports: { logged: number; converted: number };
   actionBreakdown: Record<string, number>;
 }
 
@@ -183,6 +185,7 @@ export default function ManagerPerformancePage() {
   const totalInquiries = managers.reduce((s, m) => s + m.inquiries.total, 0);
   const totalActioned = managers.reduce((s, m) => s + m.inquiries.actioned, 0);
   const totalContact = managers.reduce((s, m) => s + m.contactInquiries.actioned, 0);
+  const totalCalls = managers.reduce((s, m) => s + (m.callReports?.logged ?? 0), 0);
   const overallPct = totalInquiries > 0 ? Math.round((totalActioned / totalInquiries) * 100) : null;
 
   const filteredManagers = useMemo(() => {
@@ -325,6 +328,7 @@ export default function ManagerPerformancePage() {
             accent={overallPct !== null && overallPct >= 80 ? 'text-emerald-600 bg-emerald-600' : overallPct !== null && overallPct >= 40 ? 'text-amber-600 bg-amber-600' : 'text-red-600 bg-red-600'}
           />
           <StatCard icon={Mail} label="Contact Inquiries Handled" value={state === 'loading' ? '—' : totalContact} accent="text-orange-600 bg-orange-600" />
+          <StatCard icon={PhoneCall} label="Call Reports Logged" value={state === 'loading' ? '—' : totalCalls} accent="text-teal-600 bg-teal-600" />
         </div>
 
         {/* Per-manager table */}
@@ -366,6 +370,7 @@ export default function ManagerPerformancePage() {
                       <th className="text-left px-5 py-3 font-semibold">Bookings</th>
                       <th className="text-left px-5 py-3 font-semibold">Vendors</th>
                       <th className="text-left px-5 py-3 font-semibold">Contact</th>
+                      <th className="text-left px-5 py-3 font-semibold">Calls</th>
                       <th className="text-left px-5 py-3 font-semibold">Coverage</th>
                       <th className="px-5 py-3"></th>
                     </tr>
@@ -413,6 +418,24 @@ export default function ManagerPerformancePage() {
                           <span className="inline-flex items-center gap-1 text-xs font-medium bg-orange-50 text-orange-700 ring-1 ring-orange-200 px-2 py-1 rounded-full">
                             <Mail className="w-3 h-3" /> {m.contactInquiries.actioned}
                           </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {/* Call reports are the manager's own outbound work —
+                              counted here so a day spent chasing vendor leads
+                              is not invisible on this page. */}
+                          {/* Links straight to this manager's rows on the call
+                              reports page — the number alone begs the question
+                              "which calls?". */}
+                          <Link
+                            href={`/admin/settings/managers/call-reports?managerId=${m.id}`}
+                            className="inline-flex items-center gap-1 text-xs font-medium bg-teal-50 text-teal-700 ring-1 ring-teal-200 px-2 py-1 rounded-full hover:bg-teal-100 transition"
+                            title={`${m.callReports?.converted ?? 0} converted — view call reports`}
+                          >
+                            <PhoneCall className="w-3 h-3" /> {m.callReports?.logged ?? 0}
+                            {(m.callReports?.converted ?? 0) > 0 && (
+                              <span className="text-teal-500">· {m.callReports.converted} conv</span>
+                            )}
+                          </Link>
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5 min-w-[130px]">
@@ -466,7 +489,7 @@ export default function ManagerPerformancePage() {
                         style={{ width: `${Math.min(m.inquiries.coveragePct ?? 0, 100)}%` }}
                       />
                     </div>
-                    <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="grid grid-cols-5 gap-1.5 text-center">
                       <div className="bg-slate-50 rounded-lg py-2">
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Inq</p>
                         <p className="text-xs font-semibold text-slate-800">{m.inquiries.actioned}/{m.inquiries.total}</p>
@@ -482,6 +505,10 @@ export default function ManagerPerformancePage() {
                       <div className="bg-orange-50 rounded-lg py-2">
                         <p className="text-[10px] text-orange-400 uppercase tracking-wide">Contact</p>
                         <p className="text-xs font-semibold text-orange-700">{m.contactInquiries.actioned}</p>
+                      </div>
+                      <div className="bg-teal-50 rounded-lg py-2">
+                        <p className="text-[10px] text-teal-400 uppercase tracking-wide">Calls</p>
+                        <p className="text-xs font-semibold text-teal-700">{m.callReports?.logged ?? 0}</p>
                       </div>
                     </div>
                   </button>

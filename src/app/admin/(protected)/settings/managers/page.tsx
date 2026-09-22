@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity, TrendingUp, Mail, Phone as PhoneIcon, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, User, MapPin, Briefcase, Eye, EyeOff, Check, X, Shield, Activity, TrendingUp, Mail, Phone as PhoneIcon, Search, PhoneCall } from 'lucide-react';
 import { LocationStatePicker, type LocationOption } from '@/components/location/LocationStatePicker';
 
 type PresenceStatus = 'active' | 'idle' | 'offline';
@@ -311,6 +311,13 @@ export default function ManagersPage() {
           >
             <Activity size={18} />
             Manager Activity
+          </Link>
+          <Link
+            href="/admin/settings/managers/call-reports"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-amber-600 text-amber-700 rounded-lg hover:bg-amber-50"
+          >
+            <PhoneCall size={18} />
+            Call Reports
           </Link>
           <button
             onClick={() => {

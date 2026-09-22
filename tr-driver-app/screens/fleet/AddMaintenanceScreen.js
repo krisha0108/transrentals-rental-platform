@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Alert } from '../../components/ui/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import AppDatePicker from '../../components/ui/AppDatePicker';
 import { addMaintenanceLog, updateMaintenanceLog } from '../api/client';
 import moment from 'moment';
 
@@ -120,15 +121,14 @@ export default function AddMaintenanceScreen({ route, navigation }) {
               <Text style={[styles.inputText, { color: C.text }]}>{formatDate(date)}</Text>
               <Ionicons name="chevron-down" size={14} color={C.sub} />
             </TouchableOpacity>
-            {showDate && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                maximumDate={new Date()}
-                onChange={(e, d) => { setShowDate(false); if (d) setDate(d); }}
-              />
-            )}
+            <AppDatePicker
+              visible={showDate}
+              value={date}
+              title="Service Date"
+              maximumDate={new Date()}
+              onCancel={() => setShowDate(false)}
+              onConfirm={(d) => { setShowDate(false); if (d) setDate(d); }}
+            />
           </Field>
 
           {/* Description */}
@@ -177,15 +177,15 @@ export default function AddMaintenanceScreen({ route, navigation }) {
               </Text>
               <Ionicons name="chevron-down" size={14} color={C.sub} />
             </TouchableOpacity>
-            {showNextDue && (
-              <DateTimePicker
-                value={nextDue || new Date()}
-                mode="date"
-                display="default"
-                minimumDate={new Date()}
-                onChange={(e, d) => { setShowNextDue(false); if (d) setNextDue(d); }}
-              />
-            )}
+            <AppDatePicker
+              visible={showNextDue}
+              value={nextDue}
+              title="Next Due Date"
+              minimumDate={new Date()}
+              allowClear
+              onCancel={() => setShowNextDue(false)}
+              onConfirm={(d) => { setShowNextDue(false); setNextDue(d); }}
+            />
           </Field>
 
           {/* Save Button */}

@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const navigationRef = createNavigationContainerRef();
 
 import { AuthProvider } from './contexts/AuthContext';
+import { AppAlertHost } from './components/ui/AppAlert';
 import { updateDriverFcmToken, getDriverAppVersion, saveDriverBookingNotification } from './screens/api/client';
 
 import DeviceInfo from 'react-native-device-info';
@@ -659,6 +660,12 @@ export default function App() {
             </View>
           </View>
         </Modal>
+
+      {/* Every Alert.alert in the app renders through this one host, so it
+          has to sit above the navigator and outside AuthProvider's own
+          modals — otherwise an alert raised from a screen would be covered
+          by the screen that raised it. */}
+      <AppAlertHost />
 
       </AuthProvider>
     </SafeAreaProvider>

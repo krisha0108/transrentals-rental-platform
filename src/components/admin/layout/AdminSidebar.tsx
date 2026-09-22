@@ -67,6 +67,7 @@ import {
   Share2,
   Radar,
   MessageSquareQuote,
+  PhoneCall,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -498,6 +499,7 @@ const settingsItems: NavItem[] = [
       { name: 'All Managers', href: '/admin/settings/managers', icon: UserCog },
       { name: 'Manager Performance', href: '/admin/settings/managers/performance', icon: TrendingUp },
       { name: 'Manager Activity', href: '/admin/settings/managers/activity', icon: Activity },
+      { name: 'Call Reports', href: '/admin/settings/managers/call-reports', icon: PhoneCall },
     ],
   },
 ];
