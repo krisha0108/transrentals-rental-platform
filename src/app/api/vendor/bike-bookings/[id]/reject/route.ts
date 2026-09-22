@@ -72,6 +72,8 @@ export async function POST(
         where: { id },
         data: {
           status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelledBy: vendorId,
           cancellationReason: `Vendor cancelled: ${reason}`,
           responseDeadline: null,
         },
