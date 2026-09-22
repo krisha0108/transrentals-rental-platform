@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SearchableSelect, type SelectOption } from './_components/SearchableSelect';
-import { getConversionState } from '@/lib/call-report-conversion';
+import { getConversionState, CONVERTED_STATUSES } from '@/lib/call-report-conversion';
 import { MultiSelect } from './_components/MultiSelect';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
@@ -945,6 +945,13 @@ function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: 
   const meta = STATUS_META[r.status];
   const StatusIcon = meta.icon;
   const conversion = getConversionState(r);
+  // "Vendor Created" next to the vendor's own chip is the same fact twice:
+  // whether that chip is the linked profile (VD-1234) or "Already a Vendor",
+  // it already says this contact is on the books. Every other status —
+  // Follow-up, No Answer, Interested — still shows its pill, because nothing
+  // else in the modal carries it.
+  const statusIsSaidByChip =
+    conversion.kind !== 'offer' && (CONVERTED_STATUSES as readonly string[]).includes(r.status);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
@@ -966,9 +973,11 @@ function ViewReportModal({ report: r, onClose }: { report: CallReport; onClose: 
 
         <div className="p-6 space-y-5 text-sm">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.pill}`}>
-              <StatusIcon className="w-3.5 h-3.5" /> {meta.label}
-            </span>
+            {!statusIsSaidByChip && (
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${meta.pill}`}>
+                <StatusIcon className="w-3.5 h-3.5" /> {meta.label}
+              </span>
+            )}
             <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${r.contactType === 'TRAVEL_AGENT' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
               {r.contactType === 'TRAVEL_AGENT' ? 'Travel Agent' : 'Vendor'}
             </span>
