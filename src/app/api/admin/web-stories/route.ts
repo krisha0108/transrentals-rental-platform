@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
       category: s.category,
       isPublished: s.isPublished,
       isArchived: s.isArchived,
+      isFeatured: s.isFeatured,
       displayOrder: s.displayOrder,
       expiresAt: s.expiresAt?.toISOString() || null,
       publishedAt: s.publishedAt?.toISOString() || null,

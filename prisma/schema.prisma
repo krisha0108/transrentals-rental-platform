@@ -6304,6 +6304,7 @@ model web_stories {
   category         String?
   isPublished      Boolean               @default(false)
   isArchived       Boolean               @default(false)
+  isFeatured       Boolean               @default(false)
   displayOrder     Int                   @default(0)
   expiresAt        DateTime?
   publishedAt      DateTime?
@@ -6317,6 +6318,7 @@ model web_stories {
 
   @@index([isPublished])
   @@index([isArchived])
+  @@index([isFeatured])
   @@index([expiresAt])
   @@index([displayOrder])
 }

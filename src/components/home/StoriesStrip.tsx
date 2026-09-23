@@ -162,7 +162,7 @@ export function StoriesStrip() {
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
-    fetch('/api/web-stories', { signal: controller.signal })
+    fetch('/api/web-stories?featured=true', { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => {
         const list = d.stories?.slice(0, 20) || [];

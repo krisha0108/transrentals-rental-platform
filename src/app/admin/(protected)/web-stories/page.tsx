@@ -6,7 +6,7 @@ import {
   Plus, Search, Edit, Trash2, Eye, Film,
   Globe, Clock, Archive, ChevronLeft, ChevronRight,
   Loader2, ArrowUp, ArrowDown, CheckCircle, XCircle,
-  LayoutGrid, AlertTriangle, TrendingUp,
+  LayoutGrid, AlertTriangle, TrendingUp, Star,
 } from 'lucide-react';
 
 interface WebStory {
@@ -22,6 +22,7 @@ interface WebStory {
   description: string | null;
   isPublished: boolean;
   isArchived: boolean;
+  isFeatured: boolean;
   displayOrder: number;
   expiresAt: string | null;
   publishedAt: string | null;
@@ -92,6 +93,7 @@ export default function WebStoriesAdminPage() {
   const [tab, setTab] = useState<TabFilter>('all');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [featuring, setFeaturing] = useState<string | null>(null);
   const [reordering, setReordering] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -143,6 +145,19 @@ export default function WebStoriesAdminPage() {
       if (res.ok) fetchStories();
     } finally {
       setToggling(null);
+    }
+  };
+
+  // Featured stories are what the homepage carousel shows — separate from
+  // publish state, so an admin can curate a small homepage set without it
+  // affecting what's live on the full /stories listing.
+  const handleToggleFeature = async (id: string) => {
+    setFeaturing(id);
+    try {
+      const res = await fetch(`/api/admin/web-stories/${id}/feature`, { method: 'PATCH' });
+      if (res.ok) fetchStories();
+    } finally {
+      setFeaturing(null);
     }
   };
 
@@ -378,26 +393,36 @@ export default function WebStoriesAdminPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {story.isArchived ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                          <Archive className="w-3 h-3" /> Archived
-                        </span>
-                      ) : isExpired(story) ? (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"
-                          title={`Expired on ${new Date(story.expiresAt as string).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — hidden from the public site`}
-                        >
-                          <AlertTriangle className="w-3 h-3" /> Expired
-                        </span>
-                      ) : story.isPublished ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          <CheckCircle className="w-3 h-3" /> Published
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                          <Clock className="w-3 h-3" /> Draft
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {story.isArchived ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            <Archive className="w-3 h-3" /> Archived
+                          </span>
+                        ) : isExpired(story) ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"
+                            title={`Expired on ${new Date(story.expiresAt as string).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — hidden from the public site`}
+                          >
+                            <AlertTriangle className="w-3 h-3" /> Expired
+                          </span>
+                        ) : story.isPublished ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            <CheckCircle className="w-3 h-3" /> Published
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                            <Clock className="w-3 h-3" /> Draft
+                          </span>
+                        )}
+                        {story.isFeatured && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700"
+                            title="Shown in the homepage Visual Stories carousel"
+                          >
+                            <Star className="w-3 h-3 fill-amber-600" /> Featured
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <SeoScoreBadge score={score} />
@@ -461,6 +486,28 @@ export default function WebStoriesAdminPage() {
                             <XCircle className="w-4 h-4" />
                           ) : (
                             <Globe className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleToggleFeature(story.id)}
+                          disabled={featuring === story.id || !story.isPublished}
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+                            story.isFeatured
+                              ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50'
+                              : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                          }`}
+                          title={
+                            !story.isPublished
+                              ? 'Publish the story first to feature it'
+                              : story.isFeatured
+                              ? 'Remove from homepage carousel'
+                              : 'Show in homepage carousel'
+                          }
+                        >
+                          {featuring === story.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Star className={`w-4 h-4 ${story.isFeatured ? 'fill-amber-500' : ''}`} />
                           )}
                         </button>
                         <button

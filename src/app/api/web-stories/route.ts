@@ -5,18 +5,22 @@ import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
 // GET - Public list of published, non-archived, non-expired stories
-// Optional query params: service (slug), location (slug)
+// Optional query params: service (slug), location (slug), featured (bool —
+// only admin-picked stories, for the homepage carousel rather than the full
+// /stories listing)
 export async function GET(request: NextRequest) {
   try {
     const now = new Date();
     const { searchParams } = new URL(request.url);
     const serviceFilter = searchParams.get('service') || null;
     const locationFilter = searchParams.get('location') || null;
+    const featuredOnly = searchParams.get('featured') === 'true';
 
     const stories = await prisma.web_stories.findMany({
       where: {
         isPublished: true,
         isArchived: false,
+        ...(featuredOnly ? { isFeatured: true } : {}),
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: now } },
