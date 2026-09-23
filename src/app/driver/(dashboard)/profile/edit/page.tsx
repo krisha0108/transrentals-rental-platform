@@ -10,6 +10,34 @@ import {
 
 const LICENSE_TYPES = ['LMV', 'MCWG', 'HMV', 'HPMV', 'TRANS', 'PSV'];
 
+// Same DL validation as the registration form — kept in sync so a licence
+// number is checked the same way whether it's entered at signup or added
+// here later.
+const INDIAN_STATE_CODES = [
+  'AN', 'AP', 'AR', 'AS', 'BR', 'CH', 'CG', 'DD', 'DN', 'DH', 'DL', 'GA', 'GJ',
+  'HP', 'HR', 'JH', 'JK', 'KA', 'KL', 'LA', 'LD', 'MH', 'ML', 'MN', 'MP', 'MZ',
+  'NL', 'OD', 'OR', 'PB', 'PY', 'RJ', 'SK', 'TN', 'TR', 'TS', 'UK', 'UP', 'WB',
+];
+const DL_NUMBER_REGEX = /^([A-Z]{2})(\d{2})(\d{4})(\d{7})$/;
+
+function validateDlNumber(raw: string): string | null {
+  const value = raw.trim().toUpperCase();
+  const match = DL_NUMBER_REGEX.exec(value);
+  if (!match) {
+    return 'Enter a valid 15-character DL number (e.g. DL0120110012345), or check "issued before 2011" below if yours is an older licence.';
+  }
+  const [, stateCode, , yearStr] = match;
+  if (!INDIAN_STATE_CODES.includes(stateCode)) {
+    return `"${stateCode}" isn't a recognized state/UT code`;
+  }
+  const year = parseInt(yearStr, 10);
+  const currentYear = new Date().getFullYear();
+  if (year < 1950 || year > currentYear) {
+    return `License issue year (${year}) looks invalid`;
+  }
+  return null;
+}
+
 function SectionCard({
   icon, iconColor, title, subtitle, badge, children,
 }: {
@@ -82,6 +110,7 @@ export default function EditProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [bankDetailsComplete, setBankDetailsComplete] = useState(true);
+  const [isOldLicense, setIsOldLicense] = useState(false);
 
   const [form, setForm] = useState({
     name: '', address: '', city: '', state: '', pincode: '',
@@ -126,6 +155,14 @@ export default function EditProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) { setError('Name is required'); return; }
+    if (form.licenseNumber.trim()) {
+      if (isOldLicense) {
+        if (form.licenseNumber.trim().length < 4) { setError('Enter your licence number exactly as printed on your card'); return; }
+      } else {
+        const dlError = validateDlNumber(form.licenseNumber);
+        if (dlError) { setError(dlError); return; }
+      }
+    }
     setError('');
     setSuccess('');
     setIsSaving(true);
@@ -208,12 +245,37 @@ export default function EditProfilePage() {
             subtitle="Shown to vendors before they assign you a trip"
           >
             <div className="grid grid-cols-2 gap-3.5">
-              <Field label="License Number" optional value={form.licenseNumber} onChange={e => set('licenseNumber', e.target.value.toUpperCase())} placeholder="e.g. DL0120110012345" />
+              <Field
+                label="License Number" optional value={form.licenseNumber}
+                onChange={e => set('licenseNumber', isOldLicense ? e.target.value.toUpperCase() : e.target.value.toUpperCase().replace(/[\s-]/g, ''))}
+                placeholder={isOldLicense ? 'Enter it exactly as printed on your card' : 'e.g. DL0120110012345'}
+                maxLength={isOldLicense ? 30 : 15}
+              />
               <Select label="License Type" optional value={form.licenseType} onChange={e => set('licenseType', e.target.value)}>
                 <option value="">Select</option>
                 {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </Select>
             </div>
+            <label className="flex items-center gap-2 -mt-1.5 text-xs text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isOldLicense}
+                onChange={e => { setIsOldLicense(e.target.checked); setError(''); }}
+                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              My licence was issued before 2011 (old paper/booklet format)
+            </label>
+            {isOldLicense ? (
+              <p className="-mt-2 text-xs text-gray-400">No problem — just type it exactly as printed on your licence card. We&apos;ll verify it manually.</p>
+            ) : (
+              <p className="-mt-2 text-xs text-gray-400">
+                15-character format only. Don&apos;t have this? Check the box above, or look your number up for free on{' '}
+                <a href="https://parivahan.gov.in/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 underline hover:text-emerald-700">
+                  parivahan.gov.in
+                </a>{' '}
+                (Driving Licence → DL Search).
+              </p>
+            )}
             <Field label="License Expiry" optional type="date" value={form.licenseExpiry} onChange={e => set('licenseExpiry', e.target.value)} />
           </SectionCard>
         </div>
