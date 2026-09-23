@@ -68,7 +68,7 @@ const SERVICES_FAQS = [
   },
   {
     q: 'Is TransRentals available in my city?',
-    a: 'TransRentals connects renters with vendors across 500+ cities and all 36 states/UTs in India. Use the search bar above or check the Locations page to see availability in your city.',
+    a: 'TransRentals connects renters with vendors across 500+ cities, spanning all 28 states and 8 union territories in India. Use the search bar above or check the Locations page to see availability in your city.',
   },
   {
     q: 'Are the vendors on TransRentals verified?',
@@ -264,7 +264,7 @@ export default function ServicesPage() {
 
         <div className="relative container mx-auto px-4 max-w-6xl pt-14 md:pt-16 pb-8">
           <span className="inline-block text-[11px] font-bold tracking-wide text-emerald-300 bg-white/10 border border-white/10 px-3 py-1.5 rounded-full mb-4">
-            500+ CITIES &bull; 36 STATES
+            500+ CITIES &bull; 28 STATES + 8 UTS
           </span>
 
           <h1 className="text-3xl md:text-5xl font-black mb-3 leading-tight max-w-2xl">
