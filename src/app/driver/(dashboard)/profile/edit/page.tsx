@@ -155,13 +155,12 @@ export default function EditProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) { setError('Name is required'); return; }
-    if (form.licenseNumber.trim()) {
-      if (isOldLicense) {
-        if (form.licenseNumber.trim().length < 4) { setError('Enter your licence number exactly as printed on your card'); return; }
-      } else {
-        const dlError = validateDlNumber(form.licenseNumber);
-        if (dlError) { setError(dlError); return; }
-      }
+    if (!form.licenseNumber.trim()) { setError('License number is required'); return; }
+    if (isOldLicense) {
+      if (form.licenseNumber.trim().length < 4) { setError('Enter your licence number exactly as printed on your card'); return; }
+    } else {
+      const dlError = validateDlNumber(form.licenseNumber);
+      if (dlError) { setError(dlError); return; }
     }
     setError('');
     setSuccess('');
@@ -246,7 +245,7 @@ export default function EditProfilePage() {
           >
             <div className="grid grid-cols-2 gap-3.5">
               <Field
-                label="License Number" optional value={form.licenseNumber}
+                label="License Number" required value={form.licenseNumber}
                 onChange={e => set('licenseNumber', isOldLicense ? e.target.value.toUpperCase() : e.target.value.toUpperCase().replace(/[\s-]/g, ''))}
                 placeholder={isOldLicense ? 'Enter it exactly as printed on your card' : 'e.g. DL0120110012345'}
                 maxLength={isOldLicense ? 30 : 15}
