@@ -1,15 +1,85 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Smartphone, Mail, IdCard, Lock, Eye, EyeOff, Loader2, ArrowRight,
-  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar, MapPin, Building2,
+  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar, MapPin, Building2, ChevronDown,
   Route, TrendingUp, CalendarClock, ShieldCheck,
 } from 'lucide-react';
 import DriverAuthStage from '../_components/DriverAuthStage';
 import { AuthCard, CardHeading, Field, PrimaryButton } from '../_components/DriverAuthUI';
+
+interface DropdownOption {
+  id: string;
+  name: string;
+}
+
+/** Styled dropdown matching the `.da-field` look (from DriverAuthUI's global
+ * styles) — a native <select> can't be restyled this way in every browser,
+ * so this opens its own floating option panel instead. */
+function CustomDropdown({
+  icon, label, options, value, onChange, placeholder, emptyMessage,
+}: {
+  icon: React.ReactNode; label: string; options: DropdownOption[]; value: string;
+  onChange: (id: string) => void; placeholder: string; emptyMessage?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const selected = options.find((o) => o.id === value);
+
+  return (
+    <div ref={ref} className="relative">
+      <div
+        className="da-field cursor-pointer select-none"
+        onClick={() => setOpen((o) => !o)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
+      >
+        <span className="da-field-icon">{icon}</span>
+        <span className="da-field-body">
+          <span className="da-field-label">{label}</span>
+          <span className={`da-field-input block truncate ${!selected ? 'da-empty-date' : ''}`}>
+            {selected ? selected.name : placeholder}
+          </span>
+        </span>
+        <ChevronDown className={`h-4 w-4 text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#E3E8F4] rounded-[14px] shadow-lg max-h-56 overflow-y-auto py-1.5">
+          {options.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-gray-400">{emptyMessage || 'Nothing to pick from yet'}</p>
+          ) : (
+            options.map((o) => (
+              <button
+                type="button"
+                key={o.id}
+                onClick={() => { onChange(o.id); setOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-sm transition ${
+                  o.id === value ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {o.name}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function DriverAvatar({ className = '' }: { className?: string }) {
   return (
@@ -302,21 +372,14 @@ export default function DriverRegisterPage() {
 
           <div className="grid gap-3.5 sm:grid-cols-2">
             <div>
-              <div className="da-field">
-                <span className="da-field-icon"><MapPin className="h-[18px] w-[18px]" /></span>
-                <span className="da-field-body">
-                  <label htmlFor="stateId" className="da-field-label">State</label>
-                  <select
-                    id="stateId"
-                    value={form.stateId}
-                    onChange={(e) => { setForm((f) => ({ ...f, stateId: e.target.value, cityIds: [] })); if (error) setError(''); }}
-                    className="da-field-input"
-                  >
-                    <option value="">Select your state</option>
-                    {states.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </span>
-              </div>
+              <CustomDropdown
+                icon={<MapPin className="h-[18px] w-[18px]" />}
+                label="State"
+                placeholder="Select your state"
+                options={states}
+                value={form.stateId}
+                onChange={(id) => { setForm((f) => ({ ...f, stateId: id, cityIds: [] })); if (error) setError(''); }}
+              />
             </div>
             <div>
               <div className={`da-field${!form.stateId ? ' opacity-50' : ''}`} style={{ alignItems: 'flex-start', minHeight: 'auto', padding: '9px 14px' }}>
