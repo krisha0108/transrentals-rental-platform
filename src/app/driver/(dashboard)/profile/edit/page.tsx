@@ -83,14 +83,15 @@ function Field({
 }
 
 function Select({
-  label, optional, className = '', children, ...select
+  label, required, optional, className = '', children, ...select
 }: {
-  label: string; optional?: boolean; className?: string; children: ReactNode;
+  label: string; required?: boolean; optional?: boolean; className?: string; children: ReactNode;
 } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <div className={className}>
       <label className="block text-xs font-semibold text-gray-500 mb-1.5">
         {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
         {optional && <span className="text-gray-300 font-normal ml-1.5">(Optional)</span>}
       </label>
       <select
@@ -162,6 +163,8 @@ export default function EditProfilePage() {
       const dlError = validateDlNumber(form.licenseNumber);
       if (dlError) { setError(dlError); return; }
     }
+    if (!form.licenseType) { setError('License type is required'); return; }
+    if (!form.licenseExpiry) { setError('License expiry date is required'); return; }
     setError('');
     setSuccess('');
     setIsSaving(true);
@@ -250,7 +253,7 @@ export default function EditProfilePage() {
                 placeholder={isOldLicense ? 'Enter it exactly as printed on your card' : 'e.g. DL0120110012345'}
                 maxLength={isOldLicense ? 30 : 15}
               />
-              <Select label="License Type" optional value={form.licenseType} onChange={e => set('licenseType', e.target.value)}>
+              <Select label="License Type" required value={form.licenseType} onChange={e => set('licenseType', e.target.value)}>
                 <option value="">Select</option>
                 {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </Select>
@@ -275,7 +278,7 @@ export default function EditProfilePage() {
                 (Driving Licence → DL Search).
               </p>
             )}
-            <Field label="License Expiry" optional type="date" value={form.licenseExpiry} onChange={e => set('licenseExpiry', e.target.value)} />
+            <Field label="License Expiry" required type="date" value={form.licenseExpiry} onChange={e => set('licenseExpiry', e.target.value)} />
           </SectionCard>
         </div>
 
