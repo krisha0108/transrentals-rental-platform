@@ -155,7 +155,7 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       {/* Page header */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -185,76 +185,78 @@ export default function EditProfilePage() {
       )}
 
       <form onSubmit={handleSave} className="space-y-5">
-        {/* Personal */}
-        <SectionCard
-          icon={<User className="w-5 h-5 text-emerald-600" />}
-          iconColor="bg-emerald-50"
-          title="Personal Info"
-        >
-          <Field label="Full Name" required value={form.name} onChange={e => set('name', e.target.value)} />
-          <Field label="Address" optional value={form.address} onChange={e => set('address', e.target.value)} />
-          <div className="grid grid-cols-3 gap-3.5">
-            <Field label="City" optional value={form.city} onChange={e => set('city', e.target.value)} />
-            <Field label="State" optional value={form.state} onChange={e => set('state', e.target.value)} />
-            <Field label="Pincode" optional value={form.pincode} onChange={e => set('pincode', e.target.value)} maxLength={6} />
-          </div>
-        </SectionCard>
+        {/* Row 1: Personal + License side by side */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          <SectionCard
+            icon={<User className="w-5 h-5 text-emerald-600" />}
+            iconColor="bg-emerald-50"
+            title="Personal Info"
+          >
+            <Field label="Full Name" required value={form.name} onChange={e => set('name', e.target.value)} />
+            <Field label="Address" optional value={form.address} onChange={e => set('address', e.target.value)} />
+            <div className="grid grid-cols-3 gap-3.5">
+              <Field label="City" optional value={form.city} onChange={e => set('city', e.target.value)} />
+              <Field label="State" optional value={form.state} onChange={e => set('state', e.target.value)} />
+              <Field label="Pincode" optional value={form.pincode} onChange={e => set('pincode', e.target.value)} maxLength={6} />
+            </div>
+          </SectionCard>
 
-        {/* License */}
-        <SectionCard
-          icon={<IdCard className="w-5 h-5 text-blue-600" />}
-          iconColor="bg-blue-50"
-          title="Driving License"
-          subtitle="Shown to vendors before they assign you a trip"
-        >
-          <div className="grid grid-cols-2 gap-3.5">
-            <Field label="License Number" optional value={form.licenseNumber} onChange={e => set('licenseNumber', e.target.value.toUpperCase())} placeholder="e.g. DL0120110012345" />
-            <Select label="License Type" optional value={form.licenseType} onChange={e => set('licenseType', e.target.value)}>
-              <option value="">Select</option>
-              {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </Select>
-          </div>
-          <Field label="License Expiry" optional type="date" value={form.licenseExpiry} onChange={e => set('licenseExpiry', e.target.value)} />
-        </SectionCard>
+          <SectionCard
+            icon={<IdCard className="w-5 h-5 text-blue-600" />}
+            iconColor="bg-blue-50"
+            title="Driving License"
+            subtitle="Shown to vendors before they assign you a trip"
+          >
+            <div className="grid grid-cols-2 gap-3.5">
+              <Field label="License Number" optional value={form.licenseNumber} onChange={e => set('licenseNumber', e.target.value.toUpperCase())} placeholder="e.g. DL0120110012345" />
+              <Select label="License Type" optional value={form.licenseType} onChange={e => set('licenseType', e.target.value)}>
+                <option value="">Select</option>
+                {LICENSE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </Select>
+            </div>
+            <Field label="License Expiry" optional type="date" value={form.licenseExpiry} onChange={e => set('licenseExpiry', e.target.value)} />
+          </SectionCard>
+        </div>
 
-        {/* Bank */}
-        <SectionCard
-          icon={<Wallet className="w-5 h-5 text-amber-600" />}
-          iconColor="bg-amber-50"
-          title="Bank Details"
-          subtitle="Where your trip earnings get paid out"
-          badge={
-            bankDetailsComplete ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Complete
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full shrink-0">
-                <AlertCircle className="w-3.5 h-3.5" /> Needed for payouts
-              </span>
-            )
-          }
-        >
-          <Field label="Bank Name" value={form.bankName} onChange={e => set('bankName', e.target.value)} placeholder="e.g. State Bank of India" />
-          <Field label="Account Holder Name" value={form.accountHolderName} onChange={e => set('accountHolderName', e.target.value)} placeholder="As per bank records" />
-          <div className="grid grid-cols-2 gap-3.5">
-            <Field label="Account Number" value={form.accountNumber} onChange={e => set('accountNumber', e.target.value)} />
-            <Field label="IFSC Code" value={form.ifscCode} onChange={e => set('ifscCode', e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" />
-          </div>
-        </SectionCard>
+        {/* Row 2: Bank + Emergency side by side */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          <SectionCard
+            icon={<Wallet className="w-5 h-5 text-amber-600" />}
+            iconColor="bg-amber-50"
+            title="Bank Details"
+            subtitle="Where your trip earnings get paid out"
+            badge={
+              bankDetailsComplete ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Complete
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full shrink-0">
+                  <AlertCircle className="w-3.5 h-3.5" /> Needed for payouts
+                </span>
+              )
+            }
+          >
+            <Field label="Bank Name" value={form.bankName} onChange={e => set('bankName', e.target.value)} placeholder="e.g. State Bank of India" />
+            <Field label="Account Holder Name" value={form.accountHolderName} onChange={e => set('accountHolderName', e.target.value)} placeholder="As per bank records" />
+            <div className="grid grid-cols-2 gap-3.5">
+              <Field label="Account Number" value={form.accountNumber} onChange={e => set('accountNumber', e.target.value)} />
+              <Field label="IFSC Code" value={form.ifscCode} onChange={e => set('ifscCode', e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" />
+            </div>
+          </SectionCard>
 
-        {/* Emergency */}
-        <SectionCard
-          icon={<ShieldAlert className="w-5 h-5 text-rose-600" />}
-          iconColor="bg-rose-50"
-          title="Emergency Contact"
-          subtitle="Who we call if something goes wrong on a trip"
-        >
-          <div className="grid grid-cols-2 gap-3.5">
-            <Field label="Contact Name" optional value={form.emergencyContact} onChange={e => set('emergencyContact', e.target.value)} />
-            <Field label="Contact Phone" optional value={form.emergencyPhone} onChange={e => set('emergencyPhone', e.target.value)} />
-          </div>
-        </SectionCard>
+          <SectionCard
+            icon={<ShieldAlert className="w-5 h-5 text-rose-600" />}
+            iconColor="bg-rose-50"
+            title="Emergency Contact"
+            subtitle="Who we call if something goes wrong on a trip"
+          >
+            <div className="grid grid-cols-2 gap-3.5">
+              <Field label="Contact Name" optional value={form.emergencyContact} onChange={e => set('emergencyContact', e.target.value)} />
+              <Field label="Contact Phone" optional value={form.emergencyPhone} onChange={e => set('emergencyPhone', e.target.value)} />
+            </div>
+          </SectionCard>
+        </div>
 
         <button
           type="submit"
