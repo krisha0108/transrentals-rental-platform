@@ -7551,6 +7551,7 @@ enum manager_notification_type {
   NEW_CONTACT_INQUIRY
   NEW_TRAVEL_AGENT_REGISTRATION
   NEW_VENDOR_AGREEMENT_SIGNED
+  NEW_DRIVER_REGISTRATION
 }
 
 model service_city_content {

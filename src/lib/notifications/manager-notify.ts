@@ -1,6 +1,8 @@
-// Notification writer for managers. Call this from event sites (a vendor
-// submits a new location/service request) to drop a row into every scoped
-// manager's inbox. Reads happen through /api/manager/notifications.
+// Notification writer for admin_users (managers and admins alike, despite
+// the file/table name). Call this from event sites (a vendor submits a new
+// location/service request, a driver registers) to drop a row into every
+// targeted staff member's inbox. Managers read through
+// /api/manager/notifications, admins through /api/admin/notifications.
 //
 // Failures are swallowed — notifications are auxiliary, never block the
 // primary action. Each failure is logged for observability.
@@ -13,7 +15,8 @@ export type ManagerNotificationType =
   | 'NEW_SERVICE_REQUEST'
   | 'NEW_CONTACT_INQUIRY'
   | 'NEW_TRAVEL_AGENT_REGISTRATION'
-  | 'NEW_VENDOR_AGREEMENT_SIGNED';
+  | 'NEW_VENDOR_AGREEMENT_SIGNED'
+  | 'NEW_DRIVER_REGISTRATION';
 
 export interface NotifyManagersInput {
   type: ManagerNotificationType;
@@ -54,6 +57,16 @@ export async function getManagersForService(serviceId: string): Promise<string[]
 export async function getAllActiveManagers(): Promise<string[]> {
   const rows = await prisma.admin_users.findMany({
     where: { role: 'MANAGER', isActive: true },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
+// Platform admins (not managers, not the limited sub-admin role) — used for
+// events admins specifically care about, like a new driver signing up.
+export async function getAllActiveAdmins(): Promise<string[]> {
+  const rows = await prisma.admin_users.findMany({
+    where: { role: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
     select: { id: true },
   });
   return rows.map((r) => r.id);

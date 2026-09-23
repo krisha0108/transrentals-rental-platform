@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Menu, Bell, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
@@ -8,8 +9,34 @@ interface AdminHeaderProps {
   onMenuClick: () => void;
 }
 
+const POLL_MS = 30_000;
+
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const { data: session } = useSession();
+  const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch('/api/admin/notifications?filter=unread&limit=1');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setUnreadCount(data.unreadCount || 0);
+      } catch {
+        // best-effort — a failed poll just leaves the last known count showing
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, POLL_MS);
+    window.addEventListener('admin-notifications-updated', fetchUnread);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('admin-notifications-updated', fetchUnread);
+    };
+  }, []);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
@@ -32,9 +59,17 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         {/* Right - Actions */}
         <div className="flex items-center gap-3">
           {/* Notifications */}
-          <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
+          <button
+            onClick={() => router.push('/admin/notifications')}
+            className="relative p-2 hover:bg-gray-100 rounded-lg transition"
+            aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
+          >
             <Bell className="w-5 h-5 text-gray-700" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            {unreadCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {/* User Menu */}

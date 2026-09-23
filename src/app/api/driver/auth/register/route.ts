@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { generateDid } from '@/lib/utils/generate-did';
+import { getAllActiveAdmins, notifyManagers } from '@/lib/notifications/manager-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -165,6 +166,18 @@ export async function POST(request: NextRequest) {
         status: 'ACTIVE',
         role: 'DRIVER',
       },
+    });
+
+    // Let admins know a new driver signed up. Awaited so it actually runs
+    // before the response goes out (this route can run somewhere that kills
+    // work after the response), but notifyManagers swallows its own
+    // failures — it can never fail or slow down registration itself.
+    await notifyManagers(await getAllActiveAdmins(), {
+      type: 'NEW_DRIVER_REGISTRATION',
+      title: 'New driver registered',
+      body: `${driver.name} (${normalizedPhone}) just signed up as a driver.`,
+      link: `/admin/drivers/${driver.id}`,
+      dedupeKey: driver.id,
     });
 
     // Generate JWT
