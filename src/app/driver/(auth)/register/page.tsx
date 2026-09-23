@@ -103,6 +103,114 @@ function CustomDropdown({
   );
 }
 
+/** Same shell as CustomDropdown, but picking an option doesn't close the
+ * panel — a driver usually wants more than one city, so closing on the
+ * first pick would mean reopening it for every additional one. */
+function CustomMultiDropdown({
+  icon, label, options, values, onToggle, placeholder, disabled, disabledMessage, emptyMessage,
+}: {
+  icon: React.ReactNode; label: string; options: DropdownOption[]; values: string[];
+  onToggle: (id: string) => void; placeholder: string; disabled?: boolean; disabledMessage?: string; emptyMessage?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const selectedNames = options.filter((o) => values.includes(o.id)).map((o) => o.name);
+  const summary = selectedNames.length === 0
+    ? placeholder
+    : selectedNames.length <= 2
+    ? selectedNames.join(', ')
+    : `${selectedNames.slice(0, 2).join(', ')} +${selectedNames.length - 2} more`;
+
+  const filtered = query.trim()
+    ? options.filter((o) => o.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  return (
+    <div ref={ref} className="relative">
+      <div
+        className={`da-field select-none ${disabled ? 'opacity-50' : 'cursor-pointer'}`}
+        onClick={() => { if (!disabled) { setOpen((o) => !o); setQuery(''); } }}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(e) => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setOpen((o) => !o); } }}
+      >
+        <span className="da-field-icon">{icon}</span>
+        <span className="da-field-body">
+          <span className="da-field-label">
+            {label}
+            <em className="da-opt">(Optional, pick any)</em>
+          </span>
+          <span className={`da-field-input block truncate ${selectedNames.length === 0 ? 'da-empty-date' : ''}`}>
+            {disabled ? (disabledMessage || placeholder) : summary}
+          </span>
+        </span>
+        <ChevronDown className={`h-4 w-4 text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#E3E8F4] rounded-[14px] shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-100">
+            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <input
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="w-full text-sm outline-none placeholder:text-gray-400 text-gray-900"
+            />
+          </div>
+          <div className="max-h-52 overflow-y-auto py-1.5">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-gray-400">
+                {options.length === 0 ? (emptyMessage || 'Nothing to pick from yet') : `No match for "${query}"`}
+              </p>
+            ) : (
+              filtered.map((o) => {
+                const checked = values.includes(o.id);
+                return (
+                  <button
+                    type="button"
+                    key={o.id}
+                    onClick={() => onToggle(o.id)}
+                    className={`w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-sm transition ${
+                      checked ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded shrink-0 border flex items-center justify-center ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300'}`}>
+                      {checked && <CheckIcon />}
+                    </span>
+                    {o.name}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-2.5 w-2.5" aria-hidden>
+      <path d="M3 8.5L6.2 11.5L13 4.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function DriverAvatar({ className = '' }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
@@ -404,40 +512,17 @@ export default function DriverRegisterPage() {
               />
             </div>
             <div>
-              <div className={`da-field${!form.stateId ? ' opacity-50' : ''}`} style={{ alignItems: 'flex-start', minHeight: 'auto', padding: '9px 14px' }}>
-                <span className="da-field-icon" style={{ marginTop: '3px' }}><Building2 className="h-[18px] w-[18px]" /></span>
-                <span className="da-field-body">
-                  <label className="da-field-label">
-                    Cities you operate in
-                    <em className="da-opt">(Optional, pick any)</em>
-                  </label>
-                  {form.stateId ? (
-                    citiesInSelectedState.length > 0 ? (
-                      <div className="mt-1.5 max-h-28 overflow-y-auto flex flex-wrap gap-1.5">
-                        {citiesInSelectedState.map((c) => {
-                          const selected = form.cityIds.includes(c.id);
-                          return (
-                            <button
-                              type="button"
-                              key={c.id}
-                              onClick={() => toggleCity(c.id)}
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
-                                selected ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-400'
-                              }`}
-                            >
-                              {c.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 mt-1.5">No cities listed for this state yet</p>
-                    )
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-1.5">Pick a state first</p>
-                  )}
-                </span>
-              </div>
+              <CustomMultiDropdown
+                icon={<Building2 className="h-[18px] w-[18px]" />}
+                label="Cities you operate in"
+                placeholder={form.stateId ? 'Select cities' : 'Pick a state first'}
+                options={citiesInSelectedState}
+                values={form.cityIds}
+                onToggle={toggleCity}
+                disabled={!form.stateId}
+                disabledMessage="Pick a state first"
+                emptyMessage="No cities listed for this state yet"
+              />
             </div>
           </div>
 
