@@ -387,7 +387,7 @@ export default function DriverRegisterPage() {
             />
             <span>
               I agree to the{' '}
-              <Link href="/terms-and-conditions" className="da-agree-link">Terms &amp; Conditions</Link>
+              <Link href="/terms-conditions" className="da-agree-link">Terms &amp; Conditions</Link>
               {' '}and{' '}
               <Link href="/privacy-policy" className="da-agree-link">Privacy Policy</Link>
             </span>
