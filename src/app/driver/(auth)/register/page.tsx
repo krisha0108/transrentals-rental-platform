@@ -124,12 +124,10 @@ function CustomMultiDropdown({
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
-  const selectedNames = options.filter((o) => values.includes(o.id)).map((o) => o.name);
-  const summary = selectedNames.length === 0
+  const selected = options.filter((o) => values.includes(o.id));
+  const summary = selected.length === 0
     ? placeholder
-    : selectedNames.length <= 2
-    ? selectedNames.join(', ')
-    : `${selectedNames.slice(0, 2).join(', ')} +${selectedNames.length - 2} more`;
+    : `${selected.length} ${selected.length === 1 ? 'city' : 'cities'} selected`;
 
   const filtered = query.trim()
     ? options.filter((o) => o.name.toLowerCase().includes(query.trim().toLowerCase()))
@@ -150,7 +148,7 @@ function CustomMultiDropdown({
             {label}
             <em className="da-opt">(Optional, pick any)</em>
           </span>
-          <span className={`da-field-input block truncate ${selectedNames.length === 0 ? 'da-empty-date' : ''}`}>
+          <span className={`da-field-input block truncate ${selected.length === 0 ? 'da-empty-date' : ''}`}>
             {disabled ? (disabledMessage || placeholder) : summary}
           </span>
         </span>
@@ -197,6 +195,30 @@ function CustomMultiDropdown({
               })
             )}
           </div>
+        </div>
+      )}
+
+      {/* Every pick shown in full below, not just a count in the trigger —
+          a driver scanning a long list should be able to see exactly which
+          cities they already added without reopening the panel. */}
+      {selected.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selected.map((o) => (
+            <span
+              key={o.id}
+              className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
+            >
+              {o.name}
+              <button
+                type="button"
+                onClick={() => onToggle(o.id)}
+                aria-label={`Remove ${o.name}`}
+                className="w-3.5 h-3.5 rounded-full flex items-center justify-center hover:bg-emerald-200/70 transition"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
         </div>
       )}
     </div>
