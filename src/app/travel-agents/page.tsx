@@ -89,7 +89,7 @@ const STEPS = [
 
 const STATS = [
   { value: '50+', label: 'Travel agents onboarded' },
-  { value: '150+', label: 'Cities across India' },
+  { value: '500+', label: 'Cities across India' },
   { value: '0%', label: 'Listing fee — always free' },
   { value: '24/7', label: 'Customer support' },
 ];

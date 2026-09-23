@@ -36,8 +36,8 @@ const features = [
   },
   {
     icon: MapPin,
-    title: '150+ Cities',
-    description: 'Pan-India presence with services in 150+ cities',
+    title: '500+ Cities',
+    description: 'Pan-India presence with services in 500+ cities',
   },
 ];
 

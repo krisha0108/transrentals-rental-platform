@@ -68,7 +68,7 @@ const RIGHTS = [
 export const metadata: Metadata = {
   title: 'Privacy Policy | TransRentals',
   description:
-    'TransRentals protects the information of customers booking bikes, cars, buses, trucks and equipment in 150+ cities.',
+    'TransRentals protects the information of customers booking bikes, cars, buses, trucks and equipment in 500+ cities.',
 };
 
 export default function PrivacyPolicyPage() {
@@ -83,7 +83,7 @@ export default function PrivacyPolicyPage() {
             Your privacy, safeguarded
           </h1>
           <p className="mt-4 max-w-3xl text-lg text-slate-600 leading-relaxed">
-            TransRentals operates in over 150+ Indian cities. We only collect what is necessary to
+            TransRentals operates in over 500+ Indian cities. We only collect what is necessary to
             complete a rental, keep you informed, and comply with local regulations. Every interaction
             is secured with industry-standard encryption and transparent policies.
           </p>
@@ -92,7 +92,7 @@ export default function PrivacyPolicyPage() {
               Last updated April 2025
             </span>
             <span className="rounded-full border border-slate-200 bg-white px-4 py-2 font-semibold">
-              150+ Cities
+              500+ Cities
             </span>
           </div>
         </section>

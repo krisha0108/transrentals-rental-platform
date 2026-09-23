@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 const STATS = [
   { number: '10,000+', label: 'Active Vendors', icon: Users },
   { number: '1,50,000+', label: 'Bookings / Month', icon: Calendar },
-  { number: '150+', label: 'Cities Covered', icon: MapPin },
+  { number: '500+', label: 'Cities Covered', icon: MapPin },
   { number: '4.8/5', label: 'Average Rating', icon: Star },
 ];
 

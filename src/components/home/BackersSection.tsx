@@ -37,7 +37,7 @@ const ACHIEVEMENTS = [
   },
   {
     icon: <Globe className="w-8 h-8" />,
-    number: '150+',
+    number: '500+',
     label: 'Cities Covered',
     gradient: 'from-purple-500 to-pink-500',
   },

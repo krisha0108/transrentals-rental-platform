@@ -71,7 +71,7 @@ const VEHICLE_CATEGORIES_BASE = [
 const LIVE_STATS = [
   { value: '2.5K+', label: 'Inquiries Today', icon: '📋' },
   { value: '500+', label: 'Active Vendors', icon: '🏪' },
-  { value: '150+', label: 'Cities', icon: '📍' },
+  { value: '500+', label: 'Cities', icon: '📍' },
 ];
 
 export function HeroSection() {
@@ -146,7 +146,7 @@ export function HeroSection() {
           </h1>
 
           <p className="text-xl text-gray-600 mb-8">
-            Compare quotes from 500+ verified vendors across 150+ cities
+            Compare quotes from 500+ verified vendors across 500+ cities
           </p>
 
           <div className="flex justify-center flex-wrap gap-4">

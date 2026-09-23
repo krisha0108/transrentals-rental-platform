@@ -72,7 +72,7 @@ const VEHICLE_CATEGORIES_BASE = [
 const LIVE_STATS = [
   { value: '2.5K+', label: 'Inquiries Today', icon: '📋' },
   { value: '500+', label: 'Active Vendors', icon: '🏪' },
-  { value: '150+', label: 'Cities', icon: '📍' },
+  { value: '500+', label: 'Cities', icon: '📍' },
 ];
 
 export function HeroSectionDynamic() {

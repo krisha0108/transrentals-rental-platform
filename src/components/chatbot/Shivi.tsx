@@ -174,7 +174,7 @@ export function Shivi() {
       case 'locations':
         addUserMessage('Where do you operate?');
         addShiviMessage(
-          "We operate in 150+ cities across India! 🇮🇳\n\nPopular locations include:\n• Goa\n• Manali\n• Bangalore\n• Mumbai\n• Delhi\n• Jaipur\n• Leh Ladakh\n• Kerala\n\nAnd many more!",
+          "We operate in 500+ cities across India! 🇮🇳\n\nPopular locations include:\n• Goa\n• Manali\n• Bangalore\n• Mumbai\n• Delhi\n• Jaipur\n• Leh Ladakh\n• Kerala\n\nAnd many more!",
           [{ label: 'Book Now', action: 'car-rental' }]
         );
         break;

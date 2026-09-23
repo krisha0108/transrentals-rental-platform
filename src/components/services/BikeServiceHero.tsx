@@ -29,7 +29,7 @@ export function BikeServiceHero() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
             <MapPin className="w-4 h-4" />
-            <span>Available in 150+ Cities Across India</span>
+            <span>Available in 500+ Cities Across India</span>
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
@@ -82,7 +82,7 @@ export function BikeServiceHero() {
             transition={{ delay: 0.3 }}
             className="text-center p-6 bg-white rounded-xl shadow-lg"
           >
-            <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent">150+</div>
+            <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent">500+</div>
             <div className="text-sm text-gray-600 mt-1">Cities Covered</div>
           </motion.div>
           <motion.div

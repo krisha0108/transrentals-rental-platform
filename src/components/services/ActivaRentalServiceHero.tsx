@@ -60,7 +60,7 @@ export function ActivaRentalServiceHero() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">Available Across India</h3>
-                    <p className="text-blue-100">Rent in 150+ cities nationwide</p>
+                    <p className="text-blue-100">Rent in 500+ cities nationwide</p>
                   </div>
                 </div>
               </div>

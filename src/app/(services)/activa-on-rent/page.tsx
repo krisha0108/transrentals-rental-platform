@@ -9,7 +9,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 export const metadata: Metadata = {
   title: formatPriceHighlight('Activa on Rent - Rent Activa & Scooty Starting @₹299/Day | TransRentals'),
   description:
-    formatPriceHighlight('Rent Honda Activa, TVS Jupiter, Suzuki Access & other scooters across 150+ cities in India. Easy to ride, fuel efficient. Best prices guaranteed. Book your scooty rental now!'),
+    formatPriceHighlight('Rent Honda Activa, TVS Jupiter, Suzuki Access & other scooters across 500+ cities in India. Easy to ride, fuel efficient. Best prices guaranteed. Book your scooty rental now!'),
   keywords: [
     'activa on rent',
     'scooty on rent',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: formatPriceHighlight('Activa on Rent - Scooty Rental Starting @₹299/Day | TransRentals'),
-    description: formatPriceHighlight('Rent Honda Activa, TVS Jupiter & scooters across 150+ cities. Easy to ride, fuel efficient.'),
+    description: formatPriceHighlight('Rent Honda Activa, TVS Jupiter & scooters across 500+ cities. Easy to ride, fuel efficient.'),
     type: 'website',
     url: 'https://transrentals.in/activa-on-rent',
     images: [
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: formatPriceHighlight('Activa on Rent - Starting @₹299/Day | TransRentals'),
-    description: formatPriceHighlight('Rent scooters across 150+ cities in India. Easy to ride, fuel efficient.'),
+    description: formatPriceHighlight('Rent scooters across 500+ cities in India. Easy to ride, fuel efficient.'),
     images: ['https://transrentals.in/images/og/activa-rental.jpg'],
   },
   alternates: {
@@ -82,7 +82,7 @@ export default function ActivaOnRentPage() {
       <BikeServiceSchema
         serviceName="Activa on Rent"
         serviceSlug="activa-on-rent"
-        description="Rent Honda Activa, TVS Jupiter & scooters across 150+ cities in India. Easy to ride, fuel efficient. Best prices starting @₹299/day."
+        description="Rent Honda Activa, TVS Jupiter & scooters across 500+ cities in India. Easy to ride, fuel efficient. Best prices starting @₹299/day."
         faqs={schemaFaqs}
         vehicles={schemaVehicles}
         priceRange={{ min: 299, max: 499 }}

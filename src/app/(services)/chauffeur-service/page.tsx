@@ -124,7 +124,7 @@ export default async function ChauffeurServicePage() {
         totalTime="PT5M"
         steps={[
           { name: 'Select Service Type', text: 'Choose from local packages (4hr/8hr), outstation, or monthly driver hire.' },
-          { name: 'Pick Your City & Date', text: 'Enter your pickup city and start date. Chauffeur available 24/7 across 150+ cities.' },
+          { name: 'Pick Your City & Date', text: 'Enter your pickup city and start date. Chauffeur available 24/7 across 500+ cities.' },
           { name: 'Choose Vehicle Category', text: 'Hatchback, Sedan, or SUV driver — pick based on your car type.' },
           { name: 'Confirm & Driver Arrives', text: 'Pay online and receive driver details. Professional chauffeur arrives at your doorstep.' },
         ]}

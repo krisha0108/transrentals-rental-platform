@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
               zIndex: 1,
             }}
           >
-            {['10,000+ Verified Vendors', '150+ Cities', '2,00,000+ Bookings', '4.8/5 Rated'].map((t) => (
+            {['10,000+ Verified Vendors', '500+ Cities', '2,00,000+ Bookings', '4.8/5 Rated'].map((t) => (
               <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
                 <div style={{ color: '#94a3b8', fontSize: 16 }}>{t}</div>

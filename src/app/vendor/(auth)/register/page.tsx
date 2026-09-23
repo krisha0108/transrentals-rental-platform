@@ -318,7 +318,7 @@ export default function VendorRegisterPage() {
             <span className="text-blue-600">Revenue Machine</span>
           </h1>
           <p className="text-gray-500 mt-3 text-base max-w-xl mx-auto">
-            Join 10,000+ vendors across 150+ cities earning consistently on TransRentals. Set up your profile in 2 minutes.
+            Join 10,000+ vendors across 500+ cities earning consistently on TransRentals. Set up your profile in 2 minutes.
           </p>
         </div>
 
@@ -373,7 +373,7 @@ export default function VendorRegisterPage() {
                   <div className="text-xs text-gray-500">Vendors</div>
                 </div>
                 <div className="text-center bg-gray-50 rounded-lg p-2">
-                  <div className="text-lg font-extrabold text-green-600">150+</div>
+                  <div className="text-lg font-extrabold text-green-600">500+</div>
                   <div className="text-xs text-gray-500">Cities</div>
                 </div>
                 <div className="text-center bg-gray-50 rounded-lg p-2">

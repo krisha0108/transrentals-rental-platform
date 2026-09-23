@@ -263,7 +263,7 @@ export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDesc
               {pageDescription ||
                 (city
                   ? `Rent bikes at best prices and explore ${city} on two wheels. Flexible plans, easy booking, zero hassle.`
-                  : 'Royal Enfield, KTM, Honda, Yamaha and more across 150+ cities. Flexible plans, easy booking, zero hassle.')}
+                  : 'Royal Enfield, KTM, Honda, Yamaha and more across 500+ cities. Flexible plans, easy booking, zero hassle.')}
             </p>
 
             {/* Feature highlights */}

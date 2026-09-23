@@ -58,7 +58,7 @@ export default function CancellationPolicyPage() {
             Transparent windows, clear fees
           </h1>
           <p className="mt-4 max-w-3xl text-lg text-slate-600 leading-relaxed">
-            Take control of your bookings across 150+ cities. We explain timelines, vehicle-specific penalties, and how our support team assists when you need to cancel.
+            Take control of your bookings across 500+ cities. We explain timelines, vehicle-specific penalties, and how our support team assists when you need to cancel.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-500">
             <span className="rounded-full border border-slate-200 bg-white px-4 py-2 font-semibold">
