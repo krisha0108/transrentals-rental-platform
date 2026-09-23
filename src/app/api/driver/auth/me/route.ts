@@ -39,12 +39,14 @@ export async function GET(request: NextRequest) {
         yearsExperience: (driver as any).yearsExperience ?? null,
         isProfilePublic: (driver as any).isProfilePublic ?? true,
         vendor: (driver as any).vendors || null,
-        // Payout details aren't shown here (the raw account number/IFSC
-        // aren't needed just to render a dashboard) — only whether they're
-        // complete, so the dashboard can prompt a driver to fill them in.
+        // Full account number/IFSC aren't returned here — just enough for the
+        // profile page to show "bank name, ****1234" without exposing the
+        // whole number over the wire for a screen that doesn't need it.
         bankDetailsComplete: Boolean(
           (driver as any).bankName && (driver as any).accountNumber && (driver as any).ifscCode
         ),
+        bankName: (driver as any).bankName ?? null,
+        accountNumberLast4: (driver as any).accountNumber ? String((driver as any).accountNumber).slice(-4) : null,
       },
     });
   } catch (error: any) {
