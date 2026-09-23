@@ -24,6 +24,7 @@ import {
   Radio,
   Zap,
   ExternalLink,
+  Wallet,
 } from 'lucide-react';
 import BackrCard from '@/components/backr/BackrCard';
 
@@ -56,6 +57,7 @@ interface Stats {
 interface DriverInfo {
   userType?: string;
   id?: string;
+  bankDetailsComplete?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -132,7 +134,13 @@ export default function DriverDashboardPage() {
       const meData = await meRes.json();
       const bookingsData = await bookingsRes.json();
 
-      if (meData.success) setDriverInfo({ userType: meData.driver?.userType, id: meData.driver?.id });
+      if (meData.success) {
+        setDriverInfo({
+          userType: meData.driver?.userType,
+          id: meData.driver?.id,
+          bankDetailsComplete: meData.driver?.bankDetailsComplete,
+        });
+      }
       if (bookingsData.success) {
         setBookings(bookingsData.bookings);
         setStats(bookingsData.stats);
@@ -166,6 +174,26 @@ export default function DriverDashboardPage() {
         <h1 className="text-lg sm:text-xl font-bold">Welcome Back!</h1>
         <p className="text-emerald-100 mt-1 text-sm">Here's your trip summary for today</p>
       </div>
+
+      {/* Bank Details Banner — every new driver hits this until they fill it in,
+          since payouts have nowhere to go without it. */}
+      {driverInfo.bankDetailsComplete === false && (
+        <Link
+          href="/driver/profile/edit"
+          className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5 hover:bg-amber-100 transition"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+              <Wallet className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-amber-900">Add your bank details to get paid</p>
+              <p className="text-sm text-amber-700">Your trip earnings can't be paid out until this is set up — takes under a minute</p>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-amber-500 shrink-0" />
+        </Link>
+      )}
 
       {/* Available Trips Banner — independent drivers only */}
       {driverInfo.userType === 'independent' && (

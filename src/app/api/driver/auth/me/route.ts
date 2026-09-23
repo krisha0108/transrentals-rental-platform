@@ -39,6 +39,12 @@ export async function GET(request: NextRequest) {
         yearsExperience: (driver as any).yearsExperience ?? null,
         isProfilePublic: (driver as any).isProfilePublic ?? true,
         vendor: (driver as any).vendors || null,
+        // Payout details aren't shown here (the raw account number/IFSC
+        // aren't needed just to render a dashboard) — only whether they're
+        // complete, so the dashboard can prompt a driver to fill them in.
+        bankDetailsComplete: Boolean(
+          (driver as any).bankName && (driver as any).accountNumber && (driver as any).ifscCode
+        ),
       },
     });
   } catch (error: any) {
