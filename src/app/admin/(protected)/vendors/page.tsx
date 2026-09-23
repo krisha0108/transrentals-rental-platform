@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   Store,
   Search,
-  Filter,
   Eye,
   CheckCircle,
   XCircle,
@@ -22,17 +21,27 @@ import {
   ChevronDown,
   MoreHorizontal,
   CalendarDays,
+  X,
+  Bell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import FilterMultiSelect from '@/components/manager/FilterMultiSelect';
 
 interface Vendor {
   id: string;
+  vid?: string | null;
   businessName: string;
   ownerName: string;
   email: string;
   phone: string;
   status: string;
   createdAt: string;
+  rating?: number | null;
+  totalRatings?: number | null;
+  locationNames?: string[];
+  serviceNames?: string[];
+  pendingLocationNames?: string[];
+  pendingServiceNames?: string[];
   _count: {
     documents: number;
     serviceRequests: number;
@@ -48,6 +57,14 @@ interface Pagination {
   limit: number;
   total: number;
   pages: number;
+}
+
+// Counted over the whole filtered set by the API, so paging does not move them.
+interface Stats {
+  total: number;
+  approved: number;
+  pending: number;
+  suspended: number;
 }
 
 // Presence — "is this vendor online right now" — same mechanism as the admin
@@ -87,10 +104,11 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   BLOCKED: { label: 'Blocked', color: 'bg-gray-100 text-gray-800', icon: Ban },
 };
 
-type DatePreset = 'all' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
+type DatePreset = 'all' | 'last7Days' | 'today' | 'yesterday' | 'thisWeek' | 'thisMonth' | 'custom';
 
 const datePresetLabels: Record<DatePreset, string> = {
   all: 'All Time',
+  last7Days: '🆕 New (Last 7 Days)',
   today: 'Today',
   yesterday: 'Yesterday',
   thisWeek: 'This Week',
@@ -106,6 +124,11 @@ function getDateRange(preset: DatePreset, customFrom: string, customTo: string):
   const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 
   switch (preset) {
+    case 'last7Days': {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 6);
+      return [startOfDay(weekAgo), endOfDay(now)];
+    }
     case 'today':
       return [startOfDay(now), endOfDay(now)];
     case 'yesterday': {
@@ -132,6 +155,15 @@ function getDateRange(preset: DatePreset, customFrom: string, customTo: string):
       return [null, null];
   }
 }
+
+const SORT_OPTIONS = [
+  { value: 'date_desc', label: 'Newest First' },
+  { value: 'date_asc', label: 'Oldest First' },
+  { value: 'rating_desc', label: 'Top Ranking' },
+  { value: 'rating_asc', label: 'Low Ranking' },
+  { value: 'fleet_desc', label: 'Big Fleet First' },
+  { value: 'fleet_asc', label: 'Small Fleet' },
+];
 
 const statusActions: Record<string, { action: string; label: string; color: string }[]> = {
   PENDING: [
@@ -272,6 +304,13 @@ export default function VendorsPage() {
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const [locationFilters, setLocationFilters] = useState<string[]>([]);
+  const [serviceFilters, setServiceFilters] = useState<string[]>([]);
+  const [requestFilter, setRequestFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date_desc');
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<string[]>([]);
 
   // Status change state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -303,6 +342,10 @@ export default function VendorsPage() {
       params.append('limit', pagination.limit.toString());
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
       if (search) params.append('search', search);
+      if (locationFilters.length) params.append('location', locationFilters.join(','));
+      if (serviceFilters.length) params.append('service', serviceFilters.join(','));
+      if (requestFilter !== 'all') params.append('request', requestFilter);
+      if (sortBy !== 'date_desc') params.append('sort', sortBy);
 
       if (datePreset !== 'all' && !(datePreset === 'custom' && !customFrom && !customTo)) {
         const [from, to] = getDateRange(datePreset, customFrom, customTo);
@@ -315,6 +358,12 @@ export default function VendorsPage() {
         const data = await res.json();
         setVendors(data.vendors);
         setPagination(data.pagination);
+        if (data.stats) setStats(data.stats);
+        // The option lists cover every vendor, so they do not narrow as the
+        // current filters narrow; keeping the last non-empty list avoids the
+        // dropdowns blinking empty between requests.
+        if (Array.isArray(data.locations) && data.locations.length) setLocationOptions(data.locations);
+        if (Array.isArray(data.services) && data.services.length) setServiceOptions(data.services);
       }
     } catch (error) {
       console.error('Failed to fetch vendors:', error);
@@ -325,7 +374,41 @@ export default function VendorsPage() {
 
   useEffect(() => {
     fetchVendors();
-  }, [pagination.page, statusFilter, search, datePreset, customFrom, customTo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    pagination.page, statusFilter, search, datePreset, customFrom, customTo,
+    locationFilters, serviceFilters, requestFilter, sortBy,
+  ]);
+
+  // Every filter change starts again from page 1 — landing on page 4 of a
+  // result set that now has one page shows an empty table.
+  const applyFilter = (change: () => void) => {
+    change();
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setStatusFilter('ALL');
+    setLocationFilters([]);
+    setServiceFilters([]);
+    setRequestFilter('all');
+    setDatePreset('all');
+    setCustomFrom('');
+    setCustomTo('');
+    setSortBy('date_desc');
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const activeFilterCount =
+    (search ? 1 : 0) +
+    (statusFilter !== 'ALL' ? 1 : 0) +
+    locationFilters.length +
+    serviceFilters.length +
+    (requestFilter !== 'all' ? 1 : 0) +
+    (datePreset !== 'all' ? 1 : 0) +
+    (sortBy !== 'date_desc' ? 1 : 0);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -392,71 +475,139 @@ export default function VendorsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Vendor Management</h1>
           <p className="text-gray-600">Manage vendor registrations and approvals</p>
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">
-            {vendors.filter((v) => v.status === 'PENDING' || v.status === 'UNDER_REVIEW').length} Pending
+        {datePreset !== 'all' && (
+          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full flex items-center gap-1 text-sm">
+            <CalendarDays className="w-3.5 h-3.5" />
+            {pagination.total} joined {datePresetLabels[datePreset] === 'Custom Range' ? 'in range' : datePresetLabels[datePreset].replace('🆕 ', '').toLowerCase()}
           </span>
-          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full">
-            {vendors.filter((v) => v.status === 'APPROVED').length} Approved
-          </span>
-          {datePreset !== 'all' && (
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full flex items-center gap-1">
-              <CalendarDays className="w-3.5 h-3.5" />
-              {pagination.total} joined {datePresetLabels[datePreset] === 'Custom Range' ? 'in range' : datePresetLabels[datePreset].toLowerCase()}
-            </span>
-          )}
-        </div>
+        )}
+      </div>
+
+      {/* Counts across the whole filtered set. The pills that used to sit in
+          the header counted only the twenty rows on the current page, so they
+          disagreed with themselves as soon as you turned the page. Clicking a
+          card filters to it. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total', value: stats?.total, status: 'ALL', icon: Store, iconWrap: 'bg-slate-100 text-slate-600', valColor: 'text-slate-900', accent: 'bg-slate-300' },
+          { label: 'Approved', value: stats?.approved, status: 'APPROVED', icon: CheckCircle, iconWrap: 'bg-green-100 text-green-600', valColor: 'text-green-600', accent: 'bg-green-400' },
+          { label: 'Pending', value: stats?.pending, status: 'PENDING_ALL', icon: Clock, iconWrap: 'bg-yellow-100 text-yellow-600', valColor: 'text-yellow-600', accent: 'bg-yellow-400' },
+          { label: 'Suspended', value: stats?.suspended, status: 'SUSPENDED', icon: AlertTriangle, iconWrap: 'bg-purple-100 text-purple-600', valColor: 'text-purple-600', accent: 'bg-purple-400' },
+        ].map(({ label, value, status, icon: Icon, iconWrap, valColor, accent }) => {
+          const selected = statusFilter === status;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => applyFilter(() => setStatusFilter(status))}
+              aria-pressed={selected}
+              className={`relative overflow-hidden bg-white rounded-xl p-4 border shadow-sm text-left transition hover:shadow ${selected ? 'border-blue-500 ring-2 ring-blue-100' : 'border-slate-200'}`}
+            >
+              <span className={`absolute inset-y-0 left-0 w-1 ${accent}`} />
+              <div className="flex items-center gap-3 pl-1">
+                <div className={`p-2.5 rounded-lg ${iconWrap}`}><Icon className="w-5 h-5" /></div>
+                <div>
+                  <p className={`text-2xl font-bold leading-none ${valColor}`}>
+                    {value === undefined ? '—' : value.toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{label}</p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <form onSubmit={handleSearch} className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by business name, owner, email, phone..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </form>
+      <div className="bg-white rounded-xl shadow-sm border p-4 space-y-3">
+        {/* Row 1: Search */}
+        <form onSubmit={handleSearch}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by business name, owner, email, phone, VN-ID..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => applyFilter(() => { setSearchInput(''); setSearch(''); })}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </form>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-400" />
+        {/* Row 2: Dropdowns */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {/* Location — multi-select */}
+          <FilterMultiSelect
+            variant="labeled"
+            label="Location"
+            allLabel="All Locations"
+            options={locationOptions.map((l) => ({ value: l, label: l }))}
+            values={locationFilters}
+            onChange={(v) => applyFilter(() => setLocationFilters(v))}
+          />
+
+          {/* Service — multi-select */}
+          <FilterMultiSelect
+            variant="labeled"
+            label="Service"
+            allLabel="All Services"
+            options={serviceOptions.map((sv) => ({ value: sv, label: sv }))}
+            values={serviceFilters}
+            onChange={(v) => applyFilter(() => setServiceFilters(v))}
+          />
+
+          {/* Status */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">Status</label>
             <select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => applyFilter(() => setStatusFilter(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="ALL">All Status</option>
+              <option value="APPROVED">Approved</option>
+              <option value="PENDING_ALL">Pending (All)</option>
               <option value="PENDING">Pending</option>
               <option value="DOCUMENTS_PENDING">Documents Pending</option>
               <option value="UNDER_REVIEW">Under Review</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
               <option value="SUSPENDED">Suspended</option>
+              <option value="REJECTED">Rejected</option>
               <option value="BLOCKED">Blocked</option>
             </select>
           </div>
 
-          {/* Joined Date Filter */}
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-gray-400" />
+          {/* New request */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">New Request</label>
+            <select
+              value={requestFilter}
+              onChange={(e) => applyFilter(() => setRequestFilter(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="all">All Vendors</option>
+              <option value="any">Any Pending Request</option>
+              <option value="location">New Location Requested</option>
+              <option value="service">New Service Requested</option>
+            </select>
+          </div>
+
+          {/* Joined date */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">Joined</label>
             <select
               value={datePreset}
-              onChange={(e) => {
-                setDatePreset(e.target.value as DatePreset);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => applyFilter(() => setDatePreset(e.target.value as DatePreset))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
             >
               {(Object.keys(datePresetLabels) as DatePreset[]).map((preset) => (
                 <option key={preset} value={preset}>{datePresetLabels[preset]}</option>
@@ -464,32 +615,92 @@ export default function VendorsPage() {
             </select>
           </div>
 
-          {datePreset === 'custom' && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={customFrom}
-                max={customTo || undefined}
-                onChange={(e) => {
-                  setCustomFrom(e.target.value);
-                  setPagination((prev) => ({ ...prev, page: 1 }));
-                }}
-                className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-gray-400 text-sm">to</span>
-              <input
-                type="date"
-                value={customTo}
-                min={customFrom || undefined}
-                onChange={(e) => {
-                  setCustomTo(e.target.value);
-                  setPagination((prev) => ({ ...prev, page: 1 }));
-                }}
-                className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          )}
+          {/* Sort */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">Sort By</label>
+            <select
+              value={sortBy}
+              onChange={(e) => applyFilter(() => setSortBy(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Custom date range inputs */}
+        {datePreset === 'custom' && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={customFrom}
+              max={customTo || undefined}
+              onChange={(e) => applyFilter(() => setCustomFrom(e.target.value))}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-gray-400 text-sm">to</span>
+            <input
+              type="date"
+              value={customTo}
+              min={customFrom || undefined}
+              onChange={(e) => applyFilter(() => setCustomTo(e.target.value))}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
+        {/* Active filter chips + clear */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {search && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                <Search className="w-3 h-3" /> &quot;{search}&quot;
+                <button type="button" onClick={() => applyFilter(() => { setSearchInput(''); setSearch(''); })}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {locationFilters.map((loc) => (
+              <span key={`loc-${loc}`} className="flex items-center gap-1 px-2.5 py-1 bg-sky-50 text-sky-700 rounded-full text-xs font-medium border border-sky-200">
+                <MapPin className="w-3 h-3" /> {loc}
+                <button type="button" onClick={() => applyFilter(() => setLocationFilters(locationFilters.filter((l) => l !== loc)))}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            ))}
+            {serviceFilters.map((svc) => (
+              <span key={`svc-${svc}`} className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">
+                <Layers className="w-3 h-3" /> {svc}
+                <button type="button" onClick={() => applyFilter(() => setServiceFilters(serviceFilters.filter((x) => x !== svc)))}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            ))}
+            {statusFilter !== 'ALL' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium border border-gray-200">
+                {statusFilter === 'PENDING_ALL' ? 'Pending (All)' : (statusConfig[statusFilter]?.label || statusFilter)}
+                <button type="button" onClick={() => applyFilter(() => setStatusFilter('ALL'))}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {requestFilter !== 'all' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-medium border border-orange-200">
+                <Bell className="w-3 h-3" /> {requestFilter === 'location' ? 'New Location Requested' : requestFilter === 'service' ? 'New Service Requested' : 'Any Pending Request'}
+                <button type="button" onClick={() => applyFilter(() => setRequestFilter('all'))}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {datePreset !== 'all' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 rounded-full text-xs font-medium border border-teal-200">
+                <CalendarDays className="w-3 h-3" /> {datePresetLabels[datePreset]}
+                <button type="button" onClick={() => applyFilter(() => { setDatePreset('all'); setCustomFrom(''); setCustomTo(''); })}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {sortBy !== 'date_desc' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium border border-amber-200">
+                {SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
+                <button type="button" onClick={() => applyFilter(() => setSortBy('date_desc'))}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            <button type="button" onClick={clearFilters} className="text-xs text-gray-500 hover:text-red-500 underline ml-1 transition">
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Vendors Table */}
