@@ -3824,6 +3824,7 @@ model vendor_staff {
   accountNumber      String?
   ifscCode           String?
   accountHolderName  String?
+  upiId              String?
   salary             Float                       @default(0)
   emergencyContact   String?
   emergencyPhone     String?
@@ -6412,6 +6413,7 @@ model drivers {
   accountHolderName String?
   accountNumber     String?
   ifscCode          String?
+  upiId             String?
 
   // Emergency
   emergencyContact String?

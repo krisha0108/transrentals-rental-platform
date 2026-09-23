@@ -38,6 +38,20 @@ function validateDlNumber(raw: string): string | null {
   return null;
 }
 
+const UPI_ID_REGEX = /^[\w.-]{2,256}@[a-zA-Z]{2,64}$/;
+
+function isValidUpiId(raw: string): boolean {
+  return UPI_ID_REGEX.test(raw.trim());
+}
+
+// Same "receive to this UPI ID" QR the rest of the app already generates for
+// UPI payments (src/components/bike/PaymentConfirmation.tsx) — no amount, so
+// whoever scans it can pay any amount rather than a fixed one.
+function buildUpiQrUrl(upiId: string, payeeName: string): string {
+  const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId.trim())}&pn=${encodeURIComponent(payeeName)}&cu=INR`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+}
+
 function SectionCard({
   icon, iconColor, title, subtitle, badge, children,
 }: {
@@ -116,7 +130,7 @@ export default function EditProfilePage() {
   const [form, setForm] = useState({
     name: '', address: '', city: '', state: '', pincode: '',
     licenseNumber: '', licenseType: '', licenseExpiry: '',
-    bankName: '', accountHolderName: '', accountNumber: '', ifscCode: '',
+    bankName: '', accountHolderName: '', accountNumber: '', ifscCode: '', upiId: '',
     emergencyContact: '', emergencyPhone: '',
   });
 
@@ -141,6 +155,7 @@ export default function EditProfilePage() {
             accountHolderName: dr.accountHolderName || '',
             accountNumber: dr.accountNumber || '',
             ifscCode: dr.ifscCode || '',
+            upiId: dr.upiId || '',
             emergencyContact: dr.emergencyContact || '',
             emergencyPhone: dr.emergencyPhone || '',
           });
@@ -165,6 +180,7 @@ export default function EditProfilePage() {
     }
     if (!form.licenseType) { setError('License type is required'); return; }
     if (!form.licenseExpiry) { setError('License expiry date is required'); return; }
+    if (form.upiId && !isValidUpiId(form.upiId)) { setError('Enter a valid UPI ID (e.g. name@okhdfcbank)'); return; }
     setError('');
     setSuccess('');
     setIsSaving(true);
@@ -306,6 +322,28 @@ export default function EditProfilePage() {
             <div className="grid grid-cols-2 gap-3.5">
               <Field label="Account Number" value={form.accountNumber} onChange={e => set('accountNumber', e.target.value)} />
               <Field label="IFSC Code" value={form.ifscCode} onChange={e => set('ifscCode', e.target.value.toUpperCase())} placeholder="e.g. SBIN0001234" />
+            </div>
+
+            <div className="pt-2 border-t border-gray-100">
+              <Field
+                label="UPI ID" optional value={form.upiId}
+                onChange={e => set('upiId', e.target.value.trim())}
+                placeholder="e.g. yourname@okhdfcbank"
+              />
+              {isValidUpiId(form.upiId) && (
+                <div className="mt-3 flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={buildUpiQrUrl(form.upiId, form.name || 'TransRentals Driver')}
+                    alt={`UPI QR code for ${form.upiId}`}
+                    className="w-20 h-20 rounded-lg border border-gray-200 bg-white shrink-0"
+                  />
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700">Scan to pay {form.upiId}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Generated automatically from your UPI ID</p>
+                  </div>
+                </div>
+              )}
             </div>
           </SectionCard>
 

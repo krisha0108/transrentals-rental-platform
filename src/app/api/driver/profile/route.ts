@@ -15,7 +15,7 @@ export async function PATCH(request: NextRequest) {
     const {
       name, address, city, state, pincode, dateOfBirth,
       licenseNumber, licenseType, licenseExpiry,
-      bankName, accountHolderName, accountNumber, ifscCode,
+      bankName, accountHolderName, accountNumber, ifscCode, upiId,
       emergencyContact, emergencyPhone,
       bio, yearsExperience, isProfilePublic, slug,
     } = body;
@@ -34,6 +34,9 @@ export async function PATCH(request: NextRequest) {
     if (licenseExpiry !== undefined && !licenseExpiry) {
       return NextResponse.json({ success: false, error: 'License expiry date is required' }, { status: 400 });
     }
+    if (upiId && !/^[\w.-]{2,256}@[a-zA-Z]{2,64}$/.test(String(upiId).trim())) {
+      return NextResponse.json({ success: false, error: 'Enter a valid UPI ID (e.g. name@okhdfcbank)' }, { status: 400 });
+    }
 
     const data: any = {
       ...(name !== undefined && { name: name.trim() }),
@@ -49,6 +52,7 @@ export async function PATCH(request: NextRequest) {
       ...(accountHolderName !== undefined && { accountHolderName }),
       ...(accountNumber !== undefined && { accountNumber }),
       ...(ifscCode !== undefined && { ifscCode }),
+      ...(upiId !== undefined && { upiId: upiId ? String(upiId).trim() : null }),
       ...(emergencyContact !== undefined && { emergencyContact }),
       ...(emergencyPhone !== undefined && { emergencyPhone }),
       // Public profile (/captain/<slug>)
