@@ -177,7 +177,7 @@ export default function DriverRegisterPage() {
         }
       }
 
-      router.push('/driver');
+      router.push('/driver/dashboard');
     } catch (err: any) {
       setError(
         err instanceof TypeError
