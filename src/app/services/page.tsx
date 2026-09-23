@@ -3,20 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  Search, ArrowRight, ChevronDown, MapPin, Map, Headphones,
+  Search, ArrowRight, ChevronDown, Headphones,
   Bike, Car, CarTaxiFront, Bus, Truck, Construction, BadgeCheck, Tag, ShieldCheck, LayoutGrid,
   BadgeIndianRupee, Zap, CheckCircle2, Sparkles, SlidersHorizontal, FileCheck2,
   MessageCircleQuestion, Plus,
 } from 'lucide-react';
 import { SERVICES } from '@/lib/constants/services';
 import { FAQSchema } from '@/components/seo/schemas';
-
-const HERO_STATS = [
-  { icon: MapPin, value: '500+', label: 'Cities' },
-  { icon: Map, value: '36', label: 'States' },
-  { icon: Car, value: '1000+', label: 'Vehicles' },
-  { icon: Headphones, value: '24/7', label: 'Support' },
-];
 
 const CATEGORY_ICONS: Record<string, typeof Car> = {
   'Car Rentals': Car,
@@ -285,20 +278,6 @@ export default function ServicesPage() {
             From everyday rides to heavy equipment — rent anything, anywhere in India.
           </p>
 
-          {/* Stats */}
-          <div className="flex flex-wrap gap-x-8 gap-y-4">
-            {HERO_STATS.map(({ icon: Icon, value, label }) => (
-              <div key={label} className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
-                  <Icon className="w-4.5 h-4.5 text-emerald-400" strokeWidth={2} />
-                </div>
-                <div className="leading-tight">
-                  <span className="block text-lg font-black text-white">{value}</span>
-                  <span className="block text-[11px] text-white/50">{label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Floating search card */}

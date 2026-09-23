@@ -53,7 +53,7 @@ const HERO_FEATURES = [
 
 const HERO_STATS = [
   { icon: Users, value: '500+', label: 'Verified\nOperators' },
-  { icon: CheckCircle2, value: '50K+', label: 'Happy\nCustomers' },
+  { icon: CheckCircle2, value: '40K+', label: 'Happy\nCustomers' },
   { icon: HardHat, value: '1000+', label: 'Equipment\nAvailable' },
   { icon: Clock, value: '24/7', label: 'Customer\nSupport' },
 ];

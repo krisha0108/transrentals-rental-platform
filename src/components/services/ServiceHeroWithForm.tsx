@@ -48,7 +48,7 @@ const SERVICE_HERO_CONFIGS: Record<string, {
     stats: [
       { value: '500+', label: 'Bikes Available' },
       { value: '150+', label: 'Cities Covered' },
-      { value: '50K+', label: 'Happy Customers' },
+      { value: '40K+', label: 'Happy Customers' },
     ],
     features: [
       { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },

@@ -217,7 +217,7 @@ const WHY_CHOOSE_US = [
     image: '/images/why-choose/instant-booking.png',
   },
   {
-    title: '50K+ Happy Customers',
+    title: '40K+ Happy Customers',
     description: 'Thousands already trust us',
     icon: Star,
     color: '#F59E0B',
@@ -2847,7 +2847,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                   <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
                   </div>
-                  <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 1K+ reviews</p>
                 </div>
                 <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
               </div>

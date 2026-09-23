@@ -26,7 +26,7 @@ const features = [
   },
   {
     icon: Star,
-    title: '50K+ Happy Customers',
+    title: '40K+ Happy Customers',
     description: 'Join thousands of satisfied customers who trust TransRentals',
   },
   {

@@ -91,7 +91,7 @@ export function BikeServiceHero() {
             transition={{ delay: 0.4 }}
             className="text-center p-6 bg-white rounded-xl shadow-lg"
           >
-            <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent">50K+</div>
+            <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-green-600 bg-clip-text text-transparent">40K+</div>
             <div className="text-sm text-gray-600 mt-1">Happy Customers</div>
           </motion.div>
         </div>
