@@ -1449,7 +1449,7 @@ export async function PUT(
       if (table === 'chauffeur') {
         await prisma.chauffeur_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
       } else if (table === 'bike') {
-        await prisma.bike_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancellationReason: cancelReason } });
+        await prisma.bike_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
       } else if (table === 'car') {
         await prisma.car_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
       } else if (table === 'bus') {

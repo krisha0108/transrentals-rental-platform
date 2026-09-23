@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -36,14 +37,6 @@ import CornerGrid from '../../_shared/CornerGrid';
 const Bone = ({ w, h, r = 8, style }) => (
   <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
 );
-
-// How far the ticket summary card rides up over the hero's rounded bottom
-// edge. Same technique/constant role as the bike sibling detail screens'
-// ticket card and the travel-agent BookingDetailScreen's contact bar — the
-// hero's own bottom padding is shortened by the same amount and the scroll
-// content gets it back as paddingTop, so the gap stays the same, only the
-// overlap changes.
-const TICKET_OVERLAP = 40;
 
 // Same key names this screen already uses everywhere below — only the
 // values now come from the shared "Elevate" theme instead of hardcoded hex.
@@ -483,6 +476,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
 
       {/* ══ Hero ═════════════════════════════════════════════════════════ */}
       <LinearGradient colors={G.hero} style={styles.hero}>
@@ -1121,6 +1115,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
           )}
         </View>
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -1176,11 +1171,11 @@ const styles = StyleSheet.create({
   identitySub: { fontSize: 13.5, color: C.muted, fontWeight: '600', marginTop: 3 },
 
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: TICKET_OVERLAP, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
 
   // ── Ticket summary card — status, created date, grand total ──
   ticketWrap: {
-    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    backgroundColor: C.card,
     borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
     marginBottom: 12, ...cardShadow,
   },

@@ -140,14 +140,14 @@ export default function B2BOpenBookingsScreen({ navigation }) {
     { key: 'rejected',     label: 'Not Selected' },
   ];
 
-  const renderBooking = useCallback(({ item }) => {
+  const renderBooking = useCallback(({ item, index }) => {
     const sc = STATUS_CONFIG[item.status] || { label: item.status, bg: '#F1F5F9', text: C.sub };
     const hasQuoted = !!(item.vendorQuotes?.length > 0 || item.hasQuoted);
     const svcKey = (item.serviceType || '').toUpperCase().replace(/[\s-]/g, '_');
     const svc = SERVICE_ICON[svcKey] || { icon: 'briefcase', color: C.sub, bg: '#F1F5F9' };
 
     return (
-      <View style={s.card}>
+      <View style={[s.card, index === 0 && { marginTop: 14 }]}>
         {/* Card top row */}
         <View style={s.cardTopRow}>
           {/* Service icon + type */}
@@ -241,7 +241,7 @@ export default function B2BOpenBookingsScreen({ navigation }) {
   const isServiceFiltered = serviceFilter !== 'all';
 
   const ListHeader = (
-    <>
+    <View style={s.stickyHeaderWrap}>
       {/* Header gradient */}
       <LinearGradient colors={G.hero} style={s.headerGrad}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
@@ -278,7 +278,7 @@ export default function B2BOpenBookingsScreen({ navigation }) {
 
       {/* Status filter tabs */}
       <View style={s.tabsBarWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabsBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabsBarOuter} contentContainerStyle={s.tabsBar}>
           {filters.map(f => (
             <TouchableOpacity
               key={f.key}
@@ -286,7 +286,7 @@ export default function B2BOpenBookingsScreen({ navigation }) {
               onPress={() => setSelectedFilter(f.key)}
               activeOpacity={0.7}
             >
-              <Text style={[s.tabText, selectedFilter === f.key && s.tabTextActive]}>
+              <Text numberOfLines={1} style={[s.tabText, selectedFilter === f.key && s.tabTextActive]}>
                 {f.label}
               </Text>
               <View style={[s.tabPill, selectedFilter === f.key && s.tabPillActive]}>
@@ -299,7 +299,7 @@ export default function B2BOpenBookingsScreen({ navigation }) {
         </ScrollView>
       </View>
 
-    </>
+    </View>
   );
 
   if (loading) {
@@ -421,6 +421,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
 
   /* Header */
+  stickyHeaderWrap: { backgroundColor: C.bg, elevation: 8, zIndex: 10, shadowColor: 'transparent' },
   headerGrad: {
     paddingBottom: 16, overflow: 'hidden',
     borderBottomLeftRadius: rs(22), borderBottomRightRadius: rs(22),
@@ -444,8 +445,9 @@ const s = StyleSheet.create({
     backgroundColor: C.surface,
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
+  tabsBarOuter: { flexGrow: 0, flexShrink: 0, height: 60 },
   tabsBar: {
-    flexDirection: 'row',
+    flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 10, gap: 8,
   },
   tab: {

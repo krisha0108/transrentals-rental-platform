@@ -237,6 +237,8 @@ export async function PATCH(
         where: { id },
         data: {
           status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelledBy: 'CUSTOMER',
           cancellationReason: reason || 'Cancelled by customer',
         },
       });

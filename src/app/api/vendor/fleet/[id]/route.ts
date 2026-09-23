@@ -252,6 +252,9 @@ export async function PATCH(
       registrationNumber,
       yearOfManufacture,
       color,
+      fuelType,
+      transmission,
+      seatingCapacity,
       images,
       isAvailable,
       isActive,
@@ -265,6 +268,9 @@ export async function PATCH(
     if (registrationNumber !== undefined) updateData.registrationNumber = registrationNumber;
     if (yearOfManufacture !== undefined) updateData.yearOfManufacture = yearOfManufacture;
     if (color !== undefined) updateData.color = color;
+    if (fuelType !== undefined) updateData.fuelType = fuelType;
+    if (transmission !== undefined) updateData.transmission = transmission;
+    if (seatingCapacity !== undefined) updateData.seatingCapacity = seatingCapacity;
     if (processedImages !== undefined) updateData.images = processedImages;
     if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
     if (isActive !== undefined) updateData.isActive = isActive;
@@ -388,6 +394,9 @@ export async function PUT(
       registrationNumber,
       yearOfManufacture,
       color,
+      fuelType,
+      transmission,
+      seatingCapacity,
       images,
       isAvailable,
       isActive,
@@ -405,6 +414,9 @@ export async function PUT(
         registrationNumber: registrationNumber ?? existing.registrationNumber,
         yearOfManufacture: yearOfManufacture ?? existing.yearOfManufacture,
         color: color ?? existing.color,
+        fuelType: fuelType !== undefined ? fuelType : existing.fuelType,
+        transmission: transmission !== undefined ? transmission : existing.transmission,
+        seatingCapacity: seatingCapacity !== undefined ? seatingCapacity : existing.seatingCapacity,
         images: processedImages,
         isAvailable: isAvailable ?? existing.isAvailable,
         isActive: isActive ?? existing.isActive,

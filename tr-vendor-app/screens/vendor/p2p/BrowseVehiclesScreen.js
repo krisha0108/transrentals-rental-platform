@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, Linking, Share, ScrollView, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -60,6 +60,9 @@ export default function BrowseVehiclesScreen({ navigation }) {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedFromCity, setDebouncedFromCity] = useState('');
+  const [debouncedToCity, setDebouncedToCity] = useState('');
 
   // Request modal
   const [reqModal, setReqModal] = useState(false);
@@ -92,9 +95,9 @@ export default function BrowseVehiclesScreen({ navigation }) {
     try {
       const params = { page, limit: 20 };
       if (serviceFilter !== 'all') params.serviceType = serviceFilter;
-      if (search.trim()) params.search = search.trim();
-      if (fromCity.trim()) params.fromCity = fromCity.trim();
-      if (toCity.trim()) params.toCity = toCity.trim();
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+      if (debouncedFromCity.trim()) params.fromCity = debouncedFromCity.trim();
+      if (debouncedToCity.trim()) params.toCity = debouncedToCity.trim();
       const res = await getP2PVehicles(params);
       const vList = res?.vehicles || res?.postings || [];
       setVehicles(vList);
@@ -109,11 +112,31 @@ export default function BrowseVehiclesScreen({ navigation }) {
       }
     } catch (e) { showAlert('error', 'Error', 'Failed to load vehicles'); }
     finally { setLoading(false); setRefreshing(false); }
-  }, [page, serviceFilter, search, fromCity, toCity]);
+  }, [page, serviceFilter, debouncedSearch, debouncedFromCity, debouncedToCity]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedFromCity(fromCity), 400);
+    return () => clearTimeout(t);
+  }, [fromCity]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedToCity(toCity), 400);
+    return () => clearTimeout(t);
+  }, [toCity]);
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
   const onRefresh = () => { setRefreshing(true); setPage(1); fetchVehicles(); };
-  const doSearch = () => { setPage(1); fetchVehicles(); };
+  const doSearch = () => {
+    setPage(1);
+    setDebouncedSearch(search);
+    setDebouncedFromCity(fromCity);
+    setDebouncedToCity(toCity);
+  };
 
   const toggleComments = async (id) => {
     const isExpanded = expandedComments[id];
@@ -653,7 +676,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
         renderItem={renderVehicle}
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingBottom: 30, gap: 14 }}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={ListHeader()}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />
         }
@@ -697,7 +720,7 @@ export default function BrowseVehiclesScreen({ navigation }) {
 
       {/* ── Request Modal ── */}
       <Modal visible={reqModal} transparent animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setReqModal(false)} />
           <View style={s.modalSheet}>

@@ -255,16 +255,18 @@ export default function B2BTripsScreen({ navigation, route }) {
       {/* Gradient Header */}
       <LinearGradient colors={G.hero} style={s.header}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>B2B Trips</Text>
-            <Text style={s.headerSub}>Manage your assigned corporate trips</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <Text style={s.headerTitle}>B2B Trips</Text>
+              <Text style={s.headerSub}>Manage your assigned corporate trips</Text>
+            </View>
+            <View style={{ width: 40 }} />
           </View>
-          <View style={{ width: 40 }} />
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Stats strip — moved out of the header into the body */}
@@ -324,7 +326,7 @@ export default function B2BTripsScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         {HeaderBlock}
         <ScrollView contentContainerStyle={s.list} showsVerticalScrollIndicator={false}>
           {[0, 1, 2].map((i) => (
@@ -357,7 +359,7 @@ export default function B2BTripsScreen({ navigation, route }) {
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       {HeaderBlock}
 
       <FlatList

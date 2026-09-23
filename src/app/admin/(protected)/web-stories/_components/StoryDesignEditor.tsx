@@ -168,7 +168,7 @@ interface SD {
 interface Meta {
   title: string; slug: string; description: string; metaDescription: string;
   category: string; publisherName: string; publisherLogo: string;
-  coverImage: string; coverImageSquare: string; expiresAt: string;
+  coverImage: string; coverImageSquare: string; coverImageLandscape: string; expiresAt: string;
   targetServices: string[]; targetLocations: string[];
 }
 
@@ -1117,7 +1117,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     description: initialData?.description || '', metaDescription: initialData?.metaDescription || '',
     category: initialData?.category || '', publisherName: initialData?.publisherName || '',
     publisherLogo: initialData?.publisherLogo || '', coverImage: initialData?.coverImage || '',
-    coverImageSquare: initialData?.coverImageSquare || '', expiresAt: initialData?.expiresAt || '',
+    coverImageSquare: initialData?.coverImageSquare || '', coverImageLandscape: initialData?.coverImageLandscape || '',
+    expiresAt: initialData?.expiresAt || '',
     targetServices: initialData?.targetServices || [], targetLocations: initialData?.targetLocations || [],
   }));
 
@@ -1185,6 +1186,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const shapeImgInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const coverSquareInputRef = useRef<HTMLInputElement>(null);
+  const coverLandscapeInputRef = useRef<HTMLInputElement>(null);
 
   // ─── History / Undo-Redo ─────────────────────────────────────────────────────
   const slidesRef = useRef(slides);
@@ -1508,15 +1511,29 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const file = e.target.files?.[0]; if (!file) return;
     uploadFile(file, url => setMeta(m => ({ ...m, publisherLogo: url }))); e.target.value = '';
   };
+  // These were one control that wrote the same URL into both coverImage and
+  // coverImageSquare. amp-story wants poster-portrait-src at 3:4 and
+  // poster-square-src at 1:1, so a single file cannot satisfy both — and the
+  // copy is why the live Ganesh Chaturthi story serves a 1054x1492 image as
+  // its "square" poster. Each ratio now has its own upload.
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
-    uploadFile(file, url => setMeta(m => ({ ...m, coverImage: url, coverImageSquare: url }))); e.target.value = '';
+    uploadFile(file, url => setMeta(m => ({ ...m, coverImage: url }))); e.target.value = '';
+  };
+  const handleCoverSquareUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    uploadFile(file, url => setMeta(m => ({ ...m, coverImageSquare: url }))); e.target.value = '';
+  };
+  const handleCoverLandscapeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    uploadFile(file, url => setMeta(m => ({ ...m, coverImageLandscape: url }))); e.target.value = '';
   };
 
   const buildPayload = () => ({
     title: meta.title.trim(), slug: meta.slug.trim() || slugify(meta.title),
     description: meta.description.trim() || null, metaDescription: meta.metaDescription.trim() || null,
     coverImage: meta.coverImage || null, coverImageSquare: meta.coverImageSquare || null,
+    coverImageLandscape: meta.coverImageLandscape || null,
     publisherName: meta.publisherName.trim() || null, publisherLogo: meta.publisherLogo || null,
     category: meta.category.trim() || null, expiresAt: meta.expiresAt || null,
     targetServices: meta.targetServices, targetLocations: meta.targetLocations,
@@ -1777,6 +1794,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
       <input ref={shapeImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleShapeImgUpload} />
       <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
       <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+      <input ref={coverSquareInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSquareUpload} />
+      <input ref={coverLandscapeInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverLandscapeUpload} />
 
       {/* Top Bar */}
       <div className="h-14 flex items-center justify-between px-3 sm:px-5 bg-white border-b border-slate-200 flex-shrink-0 z-30 shadow-sm">
@@ -2212,9 +2231,27 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <button onClick={() => logoInputRef.current?.click()} className="w-full py-2 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Logo</button>
               </div>
               <div>
-                <label className="text-xs text-slate-500 font-medium mb-1 block">Cover Image</label>
-                {meta.coverImage && <img src={meta.coverImage} alt="" className="w-full h-24 object-cover rounded-xl mb-2 border border-slate-200" />}
+                <label className="text-xs text-slate-500 font-medium mb-1 block">
+                  Cover Image <span className="text-[10px] text-slate-400">— portrait 3:4, min 640×853</span>
+                </label>
+                {meta.coverImage && <img src={meta.coverImage} alt="" className="w-20 h-[107px] object-cover rounded-xl mb-2 border border-slate-200" />}
                 <button onClick={() => coverInputRef.current?.click()} className="w-full py-2 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Cover</button>
+                <p className="mt-1 text-[10px] text-slate-400">This is the poster Google shows in Search and Discover.</p>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 font-medium mb-1 block">
+                  Square Cover <span className="text-[10px] text-slate-400">— 1:1</span>
+                </label>
+                {meta.coverImageSquare && <img src={meta.coverImageSquare} alt="" className="w-16 h-16 object-cover rounded-xl mb-2 border border-slate-200" />}
+                <button onClick={() => coverSquareInputRef.current?.click()} className="w-full py-2 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Square Cover</button>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 font-medium mb-1 block">
+                  Landscape Cover <span className="text-[10px] text-slate-400">— 4:3, optional</span>
+                </label>
+                {meta.coverImageLandscape && <img src={meta.coverImageLandscape} alt="" className="w-20 h-[60px] object-cover rounded-xl mb-2 border border-slate-200" />}
+                <button onClick={() => coverLandscapeInputRef.current?.click()} className="w-full py-2 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Landscape Cover</button>
+                <p className="mt-1 text-[10px] text-slate-400">Left empty, the attribute is simply omitted.</p>
               </div>
 
               {/* Targeting */}

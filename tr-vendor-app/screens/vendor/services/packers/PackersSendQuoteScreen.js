@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -59,6 +59,7 @@ const DEFAULT_TERMS = [
 ];
 
 export default function PackersSendQuoteScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { requestId } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -272,24 +273,26 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
   const advance = calculateAdvance();
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['left','right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroMin}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
-            <Text style={s.heroTitle}>Send Quote — Packers</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+              <Text style={s.heroTitle}>Send Quote — Packers</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
         {/* Request Summary */}
         <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
@@ -578,9 +581,8 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-      </KeyboardAvoidingView>
 
-      <View style={s.footer}>
+      <View style={[s.footer, { paddingBottom: insets.bottom + 10 }]}>
         <TouchableOpacity style={[s.submitBtn, submitting && { opacity: 0.6 }]} onPress={handleSubmit} disabled={submitting}>
           {submitting ? <ActivityIndicator size="small" color="#fff" /> : (
             <>
@@ -590,6 +592,7 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       <DateTimePickerModal
         isVisible={showDatePicker}
@@ -607,7 +610,7 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
 
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
           style={{ flex: 1 }}
         >
         <View style={s.modalOverlay}>
@@ -702,7 +705,7 @@ const s = StyleSheet.create({
   termTxt: { flex: 1, fontSize: 14, color: C.sub, lineHeight: 20 },
 
   footer: {
-    padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 0, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
     ...cardShadow,
   },
   submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: rs(12) },

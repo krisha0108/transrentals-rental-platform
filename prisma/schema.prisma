@@ -209,6 +209,8 @@ model bike_bookings {
   vendorNotes                                     String?                     @db.Text
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
+  cancelledAt                                     DateTime?
+  cancelledBy                                     String?
   source                                          String?                     @default("web") @db.VarChar(20)
   createdAt                                       DateTime                    @default(now())
   updatedAt                                       DateTime                    @updatedAt
@@ -1321,6 +1323,7 @@ model customers {
   bus_quote_requests        bus_quote_requests[]
   car_bookings              car_bookings[]
   chat_conversations        chat_conversations[]
+  customer_reviews          customer_reviews[]
   chauffeur_bookings        chauffeur_bookings[]
   customer_wallet           customer_wallets?
   equipment_bookings        equipment_bookings[]
@@ -2648,7 +2651,12 @@ model route_pricing {
 // their own independent schedules against the same row.
 model site_audit_pages {
   id            String  @id
-  url           String  @unique @db.VarChar(1000)
+  // The index on this column is a 768-character prefix, which is what it
+  // has always been in the database. Asking for a whole-column unique
+  // index instead is what broke production: varchar(1000) in utf8mb4 is
+  // 4000 bytes and InnoDB stops at 3072, so that statement can never run.
+  // 768 x 4 = 3072 bytes exactly, which is the most MySQL will take.
+  url           String  @unique(length: 768) @db.VarChar(1000)
   sourceSitemap String?
 
   // Our own HTTP crawl
@@ -6272,6 +6280,7 @@ model web_stories {
   metaDescription  String?               @db.VarChar(300)
   coverImage       String?
   coverImageSquare String?
+  coverImageLandscape String?
   publisherName    String?
   publisherLogo    String?
   category         String?
@@ -7668,4 +7677,57 @@ model social_media_daily_stats {
   account social_media_accounts @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@unique([accountId, date])
+}
+
+// A review written from the public site, not tied to one booking. Booking
+// tables carry their own rating/review columns for the trip that was taken;
+// this is the "tell us how it went" form on the homepage, which anyone can
+// fill in — so nothing here is public until an admin approves it.
+model customer_reviews {
+  id         String    @id @default(cuid())
+  customerId String?
+  name       String    @db.VarChar(120)
+  email      String?   @db.VarChar(160)
+  phone      String?   @db.VarChar(20)
+  city       String?   @db.VarChar(120)
+  service    String?   @db.VarChar(60)
+  rating     Int
+  comment    String    @db.Text
+  // JSON arrays: the quick tags the reviewer picked, and the paths of the
+  // photos they attached. Both are small, read as a unit and never queried
+  // by element, so a column each beats two more tables.
+  tags       String?   @db.Text
+  photos     String?   @db.Text
+  status     String    @default("PENDING") @db.VarChar(20)
+  isFeatured Boolean   @default(false)
+  ipAddress  String?   @db.VarChar(64)
+  reviewedAt DateTime?
+  reviewedBy String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  customers customers? @relation(fields: [customerId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([customerId])
+}
+
+// Moderation state for a review a customer left on a booking. Those ratings
+// live in each service's own booking table and cannot carry a status column
+// each without spreading the same three fields across eight tables, so the
+// decision is kept here and looked up by (table, booking id).
+model booking_review_moderation {
+  id         String    @id @default(cuid())
+  source     String    @db.VarChar(40)
+  bookingId  String    @db.VarChar(191)
+  status     String    @default("PENDING") @db.VarChar(20)
+  isFeatured Boolean   @default(false)
+  reviewedAt DateTime?
+  reviewedBy String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([source, bookingId])
+  @@index([status])
 }

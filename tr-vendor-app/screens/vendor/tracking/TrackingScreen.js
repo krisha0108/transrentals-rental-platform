@@ -190,12 +190,12 @@ export default function TrackingScreen({ navigation }) {
 
       {/* Filter chips */}
       <View style={s.chipsWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipsRowOuter} contentContainerStyle={s.chipsRow}>
           {FILTERS.map(f => {
             const on = filter === f.key;
             return (
               <TouchableOpacity key={f.key} style={[s.chip, on && s.chipOn]} activeOpacity={0.8} onPress={() => setFilter(f.key)}>
-                <Text style={[s.chipTxt, on && s.chipTxtOn]}>{f.label}</Text>
+                <Text numberOfLines={1} style={[s.chipTxt, on && s.chipTxtOn]}>{f.label}</Text>
                 <View style={[s.chipPill, on && s.chipPillOn]}>
                   <Text style={[s.chipPillTxt, on && s.chipPillTxtOn]}>{f.count}</Text>
                 </View>
@@ -359,7 +359,8 @@ const s = StyleSheet.create({
   mapEmptyTxt: { fontSize: 12, fontWeight: '700', color: C.sub },
 
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  chipsRowOuter: { flexGrow: 0, flexShrink: 0, height: 62 },
+  chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: 'center' },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipOn:    { backgroundColor: C.g600, borderColor: C.g600 },
   chipTxt:   { fontSize: 13, fontWeight: '700', color: C.sub },

@@ -18,8 +18,9 @@ import {
   StatusBar,
   Platform,
   Animated,
-  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import LG from 'react-native-linear-gradient';
@@ -248,15 +249,21 @@ function AvatarCircle({ name, logo, size = 40, style }) {
 }
 
 // ── Post images (resolves async getFullImageURL into state) ───────────
-function PostImageThumb({ url, style }) {
+function PostImageThumb({ url, style, onPress }) {
   const [uri, setUri] = useState(null);
   useEffect(() => {
     let alive = true;
     getFullImageURL(url).then((u) => { if (alive) setUri(u); });
     return () => { alive = false; };
   }, [url]);
-  return <Image source={uri ? { uri } : undefined} style={style} resizeMode="cover" />;
+  return (
+    <TouchableOpacity activeOpacity={0.9} disabled={!onPress} onPress={onPress} style={style}>
+      <Image source={uri ? { uri } : undefined} style={styles_thumbFill} resizeMode="cover" />
+    </TouchableOpacity>
+  );
 }
+
+const styles_thumbFill = { width: '100%', height: '100%' };
 
 const Bone = ({ w, h, r = 8, style }) => (
   <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
@@ -283,7 +290,7 @@ function SkeletonPost() {
   );
 }
 
-function PostImages({ images }) {
+function PostImages({ images, onImagePress }) {
   if (!Array.isArray(images) || images.length === 0) return null;
   const single = images.length === 1;
   return (
@@ -292,6 +299,7 @@ function PostImages({ images }) {
         <PostImageThumb
           key={i}
           url={url}
+          onPress={onImagePress ? () => onImagePress(i) : undefined}
           style={[
             postImageStyles.img,
             single ? postImageStyles.imgSingle : postImageStyles.imgMulti,
@@ -302,6 +310,149 @@ function PostImages({ images }) {
     </View>
   );
 }
+
+// ── Full-screen pinch-to-zoom viewer for post images ───────────────────
+function getTouchDistance(touches) {
+  const [a, b] = touches;
+  const dx = a.pageX - b.pageX;
+  const dy = a.pageY - b.pageY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function ZoomableImage({ uri, onRequestClose }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  const scaleValue = useRef(1);
+  const translateValue = useRef({ x: 0, y: 0 });
+  const pinchStartDistance = useRef(null);
+  const pinchStartScale = useRef(1);
+  const lastTapAt = useRef(0);
+
+  const resetZoom = useCallback(() => {
+    scaleValue.current = 1;
+    translateValue.current = { x: 0, y: 0 };
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+    ]).start();
+  }, [scale, translateX, translateY]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: (evt) => evt.nativeEvent.touches.length === 2,
+      onMoveShouldSetPanResponder: (evt) => evt.nativeEvent.touches.length === 2 || scaleValue.current > 1.02,
+
+      onPanResponderGrant: (evt) => {
+        if (evt.nativeEvent.touches.length === 2) {
+          pinchStartDistance.current = getTouchDistance(evt.nativeEvent.touches);
+          pinchStartScale.current = scaleValue.current;
+        }
+      },
+
+      onPanResponderMove: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+        if (touches.length === 2) {
+          if (pinchStartDistance.current == null) {
+            pinchStartDistance.current = getTouchDistance(touches);
+            pinchStartScale.current = scaleValue.current;
+            return;
+          }
+          const distance = getTouchDistance(touches);
+          const next = Math.min(Math.max((distance / pinchStartDistance.current) * pinchStartScale.current, 1), 5);
+          scaleValue.current = next;
+          scale.setValue(next);
+        } else if (touches.length === 1 && scaleValue.current > 1.02) {
+          translateX.setValue(translateValue.current.x + gestureState.dx);
+          translateY.setValue(translateValue.current.y + gestureState.dy);
+        }
+      },
+
+      onPanResponderRelease: (evt, gestureState) => {
+        pinchStartDistance.current = null;
+
+        if (scaleValue.current > 1.02) {
+          translateValue.current = {
+            x: translateValue.current.x + gestureState.dx,
+            y: translateValue.current.y + gestureState.dy,
+          };
+        } else if (scaleValue.current !== 1) {
+          resetZoom();
+        }
+
+        const isTap = evt.nativeEvent.changedTouches.length === 1 && Math.abs(gestureState.dx) < 6 && Math.abs(gestureState.dy) < 6;
+        if (isTap) {
+          const now = Date.now();
+          if (now - lastTapAt.current < 280) {
+            // Double tap — toggle zoom
+            if (scaleValue.current > 1.02) {
+              resetZoom();
+            } else {
+              scaleValue.current = 2.5;
+              Animated.spring(scale, { toValue: 2.5, useNativeDriver: true }).start();
+            }
+          } else if (scaleValue.current <= 1.02) {
+            onRequestClose && onRequestClose();
+          }
+          lastTapAt.current = now;
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <View style={viewerStyles.page} {...panResponder.panHandlers}>
+      <Animated.Image
+        source={{ uri }}
+        style={[
+          viewerStyles.image,
+          { transform: [{ translateX }, { translateY }, { scale }] },
+        ]}
+        resizeMode="contain"
+      />
+    </View>
+  );
+}
+
+function ImageViewerModal({ images, initialIndex, onClose }) {
+  const listRef = useRef(null);
+  if (!images || images.length === 0) return null;
+  return (
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <View style={viewerStyles.backdrop}>
+        <FlatList
+          ref={listRef}
+          data={images}
+          keyExtractor={(_, i) => String(i)}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={initialIndex}
+          getItemLayout={(_, i) => ({ length: SCREEN_W, offset: SCREEN_W * i, index: i })}
+          renderItem={({ item }) => <ZoomableImage uri={item} onRequestClose={onClose} />}
+        />
+        <TouchableOpacity style={viewerStyles.closeBtn} onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Icon name="x" size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
+const viewerStyles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: '#000' },
+  page: { width: SCREEN_W, height: SCREEN_H, alignItems: 'center', justifyContent: 'center' },
+  image: { width: SCREEN_W, height: SCREEN_H },
+  closeBtn: {
+    position: 'absolute', top: Platform.OS === 'ios' ? 50 : 24, right: 16,
+    width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+});
 
 const postImageStyles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(5), overflow: 'hidden', borderRadius: rs(14), borderWidth: 1, borderColor: T.tintBorder },
@@ -332,6 +483,15 @@ export default function SocialFeedScreen({ navigation }) {
   const [sharingCard, setSharingCard] = useState(false);
   const svgCardRef = useRef(null);
 
+  // Full-screen image viewer
+  const [viewerImages, setViewerImages] = useState(null);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openImageViewer = useCallback(async (images, index) => {
+    const resolved = await Promise.all(images.map((url) => getFullImageURL(url)));
+    setViewerIndex(index);
+    setViewerImages(resolved.filter(Boolean));
+  }, []);
+
   // SOS story viewer
   const [storyVisible, setStoryVisible] = useState(false);
   const [storyGroupIdx, setStoryGroupIdx] = useState(0);
@@ -347,6 +507,15 @@ export default function SocialFeedScreen({ navigation }) {
   const [commentText, setCommentText] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const [commentKbHeight, setCommentKbHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'android' ? 'keyboardDidShow' : 'keyboardWillShow';
+    const hideEvt = Platform.OS === 'android' ? 'keyboardDidHide' : 'keyboardWillHide';
+    const showSub = Keyboard.addListener(showEvt, (e) => setCommentKbHeight(e.endCoordinates?.height || 0));
+    const hideSub = Keyboard.addListener(hideEvt, () => setCommentKbHeight(0));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   // Story inline comment input
   const [storyCommentText, setStoryCommentText] = useState('');
@@ -710,7 +879,7 @@ export default function SocialFeedScreen({ navigation }) {
             `📢 *${vendorName}* on Vendor Network\n\n` +
             `${shareCardPost.content}\n\n` +
             `📲 Join the Vendor Network — Download TransRentals Vendor App:\n` +
-            `🌐 https://transrentals.in`;
+            `🌐 https://play.google.com/store/apps/details?id=com.transrentalsvenderapp&hl=en_IN`;
           await RNShare.open({
             url: 'file://' + path,
             type: 'image/png',
@@ -847,7 +1016,7 @@ export default function SocialFeedScreen({ navigation }) {
           {!!item.content && <Text style={styles.postContent}>{item.content}</Text>}
 
           {/* Images — compact, rounded, inline within the text column */}
-          <PostImages images={item.images} />
+          <PostImages images={item.images} onImagePress={(idx) => openImageViewer(item.images, idx)} />
 
           {/* Icon row — compact icon + count pairs, Twitter-style */}
           <View style={styles.actionBar}>
@@ -955,12 +1124,12 @@ export default function SocialFeedScreen({ navigation }) {
 
             {/* Category chips — only for feed tab */}
             {tab === 'feed' && categories.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsContent}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsContentOuter} contentContainerStyle={styles.chipsContent}>
                 <TouchableOpacity
                   style={[styles.chip, !activeCategoryId && styles.chipActive]}
                   onPress={() => setActiveCategoryId(null)}
                 >
-                  <Text style={[styles.chipText, !activeCategoryId && styles.chipTextActive]}>All</Text>
+                  <Text numberOfLines={1} style={[styles.chipText, !activeCategoryId && styles.chipTextActive]}>All</Text>
                 </TouchableOpacity>
                 {categories.map((cat) => (
                   <TouchableOpacity
@@ -968,7 +1137,7 @@ export default function SocialFeedScreen({ navigation }) {
                     style={[styles.chip, activeCategoryId === cat.id && styles.chipActive]}
                     onPress={() => setActiveCategoryId(activeCategoryId === cat.id ? null : cat.id)}
                   >
-                    <Text style={[styles.chipText, activeCategoryId === cat.id && styles.chipTextActive]}>
+                    <Text numberOfLines={1} style={[styles.chipText, activeCategoryId === cat.id && styles.chipTextActive]}>
                       {cat.name}
                     </Text>
                   </TouchableOpacity>
@@ -1032,7 +1201,7 @@ export default function SocialFeedScreen({ navigation }) {
 
       {/* ── SOS Story Viewer Modal ─────────────────────────────────────── */}
       <Modal visible={storyVisible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setStoryVisible(false)}>
-        <KeyboardAvoidingView style={styles.storyOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={styles.storyOverlay} behavior="padding">
           {sosGroups[storyGroupIdx]?.posts[storyPostIdx] && (() => {
             const currentPost = sosGroups[storyGroupIdx].posts[storyPostIdx];
             const currentGroup = sosGroups[storyGroupIdx];
@@ -1302,8 +1471,7 @@ export default function SocialFeedScreen({ navigation }) {
 
       {/* ── Comment Modal ──────────────────────────────────────────────── */}
       <Modal visible={!!commentPost} transparent animationType="slide" onRequestClose={() => closeComments()}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <View style={styles.commentOverlay}>
+        <View style={[styles.commentOverlay, { paddingBottom: commentKbHeight }]}>
           <TouchableOpacity style={styles.commentBackdrop} onPress={() => closeComments()} />
           <View style={styles.commentSheet}>
             <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>
@@ -1372,8 +1540,16 @@ export default function SocialFeedScreen({ navigation }) {
             </View>
           </View>
         </View>
-        </KeyboardAvoidingView>
       </Modal>
+
+      {/* ── Full-screen image viewer ─────────────────────────────────── */}
+      {viewerImages && (
+        <ImageViewerModal
+          images={viewerImages}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerImages(null)}
+        />
+      )}
     </View>
   );
 }
@@ -1460,7 +1636,8 @@ const styles = StyleSheet.create({
   tabTextActive: { color: C.green },
 
   // Category chips
-  chipsContent: { paddingHorizontal: rs(12), paddingVertical: rs(10), gap: rs(8) },
+  chipsContentOuter: { flexGrow: 0, flexShrink: 0, height: 58 },
+  chipsContent: { paddingHorizontal: rs(12), paddingVertical: rs(10), gap: rs(8), alignItems: 'center' },
   chip: {
     paddingHorizontal: rs(14), paddingVertical: rs(7), borderRadius: rs(20),
     backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,

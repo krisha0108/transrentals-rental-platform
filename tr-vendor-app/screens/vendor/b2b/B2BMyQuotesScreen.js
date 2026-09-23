@@ -227,23 +227,25 @@ export default function B2BMyQuotesScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       {/* Gradient Header */}
       <LinearGradient colors={G.hero} style={s.header}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>My B2B Quotes</Text>
-          <Text style={s.headerSub}>Track your submitted quotes</Text>
-        </View>
-        <View style={{ width: 36 }} />
+        <SafeAreaView edges={['top']} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'transparent' }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.headerCenter}>
+            <Text style={s.headerTitle}>My B2B Quotes</Text>
+            <Text style={s.headerSub}>Track your submitted quotes</Text>
+          </View>
+          <View style={{ width: 36 }} />
+        </SafeAreaView>
       </LinearGradient>
 
       {/* Filter Tabs */}
       <View style={s.tabsWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabsContent}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabsContentOuter} contentContainerStyle={s.tabsContent}>
           {FILTERS.map(f => {
             const isActive = activeFilter === f.key;
             const count = getCount(f.key);
@@ -254,7 +256,7 @@ export default function B2BMyQuotesScreen({ navigation }) {
                 onPress={() => setActiveFilter(f.key)}
                 activeOpacity={0.7}
               >
-                <Text style={[s.tabText, isActive && s.tabTextActive]}>{f.label}</Text>
+                <Text numberOfLines={1} style={[s.tabText, isActive && s.tabTextActive]}>{f.label}</Text>
                 <View style={[s.tabBadge, isActive && s.tabBadgeActive]}>
                   <Text style={[s.tabBadgeText, isActive && s.tabBadgeTextActive]}>{count}</Text>
                 </View>
@@ -341,7 +343,8 @@ const s = StyleSheet.create({
 
   // Filter Tabs
   tabsWrap: { backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
-  tabsContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  tabsContentOuter: { flexGrow: 0, flexShrink: 0, height: 62 },
+  tabsContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8, alignItems: 'center' },
   tab: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 20, backgroundColor: C.bg, gap: 6,

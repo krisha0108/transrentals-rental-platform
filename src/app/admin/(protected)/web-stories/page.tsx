@@ -34,6 +34,27 @@ interface WebStory {
 
 type TabFilter = 'all' | 'published' | 'draft' | 'archived';
 
+interface StoryCounts {
+  all: number;
+  published: number;
+  draft: number;
+  archived: number;
+  expired: number;
+}
+
+const EMPTY_COUNTS: StoryCounts = { all: 0, published: 0, draft: 0, archived: 0, expired: 0 };
+
+// Published, but the expiry date has already gone by. The public site hides
+// these, so on the admin side they are neither live nor obviously dead.
+function isExpired(story: WebStory): boolean {
+  return (
+    story.isPublished &&
+    !story.isArchived &&
+    !!story.expiresAt &&
+    new Date(story.expiresAt).getTime() <= Date.now()
+  );
+}
+
 function calcSeoScore(story: WebStory): { score: number; checks: { label: string; ok: boolean }[] } {
   const checks = [
     { label: 'Has title', ok: !!(story.title && story.title.trim().length > 3) },
@@ -75,6 +96,7 @@ export default function WebStoriesAdminPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState<StoryCounts>(EMPTY_COUNTS);
   const LIMIT = 10;
 
   const fetchStories = useCallback(async () => {
@@ -89,6 +111,7 @@ export default function WebStoriesAdminPage() {
       if (res.ok) {
         const data = await res.json();
         setStories(data.stories || []);
+        setCounts(data.counts || EMPTY_COUNTS);
         setTotal(data.pagination?.total || 0);
         setTotalPages(data.pagination?.totalPages || 1);
       }
@@ -123,14 +146,16 @@ export default function WebStoriesAdminPage() {
     }
   };
 
-  const handleReorder = async (id: string, direction: 'up' | 'down', currentOrder: number) => {
+  // The swap itself is resolved server-side against the whole ordered list —
+  // the neighbour of a page's first row lives on the previous page, so the
+  // client is not in a position to work out what to swap with.
+  const handleReorder = async (id: string, direction: 'up' | 'down') => {
     setReordering(id);
-    const newOrder = direction === 'up' ? currentOrder - 1 : currentOrder + 1;
     try {
-      await fetch(`/api/admin/web-stories/${id}`, {
-        method: 'PUT',
+      await fetch('/api/admin/web-stories/reorder', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayOrder: newOrder }),
+        body: JSON.stringify({ id, direction }),
       });
       fetchStories();
     } finally {
@@ -177,13 +202,27 @@ export default function WebStoriesAdminPage() {
         <span>All stories auto-generate a valid AMP boilerplate — including the required <code className="text-xs bg-green-100 px-1 rounded">noscript</code> tag. Click the <strong>AMP</strong> badge on published stories to validate in Google&apos;s AMP Validator.</span>
       </div>
 
+      {counts.expired > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span>
+            <strong>
+              {counts.expired} {counts.expired === 1 ? 'story is' : 'stories are'}
+            </strong>{' '}
+            still marked published but past their expiry date. They are already hidden from{' '}
+            <code className="text-xs bg-red-100 px-1 rounded">/stories</code> — archive them, or
+            clear the expiry date to bring them back.
+          </span>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total', value: total, icon: <Film className="w-5 h-5 text-purple-600" />, bg: 'bg-purple-50' },
-          { label: 'Published', value: stories.filter((s) => s.isPublished).length, icon: <Globe className="w-5 h-5 text-green-600" />, bg: 'bg-green-50' },
-          { label: 'Draft', value: stories.filter((s) => !s.isPublished && !s.isArchived).length, icon: <Clock className="w-5 h-5 text-yellow-600" />, bg: 'bg-yellow-50' },
-          { label: 'Archived', value: stories.filter((s) => s.isArchived).length, icon: <Archive className="w-5 h-5 text-gray-600" />, bg: 'bg-gray-50' },
+          { label: 'Total', value: counts.all, icon: <Film className="w-5 h-5 text-purple-600" />, bg: 'bg-purple-50' },
+          { label: 'Published', value: counts.published, icon: <Globe className="w-5 h-5 text-green-600" />, bg: 'bg-green-50' },
+          { label: 'Draft', value: counts.draft, icon: <Clock className="w-5 h-5 text-yellow-600" />, bg: 'bg-yellow-50' },
+          { label: 'Archived', value: counts.archived, icon: <Archive className="w-5 h-5 text-gray-600" />, bg: 'bg-gray-50' },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
             <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center`}>
@@ -292,16 +331,19 @@ export default function WebStoriesAdminPage() {
                           <p className="text-xs text-gray-400 truncate max-w-[180px] mt-0.5">/stories/{story.slug}</p>
                           <div className="flex items-center gap-1 mt-1">
                             <button
-                              onClick={() => handleReorder(story.id, 'up', story.displayOrder)}
-                              disabled={idx === 0 || reordering === story.id}
+                              onClick={() => handleReorder(story.id, 'up')}
+                              disabled={(page === 1 && idx === 0) || reordering === story.id}
                               className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-30 transition-colors"
                               title="Move up"
                             >
                               <ArrowUp className="w-3 h-3" />
                             </button>
                             <button
-                              onClick={() => handleReorder(story.id, 'down', story.displayOrder)}
-                              disabled={idx === stories.length - 1 || reordering === story.id}
+                              onClick={() => handleReorder(story.id, 'down')}
+                              disabled={
+                                (page === totalPages && idx === stories.length - 1) ||
+                                reordering === story.id
+                              }
                               className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-30 transition-colors"
                               title="Move down"
                             >
@@ -339,6 +381,13 @@ export default function WebStoriesAdminPage() {
                       {story.isArchived ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                           <Archive className="w-3 h-3" /> Archived
+                        </span>
+                      ) : isExpired(story) ? (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"
+                          title={`Expired on ${new Date(story.expiresAt as string).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — hidden from the public site`}
+                        >
+                          <AlertTriangle className="w-3 h-3" /> Expired
                         </span>
                       ) : story.isPublished ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">

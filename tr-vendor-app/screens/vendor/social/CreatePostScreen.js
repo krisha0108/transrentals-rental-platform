@@ -9,11 +9,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   StatusBar,
   Image,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
@@ -223,7 +223,7 @@ export default function CreatePostScreen({ navigation }) {
   return (
     <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} translucent={false} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* ── HERO HEADER ── */}
         <LinearGradient colors={G.hero} style={styles.hero}>
           <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
@@ -380,7 +380,7 @@ export default function CreatePostScreen({ navigation }) {
 
         {/* Category picker Modal */}
         <Modal visible={catModalVisible} transparent animationType="slide" onRequestClose={() => setCatModalVisible(false)}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
           <View style={styles.catOverlay}>
             <TouchableOpacity style={styles.catBackdrop} activeOpacity={1} onPress={() => setCatModalVisible(false)} />
             <View style={styles.catSheet}>
@@ -424,12 +424,14 @@ export default function CreatePostScreen({ navigation }) {
                       <View style={[styles.catItemDot, { backgroundColor: isCatSOS ? C.redL : C.violetL }]}>
                         <Icon name={isCatSOS ? 'alert-circle' : 'tag'} size={14} color={isCatSOS ? C.red : C.violet} />
                       </View>
-                      <Text style={[styles.catItemText, isActive && styles.catItemTextActive, isCatSOS && { color: C.red }]}>
-                        {isCatSOS ? '🚨 ' : ''}{cat.name}
-                      </Text>
-                      {cat.description && (
-                        <Text style={styles.catItemDesc} numberOfLines={1}>{cat.description}</Text>
-                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.catItemText, isActive && styles.catItemTextActive, isCatSOS && { color: C.red }]} numberOfLines={1}>
+                          {isCatSOS ? '🚨 ' : ''}{cat.name}
+                        </Text>
+                        {cat.description && (
+                          <Text style={styles.catItemDesc} numberOfLines={1}>{cat.description}</Text>
+                        )}
+                      </View>
                       {isActive && <Icon name="check" size={16} color={C.violet} style={{ marginLeft: 'auto' }} />}
                     </TouchableOpacity>
                   );
@@ -568,7 +570,7 @@ const styles = StyleSheet.create({
   },
   catItemActive: { backgroundColor: C.violetL, marginHorizontal: -rs(14), paddingHorizontal: rs(14), borderRadius: rs(8) },
   catItemDot: { width: rs(34), height: rs(34), borderRadius: rs(10), alignItems: 'center', justifyContent: 'center' },
-  catItemText: { flex: 1, fontFamily: DISPLAY, fontSize: rs(15), fontWeight: '600', color: C.text },
+  catItemText: { fontFamily: DISPLAY, fontSize: rs(15), fontWeight: '600', color: C.text },
   catItemTextActive: { color: C.violet },
-  catItemDesc: { fontFamily: DISPLAY, fontSize: rs(11), color: C.muted },
+  catItemDesc: { fontFamily: DISPLAY, fontSize: rs(11), color: C.muted, marginTop: rs(2) },
 });

@@ -71,7 +71,7 @@ const VEHICLE_CATEGORIES_BASE = [
 const LIVE_STATS = [
   { value: '2.5K+', label: 'Inquiries Today', icon: '📋' },
   { value: '500+', label: 'Active Vendors', icon: '🏪' },
-  { value: '150+', label: 'Cities', icon: '📍' },
+  { value: '500+', label: 'Cities', icon: '📍' },
 ];
 
 export function HeroSection() {
@@ -146,14 +146,14 @@ export function HeroSection() {
           </h1>
 
           <p className="text-xl text-gray-600 mb-8">
-            Compare quotes from 500+ verified vendors across 150+ cities
+            Compare quotes from 500+ verified vendors across 500+ cities
           </p>
 
           <div className="flex justify-center flex-wrap gap-4">
             {[
               { icon: CheckCircle2, text: 'Free Quotes', color: 'text-emerald-600' },
               { icon: Star, text: '4.8/5 Rating', color: 'text-amber-500' },
-              { icon: Users, text: '50K+ Happy Customers', color: 'text-blue-600' },
+              { icon: Users, text: '40K+ Happy Customers', color: 'text-blue-600' },
             ].map((badge) => (
               <div key={badge.text} className="flex items-center gap-2">
                 <div className={cn("w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-md", badge.color)}>

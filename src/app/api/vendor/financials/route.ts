@@ -247,17 +247,12 @@ export async function GET(request: NextRequest) {
     const refundDateFilter = dateFilter ? { cancelledAt: dateFilter } : {};
 
     try {
-      // bike_bookings has no cancelledAt column (unlike the other 9 booking
-      // tables) — using it in where/select/orderBy threw a Prisma validation
-      // error on every request, silently caught below, so this section was
-      // always empty. updatedAt is the closest available proxy: it moves
-      // whenever the row's status flips to CANCELLED.
       const rows = await prisma.bike_bookings.findMany({
-        where: { acceptedVendorId: vid, status: 'CANCELLED', ...(dateFilter ? { updatedAt: dateFilter } : {}) },
-        select: { id: true, bookingNumber: true, customerName: true, totalAmount: true, refundAmount: true, cancellationReason: true, updatedAt: true, status: true },
-        orderBy: { updatedAt: 'desc' },
+        where: { acceptedVendorId: vid, status: 'CANCELLED', ...refundDateFilter },
+        select: { id: true, bookingNumber: true, customerName: true, totalAmount: true, refundAmount: true, cancellationReason: true, cancelledAt: true, status: true },
+        orderBy: { cancelledAt: 'desc' },
       });
-      for (const b of rows) refunds.push({ service: 'Bike Rental', id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName, totalAmount: Number(b.totalAmount || 0), refundAmount: Number(b.refundAmount || 0), cancellationReason: b.cancellationReason, cancelledAt: b.updatedAt, status: b.status, detailUrl: `/vendor/bike-rentals/bookings/${b.id}` });
+      for (const b of rows) refunds.push({ service: 'Bike Rental', id: b.id, bookingNumber: b.bookingNumber, customerName: b.customerName, totalAmount: Number(b.totalAmount || 0), refundAmount: Number(b.refundAmount || 0), cancellationReason: b.cancellationReason, cancelledAt: b.cancelledAt, status: b.status, detailUrl: `/vendor/bike-rentals/bookings/${b.id}` });
     } catch (error) {
       logger.error('Vendor financials: bike_bookings refunds query failed', error);
     }

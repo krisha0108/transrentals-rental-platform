@@ -4,8 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -13,7 +11,8 @@ import {
   Modal,
   StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -68,6 +67,7 @@ const DEFAULT_TERMS = [
 ];
 
 export default function BikeSendQuoteScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { requestId } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -314,18 +314,20 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
   /* ─── LOADING ─── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['left','right']}>
         <StatusBar backgroundColor={C.g900} barStyle="light-content" />
         <LinearGradient colors={G.hero} style={styles.gradientHeader}>
           <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitleWhite}>Send Quote</Text>
-            <Text style={styles.headerSubtitleWhite}>Bike Rental</Text>
-          </View>
-          <View style={{ width: 40 }} />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitleWhite}>Send Quote</Text>
+              <Text style={styles.headerSubtitleWhite}>Bike Rental</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </SafeAreaView>
         </LinearGradient>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
           {/* Request Summary skeleton */}
@@ -385,26 +387,27 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
   const dailyRate = calculateDailyRate();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['left','right']}>
       <StatusBar backgroundColor={C.g900} barStyle="light-content" />
 
       {/* ─── GRADIENT HEADER ─── */}
       <LinearGradient colors={G.hero} style={styles.gradientHeader}>
         <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitleWhite}>Send Quote</Text>
-          <Text style={styles.headerSubtitleWhite}>Bike Rental</Text>
-        </View>
-        <View style={{ width: 40 }} />
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitleWhite}>Send Quote</Text>
+            <Text style={styles.headerSubtitleWhite}>Bike Rental</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </SafeAreaView>
       </LinearGradient>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior="padding"
       >
       <ScrollView
         style={styles.scrollView}
@@ -873,10 +876,9 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
 
         <View style={{ height: 110 }} />
       </ScrollView>
-      </KeyboardAvoidingView>
 
       {/* ─── SUBMIT FOOTER ─── */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
           onPress={handleSubmit}
@@ -894,6 +896,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       {/* ─── DATE PICKER ─── */}
       <DateTimePickerModal
@@ -918,7 +921,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
           style={{ flex: 1 }}
         >
         <View style={styles.modalOverlay}>
@@ -1107,7 +1110,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 0,
     backgroundColor: C.card,
     borderTopWidth: 1,
     borderTopColor: C.border,

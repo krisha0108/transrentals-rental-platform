@@ -12,9 +12,8 @@ import {
   TextInput,
   Modal,
   StatusBar,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -475,7 +474,7 @@ export default function BookingDetailScreen({ route, navigation }) {
   /* ─── Loading state ─── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient
           colors={G.hero}
@@ -484,16 +483,18 @@ export default function BookingDetailScreen({ route, navigation }) {
           style={styles.header}
         >
           <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={18} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.titleWrap}>
-              <MaterialCommunityIcons name="car" size={18} color={C.g400} />
-              <Text style={styles.headerTitle}>Booking Detail</Text>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car" size={18} color={C.g400} />
+                <Text style={styles.headerTitle}>Booking Detail</Text>
+              </View>
+              <View style={{ width: 36 }} />
             </View>
-            <View style={{ width: 36 }} />
-          </View>
+          </SafeAreaView>
         </LinearGradient>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -598,7 +599,7 @@ export default function BookingDetailScreen({ route, navigation }) {
   /* ─── Not found state ─── */
   if (!booking) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient
           colors={G.hero}
@@ -606,16 +607,18 @@ export default function BookingDetailScreen({ route, navigation }) {
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={18} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.titleWrap}>
-              <MaterialCommunityIcons name="car" size={18} color={C.g400} />
-              <Text style={styles.headerTitle}>Booking Detail</Text>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={styles.titleWrap}>
+                <MaterialCommunityIcons name="car" size={18} color={C.g400} />
+                <Text style={styles.headerTitle}>Booking Detail</Text>
+              </View>
+              <View style={{ width: 36 }} />
             </View>
-            <View style={{ width: 36 }} />
-          </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.emptyContainer}>
           <Ionicons name="alert-circle-outline" size={56} color={C.muted} />
@@ -628,7 +631,7 @@ export default function BookingDetailScreen({ route, navigation }) {
   const statusConfig = getStatusConfig(booking.status);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
       {/* Gradient Header */}
       <LinearGradient
@@ -639,16 +642,18 @@ export default function BookingDetailScreen({ route, navigation }) {
       >
         <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.titleWrap}>
-            <MaterialCommunityIcons name="car" size={18} color={C.g400} />
-            <Text style={styles.headerTitle}>Booking Detail</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.titleWrap}>
+              <MaterialCommunityIcons name="car" size={18} color={C.g400} />
+              <Text style={styles.headerTitle}>Booking Detail</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -1420,7 +1425,7 @@ export default function BookingDetailScreen({ route, navigation }) {
         animationType="slide"
         onRequestClose={() => setShowEndTripModal(false)}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={styles.completeModalOverlay}>
           <View style={styles.completeModalContent}>
             <View style={styles.modalHeader}>

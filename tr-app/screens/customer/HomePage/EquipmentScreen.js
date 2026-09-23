@@ -130,6 +130,12 @@ export default function EquipmentScreen() {
       if (Platform.OS === 'android') {
         StatusBar.setBackgroundColor(TEAL_DEEP);
       }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
     }, [])
   );
 
@@ -418,9 +424,11 @@ export default function EquipmentScreen() {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         onScrollBeginDrag={() => {
           if (!dropdownTouching.current) setShowSuggestions(false);
         }}
+        contentContainerStyle={{ paddingBottom: hp('2%') }}
       >
         {/* FORM CARD */}
         <View style={styles.formCard}>
@@ -808,8 +816,8 @@ export default function EquipmentScreen() {
                   <View style={styles.faqChevronCircle}>
                     <Ionicons
                       name={open ? 'chevron-up' : 'chevron-down'}
-                      size={wp('4%')}
-                      color={TEAL}
+                      size={wp('3.5%')}
+                      color="#FFFFFF"
                     />
                   </View>
                 </TouchableOpacity>
@@ -1369,9 +1377,10 @@ const styles = StyleSheet.create({
   /* ── FAQ SECTION ── */
   faqSec: {
     backgroundColor: TEAL_DEEP,
+    marginHorizontal: wp('3.5%'),
     marginTop: hp('2.2%'),
     padding: wp('4%'),
-    paddingBottom: hp('3.5%'),
+    borderRadius: wp('5%'),
   },
   faqTitle: {
     fontSize: wp('4.5%'),
@@ -1380,9 +1389,11 @@ const styles = StyleSheet.create({
     marginBottom: hp('1.5%'),
   },
   faqItem: {
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-    borderBottomWidth: 1,
-    paddingVertical: hp('1.3%'),
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.4%'),
+    marginBottom: hp('1%'),
   },
   faqHead: {
     flexDirection: 'row',
@@ -1397,12 +1408,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   faqChevronCircle: {
-    width: wp('7%'),
-    height: wp('7%'),
-    borderRadius: wp('3.5%'),
-    backgroundColor: 'rgba(16,185,129,0.2)',
+    width: wp('5.5%'),
+    height: wp('5.5%'),
+    borderRadius: wp('2.75%'),
+    backgroundColor: TEAL,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   faqA: {
     color: TEAL_LIGHT,

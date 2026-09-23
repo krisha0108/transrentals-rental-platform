@@ -150,7 +150,7 @@ export default function AllBookingsScreen({ navigation, route }) {
       {/* Service filter chips */}
       {serviceFilters.length > 1 && (
         <View style={s.chipsWrap}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipsRowOuter} contentContainerStyle={s.chipsRow}>
             {serviceFilters.map(f => {
               const active = svcFilter === f;
               const meta = SVC_META[f];
@@ -158,7 +158,7 @@ export default function AllBookingsScreen({ navigation, route }) {
                 <TouchableOpacity key={f} activeOpacity={0.8}
                   style={[s.chip, active && s.chipActive]} onPress={() => setSvcFilter(f)}>
                   {meta && <MaterialCommunityIcons name={meta.icon} size={13} color={active ? '#fff' : meta.color} />}
-                  <Text style={[s.chipTxt, active && s.chipTxtActive]}>{f === 'all' ? 'All' : meta?.name || f}</Text>
+                  <Text numberOfLines={1} style={[s.chipTxt, active && s.chipTxtActive]}>{f === 'all' ? 'All' : meta?.name || f}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -262,7 +262,8 @@ const s = StyleSheet.create({
   togglePillTxtActive: { color: '#fff' },
 
   chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  chipsRowOuter: { flexGrow: 0, flexShrink: 0, height: 62 },
+  chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: 'center' },
   chip:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
   chipActive:{ backgroundColor: C.g700, borderColor: C.g700 },
   chipTxt:   { fontSize: 13, fontWeight: '700', color: C.sub },

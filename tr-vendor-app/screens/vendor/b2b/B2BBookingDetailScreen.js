@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  ActivityIndicator, StatusBar, KeyboardAvoidingView, Platform,
+  ActivityIndicator, StatusBar,
   Modal, FlatList, RefreshControl,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -664,16 +665,18 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
   // ── Loading / Not found ─────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         <LinearGradient colors={G.hero} style={s.header}>
           <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <View style={s.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={s.headerCenter}><Text style={s.headerTitle}>Booking Detail</Text></View>
-            <View style={{ width: 36 }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={s.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.headerCenter}><Text style={s.headerTitle}>Booking Detail</Text></View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Booking Info skeleton */}
@@ -715,16 +718,18 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
 
   if (!booking) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         <LinearGradient colors={G.hero} style={s.header}>
           <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <View style={s.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={s.headerCenter}><Text style={s.headerTitle}>Booking Detail</Text></View>
-            <View style={{ width: 36 }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={s.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.headerCenter}><Text style={s.headerTitle}>Booking Detail</Text></View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={s.loadingWrap}>
           <MCI name="file-alert-outline" size={56} color={C.muted} />
@@ -740,7 +745,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
   const mciIcon = SERVICE_ICONS[serviceKey] || 'car';
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       {/* ── Template Selection Modal ── */}
       <Modal
         visible={templateModalOpen}
@@ -826,25 +831,27 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
       {/* Header */}
       <LinearGradient colors={G.hero} style={s.header}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>{alreadyQuoted ? 'Booking Detail' : 'Submit Quote'}</Text>
-            {booking.bookingNumber ? <Text style={s.headerSub}>#{booking.bookingNumber}</Text> : null}
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <Text style={s.headerTitle}>{alreadyQuoted ? 'Booking Detail' : 'Submit Quote'}</Text>
+              {booking.bookingNumber ? <Text style={s.headerSub}>#{booking.bookingNumber}</Text> : null}
+            </View>
+            <TouchableOpacity
+              style={s.backBtn}
+              onPress={() => navigation.navigate('ChatScreen', { bookingId: booking.id, customerName: 'B2B Manager', bookingNumber: booking.bookingNumber, serviceType: booking.serviceType })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Icon name="message-circle" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={s.backBtn}
-            onPress={() => navigation.navigate('ChatScreen', { bookingId: booking.id, customerName: 'B2B Manager', bookingNumber: booking.bookingNumber, serviceType: booking.serviceType })}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="message-circle" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}>
 
           {/* ── Booking Info Card ───────────────────────────────── */}
@@ -1677,7 +1684,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
       {/* ── Fleet Modal ──────────────────────────────────────────── */}
       <Modal visible={fleetModalOpen} animationType="slide" transparent
         onRequestClose={() => { setFleetModalOpen(false); setFleetSearch(''); }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <TouchableOpacity style={s.modalBackdrop} activeOpacity={1}
           onPress={() => { setFleetModalOpen(false); setFleetSearch(''); }} />
         <View style={s.modalSheet}>

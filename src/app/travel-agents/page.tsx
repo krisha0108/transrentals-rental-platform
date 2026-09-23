@@ -30,7 +30,7 @@ import {
 export const metadata: Metadata = {
   title: 'For Travel Agents | Grow your travel agency with TransRentals',
   description:
-    'Join 1000+ travel agents on TransRentals. Get a free public profile, list tours, stays and vehicles, capture leads, and turn them into bookings — all from one dashboard.',
+    'Join 50+ travel agents on TransRentals. Get a free public profile, list tours, stays and vehicles, capture leads, and turn them into bookings — all from one dashboard.',
 };
 
 const BENEFITS = [
@@ -88,8 +88,8 @@ const STEPS = [
 ];
 
 const STATS = [
-  { value: '1000+', label: 'Travel agents onboarded' },
-  { value: '150+', label: 'Cities across India' },
+  { value: '50+', label: 'Travel agents onboarded' },
+  { value: '500+', label: 'Cities across India' },
   { value: '0%', label: 'Listing fee — always free' },
   { value: '24/7', label: 'Customer support' },
 ];
@@ -150,7 +150,7 @@ export default function TravelAgentsLandingPage() {
                 agency the smart way.
               </h1>
               <p className="text-lg text-emerald-50 mt-5 max-w-xl leading-relaxed">
-                Join 1000+ travel agents already using TransRentals. Get a free public profile,
+                Join 50+ travel agents already using TransRentals. Get a free public profile,
                 list your tours and vehicles, capture leads, and turn them into bookings — all
                 from one dashboard.
               </p>

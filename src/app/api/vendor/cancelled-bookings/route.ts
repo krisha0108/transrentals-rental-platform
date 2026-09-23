@@ -79,39 +79,20 @@ export async function GET(request: NextRequest) {
 
     switch (service) {
       case 'bike-rentals': {
-        // bike_bookings does not have cancelledAt/cancelledBy columns — use updatedAt for sorting/date-filter
-        const bikeDateFilter: any = {};
-        if (startDate || endDate) {
-          bikeDateFilter.updatedAt = {};
-          if (startDate) bikeDateFilter.updatedAt.gte = new Date(startDate);
-          if (endDate) {
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999);
-            bikeDateFilter.updatedAt.lte = end;
-          }
-        }
-        const bikeWhere = {
-          status: { in: CANCELLED_STATUSES },
-          OR: [{ assignedVendorId: vendorId }, { acceptedVendorId: vendorId }],
-          ...searchFilter, ...bikeDateFilter,
-        };
         const [rows, count] = await Promise.all([
           prisma.bike_bookings.findMany({
-            where: bikeWhere,
+            where: { ...baseWhere },
             select: {
-              id: true, bookingNumber: true,
-              customerName: true, customerPhone: true,
-              status: true, cancellationReason: true,
-              grandTotal: true, paidAmount: true, refundAmount: true, createdAt: true,
+              ...commonSelect,
               requestedVehicleName: true,
               pickupDate: true, dropDate: true, totalDays: true,
             },
-            orderBy: { updatedAt: 'desc' },
+            orderBy: { cancelledAt: 'desc' },
             skip, take: limit,
           }),
-          prisma.bike_bookings.count({ where: bikeWhere }),
+          prisma.bike_bookings.count({ where: { ...baseWhere } }),
         ]);
-        bookings = rows.map((b) => ({ ...b, cancelledAt: null, cancelledBy: null, vehicleName: b.requestedVehicleName, detailHref: `/vendor/bike-rentals/bookings/${b.id}` }));
+        bookings = rows.map((b) => ({ ...b, vehicleName: b.requestedVehicleName, detailHref: `/vendor/bike-rentals/bookings/${b.id}` }));
         total = count;
         break;
       }

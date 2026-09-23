@@ -15,6 +15,7 @@ import {
   StatusBar,
   Platform,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -799,6 +800,7 @@ const BikeFleetScreen = () => {
       transparent={true}
       onRequestClose={() => setShowBookingModal(false)}
     >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.modalOverlay}>
         <View style={styles.bookingModal}>
           {/* Accent stripe */}
@@ -989,6 +991,7 @@ const BikeFleetScreen = () => {
           </View>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 
@@ -1815,9 +1818,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: wp('6%'),
     maxHeight: '90%',
     overflow: 'hidden',
+    flexShrink: 1,
   },
   bookingContent: {
     padding: wp('5%'),
+    flexShrink: 1,
   },
   bookingBikeImage: {
     height: hp('22%'),
@@ -2018,6 +2023,7 @@ const styles = StyleSheet.create({
   },
   bookingActions: {
     padding: wp('4%'),
+    paddingBottom: wp('5.5%'),
     borderTopWidth: 1,
     borderTopColor: DIVIDER,
     backgroundColor: CARD,

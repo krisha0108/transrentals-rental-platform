@@ -8,6 +8,7 @@ import {
   TextInput, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -151,22 +152,24 @@ export default function TruckCreateTemplateScreen({ navigation }) {
 
   if (initializing) {
     return (
-      <SafeAreaView style={s.container} edges={['top']}>
+      <SafeAreaView style={s.container} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={s.hero}>
           <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <View style={s.heroRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
-              <Text style={s.heroTitle}>New Template</Text>
-              <Text style={s.heroSub}>Create a reusable quote template</Text>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={s.heroRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={s.heroTitle}>New Template</Text>
+                <Text style={s.heroSub}>Create a reusable quote template</Text>
+              </View>
+              <View style={s.heroBadge}>
+                <MaterialCommunityIcons name="truck-delivery" size={20} color={C.amber} />
+              </View>
             </View>
-            <View style={s.heroBadge}>
-              <MaterialCommunityIcons name="truck-delivery" size={20} color={C.amber} />
-            </View>
-          </View>
+          </SafeAreaView>
         </LinearGradient>
 
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
@@ -203,24 +206,27 @@ export default function TruckCreateTemplateScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeAreaView style={s.container} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
 
       {/* Hero Header */}
       <LinearGradient colors={G.hero} style={s.hero}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.heroRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={s.heroTitle}>New Template</Text>
-            <Text style={s.heroSub}>Create a reusable quote template</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.heroRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.heroTitle}>New Template</Text>
+              <Text style={s.heroSub}>Create a reusable quote template</Text>
+            </View>
+            <View style={s.heroBadge}>
+              <MaterialCommunityIcons name="truck-delivery" size={20} color={C.amber} />
+            </View>
           </View>
-          <View style={s.heroBadge}>
-            <MaterialCommunityIcons name="truck-delivery" size={20} color={C.amber} />
-          </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
@@ -462,6 +468,7 @@ export default function TruckCreateTemplateScreen({ navigation }) {
           <Text style={s.submitBtnText}>{isSubmitting ? 'Creating...' : 'Create Template'}</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

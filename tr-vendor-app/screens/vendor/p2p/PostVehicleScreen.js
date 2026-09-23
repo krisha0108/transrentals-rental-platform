@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Switch, ActivityIndicator, Platform,
-  KeyboardAvoidingView, Modal, FlatList, StatusBar,
+  Modal, FlatList, StatusBar,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -295,7 +296,7 @@ export default function PostVehicleScreen({ navigation, route }) {
           </SafeAreaView>
         </LinearGradient>
 
-        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
           <View style={s.sectionCard}>
             <View style={s.serviceTypeRow}>
               {[0, 1].map(i => (
@@ -351,8 +352,8 @@ export default function PostVehicleScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* ── STEP 1: SERVICE TYPE ── */}
           <SectionCard
@@ -931,7 +932,7 @@ export default function PostVehicleScreen({ navigation, route }) {
             <Text style={s.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
 
-          <View style={{ height: 120 }} />
+          <View style={{ height: 24 }} />
         </ScrollView>
       </KeyboardAvoidingView>
 

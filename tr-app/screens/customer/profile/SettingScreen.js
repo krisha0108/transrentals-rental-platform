@@ -117,9 +117,9 @@ const SettingScreen = ({ navigation }) => {
         StatusBar.setBackgroundColor(TEAL_DEEP, true);
       }
       return () => {
-        StatusBar.setBarStyle('light-content', true);
+        StatusBar.setBarStyle('dark-content', true);
         if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#0A6B3F', true);
+          StatusBar.setBackgroundColor('#FFFFFF', true);
         }
       };
     }, [])

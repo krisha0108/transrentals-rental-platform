@@ -173,7 +173,7 @@ export default function ToursListScreen({ navigation }) {
           </View>
 
           {/* Status pill filters */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRowOuter} contentContainerStyle={styles.chipsRow}>
             {statusChips.map((c) => {
               const active = statusFilter === c.key;
               return (
@@ -183,7 +183,7 @@ export default function ToursListScreen({ navigation }) {
                   style={[styles.chip, active && styles.chipActive]}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
+                  <Text numberOfLines={1} style={[styles.chipText, active && styles.chipTextActive]}>{c.label}</Text>
                   {c.count != null && c.count > 0 && (
                     <View style={[styles.chipBadge, active && styles.chipBadgeActive]}>
                       <Text style={[styles.chipBadgeText, active && { color: C.emerald700 }]}>{c.count}</Text>
@@ -569,7 +569,8 @@ const styles = StyleSheet.create({
   },
   searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 13.5, color: C.ink, paddingVertical: 0, fontWeight: "600" },
 
-  chipsRow: { paddingTop: 12, gap: 6, flexDirection: "row", paddingHorizontal: 4 },
+  chipsRowOuter: { flexGrow: 0, flexShrink: 0, height: 48 },
+  chipsRow: { paddingTop: 12, gap: 6, flexDirection: "row", alignItems: "center", paddingHorizontal: 4 },
   chip: {
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,

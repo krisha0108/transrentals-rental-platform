@@ -210,7 +210,7 @@ export default function PackersTemplatesScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       <LinearGradient
@@ -219,19 +219,21 @@ export default function PackersTemplatesScreen({ navigation }) {
         style={s.heroMin}
       >
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
-            <Text style={s.heroTitle}>Quote Templates</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+              <Text style={s.heroTitle}>Quote Templates</Text>
+            </View>
+            <TouchableOpacity style={s.backBtn} onPress={onRefresh}>
+              <Icon name="refresh-cw" size={16} color={C.g400} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.backBtn} onPress={onRefresh}>
-            <Icon name="refresh-cw" size={16} color={C.g400} />
-          </TouchableOpacity>
-        </View>
-        <Text style={s.heroSub}>Packers & Movers</Text>
+          <Text style={s.heroSub}>Packers & Movers</Text>
+        </SafeAreaView>
       </LinearGradient>
 
       <FlatList

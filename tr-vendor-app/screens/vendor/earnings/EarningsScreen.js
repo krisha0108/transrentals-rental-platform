@@ -168,7 +168,7 @@ export default function EarningsScreen({ navigation, route }) {
           ? <Ionicons name="grid-outline" size={14} color={active ? '#fff' : C.sub} />
           : <MaterialCommunityIcons name={icon} size={14} color={active ? '#fff' : color} />
         }
-        <Text style={[s.chipTxt, active && { color: '#fff' }]}>{label}</Text>
+        <Text numberOfLines={1} style={[s.chipTxt, active && { color: '#fff' }]}>{label}</Text>
         <View style={[s.chipCount, active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
           <Text style={[s.chipCountTxt, active && { color: '#fff' }]}>{count}</Text>
         </View>
@@ -432,7 +432,7 @@ export default function EarningsScreen({ navigation, route }) {
   const showFilters = serviceBreakdown.length > 0 || (serviceType && SERVICE_CONFIG[serviceType]);
   const FiltersBar = () => (
     <View style={s.filtersWrap}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filtersScroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filtersScrollOuter} contentContainerStyle={s.filtersScroll}>
         <FilterChip service="all" label="All" isAll count={bookingsData.total} />
         {serviceBreakdown.map(item => {
           const cfg = getServiceConfig(item.service);
@@ -490,8 +490,13 @@ export default function EarningsScreen({ navigation, route }) {
   const listData = [];
   if (showFilters) listData.push({ __kind: 'filters' });
   listData.push({ __kind: 'sectionRow' });
-  if (bookingsList.length === 0) listData.push({ __kind: 'empty' });
-  else bookingsList.forEach((b, i) => listData.push({ ...b, __kind: 'booking', __idx: i }));
+  if (filterLoading) {
+    [0, 1, 2, 3].forEach(i => listData.push({ __kind: 'skeleton', __idx: i }));
+  } else if (bookingsList.length === 0) {
+    listData.push({ __kind: 'empty' });
+  } else {
+    bookingsList.forEach((b, i) => listData.push({ ...b, __kind: 'booking', __idx: i }));
+  }
 
   const stickyIndices = showFilters ? [1] : []; // index 0 = ListHeaderComponent
 
@@ -499,10 +504,26 @@ export default function EarningsScreen({ navigation, route }) {
     if (item.__kind === 'filters')    return <FiltersBar />;
     if (item.__kind === 'sectionRow') return <SectionRow />;
     if (item.__kind === 'empty')      return <EmptyState />;
+    if (item.__kind === 'skeleton') {
+      const i = item.__idx;
+      return (
+        <View style={[s.flatRow, i === 0 && s.flatRowFirst, i === 3 && s.flatRowLast, i !== 3 && s.flatRowDivider]}>
+          <Bone w={32} h={32} r={10} />
+          <View style={{ flex: 1, marginLeft: 10, gap: 6 }}>
+            <Bone w={W * 0.28} h={11} r={4} />
+            <Bone w={W * 0.4} h={9} r={4} />
+          </View>
+          <View style={{ alignItems: 'flex-end', gap: 6 }}>
+            <Bone w={50} h={12} r={4} />
+            <Bone w={40} h={14} r={7} />
+          </View>
+        </View>
+      );
+    }
     return renderBookingCard({ item, index: item.__idx });
   };
 
-  const rowKeyExtractor = (item) => (item.__kind === 'booking' ? item.id : item.__kind);
+  const rowKeyExtractor = (item) => (item.__kind === 'booking' ? item.id : `${item.__kind}${item.__idx ?? ''}`);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -527,42 +548,19 @@ export default function EarningsScreen({ navigation, route }) {
       </LinearGradient>
 
       {/* ── Bookings list ────────────────────────────────────── */}
-      {filterLoading ? (
-        <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 10 }}>
-          <ListHeaderTop />
-          {showFilters && <FiltersBar />}
-          <SectionRow />
-          <View>
-            {[0,1,2,3].map(i => (
-              <View key={i} style={[s.flatRow, i === 0 && s.flatRowFirst, i === 3 && s.flatRowLast, i !== 3 && s.flatRowDivider]}>
-                <Bone w={32} h={32} r={10} />
-                <View style={{ flex: 1, marginLeft: 10, gap: 6 }}>
-                  <Bone w={W * 0.28} h={11} r={4} />
-                  <Bone w={W * 0.4} h={9} r={4} />
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                  <Bone w={50} h={12} r={4} />
-                  <Bone w={40} h={14} r={7} />
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      ) : (
-        <FlatList
-          data={listData}
-          renderItem={renderRow}
-          keyExtractor={rowKeyExtractor}
-          contentContainerStyle={s.listContent}
-          showsVerticalScrollIndicator={false}
-          stickyHeaderIndices={stickyIndices}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh}
-              colors={[C.g500]} tintColor={C.g400} progressBackgroundColor="#fff" />
-          }
-          ListHeaderComponent={<ListHeaderTop />}
-        />
-      )}
+      <FlatList
+        data={listData}
+        renderItem={renderRow}
+        keyExtractor={rowKeyExtractor}
+        contentContainerStyle={s.listContent}
+        showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={stickyIndices}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh}
+            colors={[C.g500]} tintColor={C.g400} progressBackgroundColor="#fff" />
+        }
+        ListHeaderComponent={<ListHeaderTop />}
+      />
     </View>
   );
 }
@@ -658,7 +656,8 @@ const s = StyleSheet.create({
 
   // ── Filter chips ─────────────────────────────────────────────
   filtersWrap:  { backgroundColor: C.bg, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
-  filtersScroll:{ gap: 8, paddingHorizontal: 16 },
+  filtersScrollOuter: { flexGrow: 0, flexShrink: 0, height: 44 },
+  filtersScroll:{ gap: 8, paddingHorizontal: 16, alignItems: 'center' },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 8,

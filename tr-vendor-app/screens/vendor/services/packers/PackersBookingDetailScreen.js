@@ -378,7 +378,7 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
   const shiftSuffix = booking.shiftingType ? ` • ${booking.shiftingType}` : '';
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ══ Hero ═════════════════════════════════════════════════════════ */}
@@ -389,18 +389,20 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
       >
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
-            <Text style={s.heroTitle}>Booking Detail</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+              <Text style={s.heroTitle}>Booking Detail</Text>
+            </View>
+            <TouchableOpacity style={s.backBtn} onPress={handleChat}>
+              <Icon name="message-circle" size={18} color={C.g400} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.backBtn} onPress={handleChat}>
-            <Icon name="message-circle" size={18} color={C.g400} />
-          </TouchableOpacity>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView

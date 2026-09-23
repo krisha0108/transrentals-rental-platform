@@ -14,6 +14,7 @@ import {
   Dimensions,
   StatusBar,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -638,6 +639,7 @@ const HelpDeskScreen = () => {
 
       {/* Slide-up Modal */}
       <Modal visible={modalVisible} transparent animationType="none">
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Animated.View style={[styles.modalOverlay, {opacity: fadeAnim}]}>
           <TouchableOpacity
             style={styles.modalBackdrop}
@@ -839,6 +841,7 @@ const HelpDeskScreen = () => {
             </View>
           </Animated.View>
         </Animated.View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Image Preview Modal */}
@@ -1219,16 +1222,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: CARD,
     borderTopLeftRadius: wp('6%'),
     borderTopRightRadius: wp('6%'),
     paddingBottom: hp('2.5%'),
     maxHeight: '85%',
     overflow: 'hidden',
+    flexShrink: 1,
   },
   modalAccentStripe: {
     height: hp('0.5%'),
@@ -1285,6 +1285,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
+    flexShrink: 1,
     paddingHorizontal: wp('5%'),
     paddingTop: hp('2%'),
   },
@@ -1373,6 +1374,7 @@ const styles = StyleSheet.create({
   modalActions: {
     paddingHorizontal: wp('5%'),
     paddingTop: hp('1%'),
+    paddingBottom: hp('1.5%'),
   },
   submitBtn: {
     borderRadius: wp('3%'),

@@ -25,7 +25,8 @@ import {
   PermissionsAndroid,
   Linking,
   RefreshControl,
-  BackHandler
+  BackHandler,
+  KeyboardAvoidingView
 } from 'react-native';
 import {
   widthPercentageToDP as wp,
@@ -204,7 +205,7 @@ export default function CustomerDashboard() {
         }),
       ])
     ).start();
-  }, []);
+  }, [skeletonAnim]);
 
   const skeletonOpacity = skeletonAnim.interpolate({
     inputRange: [0, 1],
@@ -559,6 +560,10 @@ export default function CustomerDashboard() {
     // Check for app updates
     checkForUpdate();
 
+    // Intentional run-once-on-mount effect — initApp/requestLocationPermission/
+    // checkForUpdate aren't memoized, so listing them would re-run this on
+    // every render instead of just once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ────── REFRESH NOTIFICATION COUNT ON SCREEN FOCUS ──────
@@ -733,7 +738,7 @@ export default function CustomerDashboard() {
 
   // ────── RENDER HELPERS ──────
   // Booking card used in the Activity list
-  const BookingCard = ({ item }) => (
+  const BookingCard = ({ item, activeTab }) => (
     <TouchableOpacity
       style={styles.bookingCard}
       onPress={() => {
@@ -772,78 +777,51 @@ export default function CustomerDashboard() {
     </TouchableOpacity>
   );
 
+  // Same 4 values/targets as before — just a quiet bordered strip instead
+  // of a dark gradient "glass card".
   const QuickStats = () => (
-    <View>
-      <LinearGradient
-        colors={['#064E3B', '#065F46', '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.statsGlassCard}
+    <View style={styles.statsStrip}>
+      <TouchableOpacity
+        style={styles.statsCol}
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('MyBookings', { filter: 'confirmed', timestamp: Date.now() })}
       >
-        {/* Deco circles */}
-        <View style={[styles.statsDecoCircle, { top: -20, right: -15, width: 80, height: 80 }]} />
-        <View style={[styles.statsDecoCircle, { bottom: -10, left: -10, width: 50, height: 50 }]} />
+        <Text style={styles.statsValue}>{dashboardStats.active_bookings}</Text>
+        <Text style={styles.statsCaption}>Active{'\n'}Bookings</Text>
+      </TouchableOpacity>
 
-        <View style={styles.statsInnerRow}>
-          {/* Active Bookings */}
-          <TouchableOpacity
-            style={styles.statItem}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('MyBookings', { filter: 'confirmed', timestamp: Date.now() })}
-          >
-            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(16,185,129,0.25)' }]}>
-              <Icon name="calendar" size={20} color="#34D399" />
-            </View>
-            <Text style={styles.statValue}>{dashboardStats.active_bookings}</Text>
-            <Text style={styles.statLabel}>Active Bookings</Text>
-          </TouchableOpacity>
+      <View style={styles.statsColDivider} />
 
-          <View style={styles.statDivider} />
+      <TouchableOpacity
+        style={styles.statsCol}
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('MyBookings', { filter: 'pending', timestamp: Date.now() })}
+      >
+        <Text style={styles.statsValue}>{upcomingTrips.length}</Text>
+        <Text style={styles.statsCaption}>Upcoming{'\n'}Trips</Text>
+      </TouchableOpacity>
 
-          {/* Upcoming Trips */}
-          <TouchableOpacity
-            style={styles.statItem}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('MyBookings', { filter: 'pending', timestamp: Date.now() })}
-          >
-            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(96,165,250,0.25)' }]}>
-              <Icon name="map-pin" size={20} color="#60A5FA" />
-            </View>
-            <Text style={styles.statValue}>{upcomingTrips.length}</Text>
-            <Text style={styles.statLabel}>Upcoming Trips</Text>
-          </TouchableOpacity>
+      <View style={styles.statsColDivider} />
 
-          <View style={styles.statDivider} />
+      <TouchableOpacity
+        style={styles.statsCol}
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('MyBookings', { filter: 'pending', timestamp: Date.now() })}
+      >
+        <Text style={styles.statsValue}>{recentQuotes.length}</Text>
+        <Text style={styles.statsCaption}>Active{'\n'}Quotes</Text>
+      </TouchableOpacity>
 
-          {/* Active Quotes */}
-          <TouchableOpacity
-            style={styles.statItem}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('MyBookings', { filter: 'pending', timestamp: Date.now() })}
-          >
-            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(251,191,36,0.25)' }]}>
-              <Icon name="file-text" size={20} color="#FBBF24" />
-            </View>
-            <Text style={styles.statValue}>{recentQuotes.length}</Text>
-            <Text style={styles.statLabel}>Active Quotes</Text>
-          </TouchableOpacity>
+      <View style={styles.statsColDivider} />
 
-          <View style={styles.statDivider} />
-
-          {/* Wander Tours */}
-          <TouchableOpacity
-            style={styles.statItem}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('MyWanderBookings')}
-          >
-            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(167,243,208,0.25)' }]}>
-              <Ionicons name="compass-outline" size={20} color="#6EE7B7" />
-            </View>
-            <Text style={styles.statValue}>Tours</Text>
-            <Text style={styles.statLabel}>My Wander</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+      <TouchableOpacity
+        style={styles.statsCol}
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('MyWanderBookings')}
+      >
+        <Text style={styles.statsValue}>Tours</Text>
+        <Text style={styles.statsCaption}>My{'\n'}Wander</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -853,27 +831,23 @@ export default function CustomerDashboard() {
       <View style={styles.howItWorksContainer}>
         {HOW_IT_WORKS.map((step, index) => (
           <View key={step.step} style={styles.howStepCard}>
-            {/* Step Number with Gradient */}
-            <LinearGradient
-              colors={['#09B368', '#07A55E']}
-              style={styles.stepNumberCircle}
-            >
-              <Text style={styles.stepNumber}>{step.step}</Text>
-            </LinearGradient>
-
-            {/* Step Content */}
-            <View style={styles.stepContent}>
-
-              <View style={styles.stepIconTitleRow}>
-                <View style={styles.stepIconContainer}>
-                  <Icon name={step.icon} size={wp('5%')} color="#09B368" />
-                </View>
-                <Text style={styles.stepTitle}>{step.title}</Text>
+            <View style={styles.stepIconWrap}>
+              <LinearGradient
+                colors={[BRAND_TEAL_DARK, BRAND_TEAL]}
+                style={styles.stepIconCircle}
+              >
+                <Icon name={step.icon} size={wp('4.5%')} color="#FFF" />
+              </LinearGradient>
+              <View style={styles.stepNumberBadge}>
+                <Text style={styles.stepNumberBadgeText}>{step.step}</Text>
               </View>
+            </View>
+
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>{step.title}</Text>
               <Text style={styles.stepDescription}>
                 {getStepDescription(step.step)}
               </Text>
-
             </View>
 
             {/* Connecting Line (except for last step) */}
@@ -929,7 +903,7 @@ export default function CustomerDashboard() {
         {SAFETY_TIPS.map((tip, i) => (
           <View key={i} style={styles.tipBox}>
             <View style={styles.tipIconCircle}>
-              <Icon name={tip.icon} size={wp('5.5%')} color={BRAND_TEAL} />
+              <Icon name={tip.icon} size={wp('4.2%')} color={BRAND_TEAL_DARK} />
             </View>
             <Text style={styles.tipText}>{tip.label}</Text>
           </View>
@@ -937,6 +911,56 @@ export default function CustomerDashboard() {
       </View>
     </View>
   );
+
+  // ────── CATEGORY TILE (Frame Focus layout — same tap/B2B logic as before,
+  // just addressed by label so it can be placed into a specific grid cell) ──────
+  const getCat = (label) => CATEGORIES.find(c => c.label === label);
+
+  const renderCatTile = (c, extraStyle) => {
+    if (!c) return null;
+    return (
+      <TouchableOpacity
+        key={c.id}
+        style={[styles.catFrameCard, extraStyle, c.isB2B && styles.b2bTile]}
+        activeOpacity={0.7}
+        onPress={() => {
+          if (c.screen) {
+            navigation.navigate(c.screen);
+          } else {
+            Alert.alert('Coming Soon', `We're still working on ${c.label} rentals.`);
+          }
+        }}
+      >
+        {c.isB2B ? (
+          <View style={[styles.catFrameImageWrap, styles.b2bImageBox]}>
+            <Icon name="briefcase" size={wp('7%')} color="#fff" />
+            <Text style={[styles.catFrameLabel, styles.catFrameLabelOnPhoto, styles.b2bLabel]}>{c.label}</Text>
+            <View style={styles.b2bBadge}>
+              <Text style={styles.b2bBadgeText}>Enterprise</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.catFrameImageWrap}>
+            <Image source={c.image} style={styles.catFrameImage} resizeMode="cover" />
+            <LinearGradient
+              colors={['transparent', 'rgba(10,20,16,0.05)', 'rgba(8,16,13,0.82)']}
+              locations={[0, 0.35, 1]}
+              style={styles.catFrameScrim}
+            />
+            {isB2BCustomer && c.b2bEligible && (
+              <View style={styles.b2bEligibleDot}>
+                <Text style={styles.b2bEligibleDotText}>B2B</Text>
+              </View>
+            )}
+            <View style={styles.catFrameTextOnPhoto}>
+              <Text style={styles.catFrameLabelOnPhoto}>{c.label}</Text>
+              <Text style={styles.catFrameSubOnPhoto}>{c.sub}</Text>
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   // ────── MAIN RETURN ──────
   const showSkeleton = isLoading || isRefreshing;
@@ -947,11 +971,11 @@ export default function CustomerDashboard() {
       {/* <AnimatedSpinFab onPress={() => setSpinOpen(true)} /> */}
 
 
-      <StatusBar barStyle="light-content" backgroundColor="#0A6B3F" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0B" />
 
       {/* HEADER — in normal flow, not absolute */}
       <View style={styles.fixedHeader}>
-        <LinearGradient colors={['#0A6B3F', '#09B368']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.headerGradientBg}>
+        <LinearGradient colors={['#0A0A0B', '#0F1F19', '#123B2C']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.headerGradientBg}>
 
           {/* Top Row - Profile & Actions */}
           <View style={styles.headerTopRow}>
@@ -1108,114 +1132,57 @@ export default function CustomerDashboard() {
             </TouchableOpacity>
           )}
 
-          {/* CATEGORIES GRID */}
+          {/* CATEGORIES GRID — "Frame Focus" layout: same 8 categories, same
+              tap/B2B logic (see renderCatTile above), Self-Drive given a
+              wider "hero" cell instead of all 8 being identical small tiles */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Browse by Category</Text>
-            <View style={styles.catGrid}>
-              {CATEGORIES.map(c => (
-                <TouchableOpacity
-                  key={c.id}
-                  style={[styles.catTile, c.isB2B && styles.b2bTile]}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    if (c.screen) {
-                      navigation.navigate(c.screen);
-                    } else {
-                      Alert.alert('Coming Soon', `We're still working on ${c.label} rentals.`);
-                    }
-                  }}
-                >
-                  {c.isB2B ? (
-                    <View style={styles.b2bImageBox}>
-                      <Icon name="briefcase" size={wp('7%')} color="#fff" />
-                    </View>
-                  ) : (
-                    <View style={styles.catImageBox}>
-                      <Image source={c.image} style={styles.catImage} resizeMode="contain" />
-                      {isB2BCustomer && c.b2bEligible && (
-                        <View style={styles.b2bEligibleDot}>
-                          <Text style={styles.b2bEligibleDotText}>B2B</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                  <Text style={[styles.catLabel, c.isB2B && styles.b2bLabel]}>{c.label}</Text>
-                  <Text style={styles.catSub}>{c.sub}</Text>
-                  {c.isB2B && (
-                    <View style={styles.b2bBadge}>
-                      <Text style={styles.b2bBadgeText}>Enterprise</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
+            <View style={styles.catFrameGrid}>
+              <View style={styles.catFrameRow}>
+                {renderCatTile(getCat('Luxury Car'), styles.catFrameThird)}
+                {renderCatTile(getCat('Bike'), styles.catFrameThird)}
+                {renderCatTile(getCat('Standard Car'), styles.catFrameThird)}
+              </View>
+              <View style={styles.catFrameRow}>
+                {renderCatTile(getCat('Truck'), styles.catFrameThird)}
+                {renderCatTile(getCat('Self-Drive'), styles.catFrameWide)}
+              </View>
+              <View style={styles.catFrameRow}>
+                {renderCatTile(getCat('Equipment'), styles.catFrameThird)}
+                {renderCatTile(getCat('Bus'), styles.catFrameThird)}
+                {renderCatTile(getCat('Packers & Movers'), styles.catFrameThird)}
+              </View>
             </View>
           </View>
 
-          {/* CUSTOM EVENT BOOKING (CUSTOM_BULK) — entry to multi-day,
-              multi-service event flow (wedding / corporate / tour / etc.) */}
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.wanderBanner}
-            onPress={() => navigation.navigate('CustomBooking')}
-          >
-            <LinearGradient
-              colors={['#5B21B6', '#7C3AED', '#9333EA']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.wanderBannerGrad}
+          {/* CUSTOM EVENT BOOKING + WANDER — same two entry points as before
+              (CustomBooking / WanderScreen), now a side-by-side pair of quiet
+              tinted cards instead of two full-width gradient banners. */}
+          <View style={styles.exploreRow}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.exploreCard, styles.exploreCardPurple]}
+              onPress={() => navigation.navigate('CustomBooking')}
             >
-              <View style={[styles.wanderDeco, { width: 90, height: 90, top: -25, right: 60, opacity: 0.12 }]} />
-              <View style={[styles.wanderDeco, { width: 55, height: 55, bottom: -15, right: 10, opacity: 0.1 }]} />
-
-              <View style={styles.wanderBannerLeft}>
-                <View style={styles.wanderIconCircle}>
-                  <Ionicons name="sparkles" size={24} color="#A78BFA" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.wanderBannerTitle}>Custom Event Booking</Text>
-                  <Text style={styles.wanderBannerSub}>Multi-day · Multiple services · One quote</Text>
-                </View>
+              <View style={[styles.exploreIconWrap, styles.exploreIconPurple]}>
+                <Ionicons name="sparkles" size={18} color="#7C3AED" />
               </View>
+              <Text style={styles.exploreTitle}>Custom Event</Text>
+              <Text style={styles.exploreSub}>Multi-day · one quote</Text>
+            </TouchableOpacity>
 
-              <View style={styles.wanderViewBtn}>
-                <Text style={styles.wanderViewBtnText}>Plan</Text>
-                <Ionicons name="chevron-forward" size={14} color="#A78BFA" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* WANDER TOURS QUICK ACCESS */}
-          <TouchableOpacity
-            activeOpacity={0.88}
-            style={styles.wanderBanner}
-            onPress={() => navigation.navigate('WanderScreen')}
-          >
-            <LinearGradient
-              colors={['#064E3B', '#065F46', '#047857']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.wanderBannerGrad}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.exploreCard, styles.exploreCardTeal]}
+              onPress={() => navigation.navigate('WanderScreen')}
             >
-              {/* Deco circles */}
-              <View style={[styles.wanderDeco, { width: 90, height: 90, top: -25, right: 60, opacity: 0.12 }]} />
-              <View style={[styles.wanderDeco, { width: 55, height: 55, bottom: -15, right: 10, opacity: 0.1 }]} />
-
-              {/* Left: icon + text */}
-              <View style={styles.wanderBannerLeft}>
-                <View style={styles.wanderIconCircle}>
-                  <Ionicons name="compass" size={26} color="#34D399" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.wanderBannerTitle}>Wander — Tours & Experiences</Text>
-                  <Text style={styles.wanderBannerSub}>Explore curated tours · Get instant quotes</Text>
-                </View>
+              <View style={[styles.exploreIconWrap, styles.exploreIconTeal]}>
+                <Ionicons name="compass" size={18} color={BRAND_TEAL_DARK} />
               </View>
-
-              {/* Right: pill button */}
-              <View style={styles.wanderViewBtn}>
-                <Text style={styles.wanderViewBtnText}>Explore</Text>
-                <Ionicons name="chevron-forward" size={14} color="#34D399" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+              <Text style={styles.exploreTitle}>Wander</Text>
+              <Text style={styles.exploreSub}>Tours & experiences</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* QUICK STATS */}
           <QuickStats />
@@ -1253,12 +1220,9 @@ export default function CustomerDashboard() {
                       activeOpacity={0.7}
                       onPress={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
                     >
-                      {/* Left color accent */}
-                      <View style={[styles.upcomingAccent, { backgroundColor: m.color }]} />
-
                       {/* Icon */}
                       <View style={[styles.upcomingIcon, { backgroundColor: m.bg }]}>
-                        <Ionicons name={m.icon} size={22} color={m.color} />
+                        <Ionicons name={m.icon} size={20} color={m.color} />
                       </View>
 
                       {/* Content */}
@@ -1341,12 +1305,9 @@ export default function CustomerDashboard() {
                         else navigation.navigate('BikeQuoteRequestDetail', { requestId: item.id });
                       }}
                     >
-                      {/* Left amber accent */}
-                      <View style={[styles.upcomingAccent, { backgroundColor: qm.color }]} />
-
                       {/* Icon */}
                       <View style={[styles.upcomingIcon, { backgroundColor: qm.bg }]}>
-                        <Ionicons name={qm.icon} size={22} color={qm.color} />
+                        <Ionicons name={qm.icon} size={20} color={qm.color} />
                       </View>
 
                       {/* Content */}
@@ -1416,6 +1377,7 @@ export default function CustomerDashboard() {
 
       {/* REQUIREMENT MODAL */}
       <Modal visible={modalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Animated.View style={[styles.modalOverlay, { transform: [{ translateY: modalSlide }] }]}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHead}>
@@ -1426,7 +1388,7 @@ export default function CustomerDashboard() {
               <TouchableOpacity onPress={closeModal}><Icon name="x" size={wp('7%')} color="#999" /></TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingBottom: hp('3%') }}>
+            <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: hp('3%') }}>
               {/* Service Picker */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Service Type</Text>
@@ -1483,6 +1445,7 @@ export default function CustomerDashboard() {
             </TouchableOpacity>
           </View>
         </Animated.View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* SPIN AND WIN MODAL - COMMENTED OUT */}
@@ -1613,11 +1576,11 @@ const styles = StyleSheet.create({
   },
   headerGradientBg: {
     paddingTop: Platform.select({
-      ios: hp('6%'),
-      android: (StatusBar.currentHeight ?? 0) + hp('1.8%')
+      ios: hp('4.2%'),
+      android: (StatusBar.currentHeight ?? 0) + hp('1%')
     }),
     paddingHorizontal: wp('4.5%'),
-    paddingBottom: hp('2.5%'),
+    paddingBottom: hp('1.6%'),
   },
 
   // Header Top Row
@@ -1625,7 +1588,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: hp('0.8%'),
+    marginBottom: hp('0.5%'),
   },
 
   // Profile Section
@@ -1635,16 +1598,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileAvatar: {
-    width: wp('11%'),
-    height: wp('11%'),
-    borderRadius: wp('5.5%'),
-    borderWidth: 2.5,
+    width: wp('9.5%'),
+    height: wp('9.5%'),
+    borderRadius: wp('4.75%'),
+    borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.5)',
   },
   profileAvatarPlaceholder: {
-    width: wp('11%'),
-    height: wp('11%'),
-    borderRadius: wp('5.5%'),
+    width: wp('9.5%'),
+    height: wp('9.5%'),
+    borderRadius: wp('4.75%'),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
@@ -1656,14 +1619,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   greetingLabel: {
-    fontSize: wp('2.8%'),
+    fontSize: wp('2.6%'),
     color: 'rgba(255,255,255,0.7)',
     fontWeight: '500',
     letterSpacing: 0.3,
     marginBottom: hp('0.1%'),
   },
   userName: {
-    fontSize: wp('4.8%'),
+    fontSize: wp('4.3%'),
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: -0.3,
@@ -1674,9 +1637,9 @@ const styles = StyleSheet.create({
     marginLeft: wp('3%'),
   },
   notificationIconWrapper: {
-    width: wp('10.5%'),
-    height: wp('10.5%'),
-    borderRadius: wp('5.25%'),
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1694,7 +1657,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#09B368',
+    borderColor: '#12241D',
   },
   notificationBadgeText: {
     color: '#fff',
@@ -1859,19 +1822,14 @@ const styles = StyleSheet.create({
   },
   upcomingCard: {
     backgroundColor: CARD,
-    borderRadius: 18,
-    paddingVertical: wp('3.5%'),
-    paddingHorizontal: wp('3%'),
-    paddingLeft: wp('5%'),
+    borderRadius: 16,
+    paddingVertical: wp('3%'),
+    paddingHorizontal: wp('3.5%'),
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: CARD_BORDER,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: SHADOW_COLOR, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
-      android: { elevation: 5 },
-    }),
   },
   upcomingAccent: {
     position: 'absolute',
@@ -1883,9 +1841,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 18,
   },
   upcomingIcon: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('3.5%'),
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('2.8%'),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: wp('3%'),
@@ -1944,19 +1902,14 @@ const styles = StyleSheet.create({
   // Quote Cards – reuses upcomingCard styles + these extras
   quoteCard: {
     backgroundColor: CARD,
-    borderRadius: 18,
-    paddingVertical: wp('3.5%'),
-    paddingHorizontal: wp('3%'),
-    paddingLeft: wp('5%'),
+    borderRadius: 16,
+    paddingVertical: wp('3%'),
+    paddingHorizontal: wp('3.5%'),
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: CARD_BORDER,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: SHADOW_COLOR, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
-      android: { elevation: 5 },
-    }),
   },
   quoteMetaDate: {
     flexDirection: 'row',
@@ -2001,6 +1954,95 @@ const styles = StyleSheet.create({
     alignContent: "center",
     alignItems: "center",
     marginTop: hp('1%'),
+  },
+  // "Frame Focus" category grid — 3 rows (3 / 1+wide / 3), Self-Drive gets
+  // the double-width hero cell. Card styling only; tap/B2B logic lives in
+  // renderCatTile() above and is unchanged from the old catGrid layout.
+  catFrameGrid: {
+    marginTop: hp('1%'),
+    gap: wp('2.5%'),
+  },
+  catFrameRow: {
+    flexDirection: 'row',
+    gap: wp('2.5%'),
+    // Every row shares one fixed height — only width changes between the
+    // normal and wide (Self-Drive) cells, matching the mockup exactly
+    // (aspectRatio per-cell was making the wide cell taller, not just wider).
+    height: wp('27%'),
+  },
+  catFrameThird: {
+    flex: 1,
+  },
+  catFrameWide: {
+    flex: 2,
+  },
+  catFrameCard: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: SHADOW_COLOR,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  // Photo fills the whole card; label/sub sit on top of it over a dark
+  // gradient scrim (catFrameScrim), matching the "Frame Focus" mockup.
+  catFrameImageWrap: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F5F7FA',
+    overflow: 'hidden',
+  },
+  catFrameImage: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  catFrameScrim: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: '60%',
+  },
+  catFrameTextOnPhoto: {
+    position: 'absolute',
+    left: wp('2%'), right: wp('2%'), bottom: hp('0.8%'),
+  },
+  catFrameLabel: {
+    fontSize: wp('2.9%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    textAlign: 'center',
+    marginTop: hp('0.6%'),
+    letterSpacing: 0.2,
+  },
+  catFrameLabelOnPhoto: {
+    fontSize: wp('3.1%'),
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
+  catFrameSub: {
+    fontSize: wp('2.3%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.2%'),
+    textAlign: 'center',
+    lineHeight: hp('1.4%'),
+  },
+  catFrameSubOnPhoto: {
+    fontSize: wp('2.3%'),
+    color: '#A9F0D1',
+    fontWeight: '700',
+    marginTop: hp('0.15%'),
+    lineHeight: hp('1.4%'),
   },
   catTile: {
     width: CATEGORY_TILE,
@@ -2138,6 +2180,39 @@ const styles = StyleSheet.create({
   vendorVeh: { fontSize: wp('3%'), color: TEXT_SECONDARY },
 
   // Quick Stats – Glass Card
+  statsStrip: {
+    flexDirection: 'row',
+    marginTop: hp('2%'),
+    marginHorizontal: wp('4%'),
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    backgroundColor: CARD,
+  },
+  statsCol: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: hp('1.6%'),
+  },
+  statsColDivider: {
+    width: 1,
+    backgroundColor: CARD_BORDER,
+  },
+  statsValue: {
+    fontSize: wp('4.6%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+  },
+  statsCaption: {
+    fontSize: wp('2.3%'),
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+    marginTop: hp('0.3%'),
+    lineHeight: wp('3%'),
+  },
   statsGlassCard: {
     marginTop: hp('2%'),
     marginHorizontal: wp('4%'),
@@ -2254,34 +2329,26 @@ const styles = StyleSheet.create({
   tipsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   tipBox: {
     width: wp('44%'),
-    backgroundColor: CARD,
-    borderRadius: 18,
-    padding: wp('5%'),
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: hp('2%'),
+    backgroundColor: CARD,
+    borderRadius: 14,
+    paddingVertical: wp('3%'),
+    paddingHorizontal: wp('3%'),
+    marginBottom: hp('1.5%'),
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    ...Platform.select({
-      ios: {
-        shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   tipIconCircle: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('6%'),
-    backgroundColor: BRAND_TEAL + '10',
+    width: wp('8.5%'),
+    height: wp('8.5%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: '#F0FFF8',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: wp('2.5%'),
   },
-  tipText: { marginTop: hp('1%'), fontSize: wp('3.4%'), fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'center', letterSpacing: 0.2 },
+  tipText: { flex: 1, fontSize: wp('3%'), fontWeight: '700', color: TEXT_PRIMARY, letterSpacing: 0.1 },
 
   // FAB
   fab: { position: 'absolute', bottom: hp('10%'), alignSelf: 'center' },
@@ -2328,7 +2395,7 @@ const styles = StyleSheet.create({
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: CARD, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: wp('6%'), maxHeight: hp('85%') },
+  modalSheet: { backgroundColor: CARD, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: wp('6%'), maxHeight: hp('85%'), flexShrink: 1 },
   modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: hp('2%') },
   modalTitle: { fontSize: wp('5.5%'), fontWeight: '800', color: TEXT_PRIMARY, letterSpacing: -0.3 },
   modalSub: { fontSize: wp('3.8%'), color: TEXT_SECONDARY, marginTop: hp('0.5%') },
@@ -2370,39 +2437,44 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
 
-  stepNumberCircle: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
-    justifyContent: 'center',
-    alignItems: 'center',
+  stepIconWrap: {
+    width: wp('9%'),
+    height: wp('9%'),
     marginRight: wp('4%'),
     zIndex: 2,
-    elevation: 6,
-    shadowColor: '#09B368',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
   },
 
-  stepNumber: {
-    color: '#FFF',
-    fontSize: wp('4.5%'),
+  stepIconCircle: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  stepNumberBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: wp('4.2%'),
+    height: wp('4.2%'),
+    borderRadius: wp('2.1%'),
+    backgroundColor: CARD,
+    borderWidth: 1.5,
+    borderColor: BRAND_TEAL,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  stepNumberBadgeText: {
+    color: BRAND_TEAL_DARK,
+    fontSize: wp('2.4%'),
     fontWeight: 'bold',
   },
 
   stepContent: {
     flex: 1,
-    backgroundColor: CARD,
-    padding: wp('3%'),
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
+    paddingTop: wp('1%'),
   },
 
   stepIconTitleRow: {
@@ -2421,26 +2493,26 @@ const styles = StyleSheet.create({
   },
 
   stepTitle: {
-    fontSize: wp('4.2%'),
-    fontWeight: '700',
+    fontSize: wp('4%'),
+    fontWeight: '800',
     color: TEXT_PRIMARY,
 
   },
 
   stepDescription: {
-    marginTop: hp('1%'),
-    fontSize: wp('3.6%'),
+    marginTop: hp('0.4%'),
+    fontSize: wp('3.4%'),
     color: TEXT_SECONDARY,
-    lineHeight: hp('2.5%'),
+    lineHeight: hp('2.3%'),
   },
 
   connectingLine: {
     position: 'absolute',
-    top: wp('10%'),
-    left: wp('4.5%'),
-    width: 2,
-    height: '120%',
-    backgroundColor: 'rgba(9, 179, 104, 0.15)',
+    top: wp('9%'),
+    left: wp('4%'),
+    width: 1,
+    height: '110%',
+    backgroundColor: CARD_BORDER,
     zIndex: 1,
   },
 
@@ -2666,6 +2738,51 @@ const styles = StyleSheet.create({
   },
 
   /* ── Wander Banner ── */
+  exploreRow: {
+    flexDirection: 'row',
+    gap: wp('3%'),
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+  },
+  exploreCard: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: wp('3.2%'),
+    backgroundColor: CARD,
+  },
+  exploreCardPurple: {
+    borderColor: '#EDE6FB',
+    backgroundColor: '#F8F5FE',
+  },
+  exploreCardTeal: {
+    borderColor: '#D9F2E6',
+    backgroundColor: '#F3FBF7',
+  },
+  exploreIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.4%'),
+  },
+  exploreIconPurple: {
+    backgroundColor: '#EDE6FB',
+  },
+  exploreIconTeal: {
+    backgroundColor: '#D9F2E6',
+  },
+  exploreTitle: {
+    fontSize: wp('3.4%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+  },
+  exploreSub: {
+    fontSize: wp('2.7%'),
+    color: TEXT_SECONDARY,
+    marginTop: 2,
+  },
   wanderBanner: {
     marginHorizontal: wp('4%'),
     marginTop: hp('1.5%'),

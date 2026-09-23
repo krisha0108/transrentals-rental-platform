@@ -39,8 +39,6 @@ const { width } = Dimensions.get('window');
 
 export default function LuxuryCarRentalScreen() {
   const navigation = useNavigation();
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Customer data
   const [showBookingAlert, setShowBookingAlert] = useState(false);
@@ -120,13 +118,6 @@ export default function LuxuryCarRentalScreen() {
   useEffect(() => {
     loadCustomerData();
     fetchLuxuryFleet();
-
-    // Fade in animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
   }, []);
 
   const loadCustomerData = async () => {
@@ -190,12 +181,6 @@ export default function LuxuryCarRentalScreen() {
     }
     setShowLocationPicker(false);
   };
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
 
   const TRIP_TYPES = [
     { id: 'local', label: 'Local', icon: 'city', desc: '4-12 hours package' },
@@ -432,60 +417,42 @@ export default function LuxuryCarRentalScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Animated Sticky Header */}
-      <Animated.View style={[styles.stickyHeader, { opacity: headerOpacity }]}>
+      {/* Static header — always visible, doesn't scroll away or fade in. */}
+      <View style={styles.hero}>
         <LinearGradient
-          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+          colors={[TEAL_MID, TEAL]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.stickyBackBtn}>
-          <Ionicons name="chevron-back" size={22} color="#FFF" />
-        </TouchableOpacity>
-        <Text style={styles.stickyHeaderTitle}>Luxury Car Rental</Text>
-      </Animated.View>
+          style={styles.heroGradient}
+        >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.heroIconBtn}>
+            <Ionicons name="chevron-back" size={20} color="#FFF" />
+          </TouchableOpacity>
 
-      <Animated.ScrollView
+          <View style={styles.crownBadge}>
+            <MaterialCommunityIcons name="crown-outline" size={wp('4.6%')} color="#F0D998" />
+          </View>
+          <View style={styles.heroTextCol}>
+            <Text style={styles.heroTitle} numberOfLines={1}>Luxury, chauffeur‑driven</Text>
+            <View style={styles.heroDivider} />
+            <Text style={styles.heroSubtitle} numberOfLines={1}>BMW · Mercedes · Audi · Ferrari</Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyLuxuryBookings')}
+            style={styles.heroIconBtn}
+          >
+            <Ionicons name="document-text-outline" size={18} color="#FFF" />
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
+
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
+        keyboardDismissMode="on-drag"
       >
-        {/* Hero Section */}
-        <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
-          <LinearGradient
-            colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            {/* Decorative Circles */}
-            <View style={[styles.decoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
-            <View style={[styles.decoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} pointerEvents="none" />
-            <View style={[styles.decoCircle, { top: hp('5%'), left: wp('30%'), width: wp('10%'), height: wp('10%') }]} pointerEvents="none" />
-
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.heroBackBtn}>
-              <Ionicons name="chevron-back" size={22} color="#FFF" />
-            </TouchableOpacity>
-
-            <MaterialCommunityIcons name="crown" size={wp('12%')} color={TEAL_LIGHT} style={styles.crownIcon} />
-            <Text style={styles.heroTitle}>Luxury Experience</Text>
-            <Text style={styles.heroSubtitle}>BMW  ·  Mercedes  ·  Audi  ·  Ferrari</Text>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('MyLuxuryBookings')}
-              style={styles.myBookingsBtn}
-            >
-              <Ionicons name="document-text-outline" size={wp('4.5%')} color="#FFF" />
-            </TouchableOpacity>
-          </LinearGradient>
-        </Animated.View>
-
         {/* Featured Fleet Preview */}
         {!fleetLoading && luxuryFleet.length > 0 && (
           <View style={styles.fleetSection}>
@@ -540,7 +507,7 @@ export default function LuxuryCarRentalScreen() {
                     <MaterialCommunityIcons
                       name={type.icon}
                       size={wp('5.5%')}
-                      color={isActive ? TEAL_MID : TEXT_MUTED}
+                      color={isActive ? '#FFFFFF' : TEXT_MUTED}
                     />
                   </View>
                   <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
@@ -551,7 +518,7 @@ export default function LuxuryCarRentalScreen() {
                   </Text>
                   {isActive && (
                     <View style={styles.tripTypeCheck}>
-                      <Ionicons name="checkmark-circle" size={wp('4.5%')} color={TEAL} />
+                      <Ionicons name="checkmark-circle" size={wp('4.5%')} color="#FFF" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -1039,7 +1006,7 @@ export default function LuxuryCarRentalScreen() {
         </TouchableOpacity>
 
         <View style={{ height: hp('5%') }} />
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Location Picker Modal */}
       <Modal
@@ -1235,96 +1202,74 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
 
-  // Sticky Header (on scroll)
-  stickyHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: hp('7.5%'),
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp('4%'),
-    zIndex: 100,
-  },
-  stickyBackBtn: {
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('4.5%'),
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stickyHeaderTitle: {
-    flex: 1,
-    fontSize: wp('4.5%'),
-    fontWeight: '700',
-    color: '#FFF',
-    marginLeft: wp('3%'),
-    letterSpacing: 0.3,
-  },
-
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: hp('12%'),
+    paddingBottom: hp('2%'),
   },
 
   // Hero
   hero: {
-    marginBottom: hp('2%'),
+    marginBottom: hp('1%'),
   },
   heroGradient: {
-    paddingTop: hp('3%'),
-    paddingBottom: hp('3.5%'),
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: hp('2.2%'),
+    paddingHorizontal: wp('4.5%'),
+    overflow: 'hidden',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+  },
+  heroIconBtn: {
+    width: wp('8.5%'),
+    height: wp('8.5%'),
+    borderRadius: wp('4.25%'),
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: wp('5%'),
-    overflow: 'hidden',
   },
   decoCircle: {
     position: 'absolute',
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  heroBackBtn: {
-    position: 'absolute',
-    top: hp('2%'),
-    left: wp('4%'),
+  crownBadge: {
     width: wp('9%'),
     height: wp('9%'),
     borderRadius: wp('4.5%'),
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(240,217,152,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(240,217,152,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: wp('2.5%'),
   },
-  crownIcon: {
-    marginBottom: hp('1%'),
+  heroTextCol: {
+    flex: 1,
+    marginLeft: wp('3%'),
   },
   heroTitle: {
-    fontSize: wp('7.5%'),
-    fontWeight: '800',
+    fontSize: wp('4.3%'),
+    fontStyle: 'italic',
+    fontWeight: '600',
     color: '#FFF',
-    marginBottom: hp('0.6%'),
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
+  },
+  heroDivider: {
+    width: wp('6%'),
+    height: 1.5,
+    backgroundColor: 'rgba(240,217,152,0.6)',
+    marginTop: hp('0.5%'),
+    marginBottom: hp('0.4%'),
   },
   heroSubtitle: {
-    fontSize: wp('3.5%'),
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  myBookingsBtn: {
-    position: 'absolute',
-    top: hp('2%'),
-    right: wp('4%'),
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('4.5%'),
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontSize: wp('2.8%'),
+    color: '#A9D9C4',
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
 
   // Fleet Preview
@@ -1341,8 +1286,9 @@ const styles = StyleSheet.create({
     marginRight: wp('3%'),
     backgroundColor: CARD,
     borderRadius: wp('3.5%'),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     overflow: 'hidden',
-    ...SHADOW_SM,
   },
   fleetImage: {
     width: '100%',
@@ -1377,7 +1323,8 @@ const styles = StyleSheet.create({
     marginBottom: hp('1.5%'),
     padding: wp('4%'),
     overflow: 'hidden',
-    ...SHADOW_SM,
+    borderWidth: 1,
+    borderColor: '#EEF1F4',
   },
 
   // Section Header
@@ -1424,9 +1371,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   tripTypeCardActive: {
-    borderColor: TEAL,
-    backgroundColor: TEAL_LIGHT,
-    ...SHADOW_SM,
+    borderColor: TEAL_MID,
+    backgroundColor: TEAL_MID,
   },
   tripTypeIconWrap: {
     width: wp('11%'),
@@ -1438,7 +1384,7 @@ const styles = StyleSheet.create({
     marginBottom: hp('0.8%'),
   },
   tripTypeIconWrapActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   tripTypeLabel: {
     fontSize: wp('3.2%'),
@@ -1448,7 +1394,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tripTypeLabelActive: {
-    color: TEAL_DEEP,
+    color: '#FFFFFF',
   },
   tripTypeDesc: {
     fontSize: wp('2.4%'),
@@ -1457,7 +1403,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tripTypeDescActive: {
-    color: TEAL_MID,
+    color: 'rgba(255,255,255,0.85)',
   },
   tripTypeCheck: {
     position: 'absolute',

@@ -8,7 +8,7 @@ const FAQ_ITEMS = [
   {
     question: 'How do I book a vehicle or equipment?',
     answer:
-      'Choose your vehicle type, trip dates, and city from the homepage. We cover 150+ cities, so simply enter pickup/drop, verify your ID, and pay securely to get instant confirmation.',
+      'Choose your vehicle type, trip dates, and city from the homepage. We cover 500+ cities, so simply enter pickup/drop, verify your ID, and pay securely to get instant confirmation.',
   },
   {
     question: 'Which documents are required?',
@@ -33,7 +33,7 @@ const FAQ_ITEMS = [
   {
     question: 'How can I reach support while on the move?',
     answer:
-      'Call or WhatsApp us at 9737965551 for immediate help. Premium services add a dedicated booking manager, and every support channel spans our 150+ city network.',
+      'Call or WhatsApp us at 9737965551 for immediate help. Premium services add a dedicated booking manager, and every support channel spans our 500+ city network.',
   },
 ];
 
@@ -58,7 +58,7 @@ export function FAQPage() {
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             {[
-              { label: 'Cities', value: '150+' },
+              { label: 'Cities', value: '500+' },
               { label: 'Support', value: '24/7' },
               { label: 'Vendors', value: 'Verified' },
             ].map((stat) => (

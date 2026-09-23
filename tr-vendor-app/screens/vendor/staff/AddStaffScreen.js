@@ -839,7 +839,7 @@ export default function AddStaffScreen({ route, navigation }) {
                 <Icon name="x" size={24} color={C.text} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={[styles.modalScroll, { maxHeight: Math.min(400, ROLES.length * 52) }]}>
               {ROLES.map((role) => (
                 <TouchableOpacity
                   key={role.value}
@@ -874,7 +874,7 @@ export default function AddStaffScreen({ route, navigation }) {
                 <Icon name="x" size={24} color={C.text} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={[styles.modalScroll, { maxHeight: Math.min(400, STATUS_OPTIONS.length * 52) }]}>
               {STATUS_OPTIONS.map((status) => (
                 <TouchableOpacity
                   key={status.value}
@@ -909,7 +909,7 @@ export default function AddStaffScreen({ route, navigation }) {
                 <Icon name="x" size={24} color={C.text} />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={[styles.modalScroll, { maxHeight: Math.min(400, LICENSE_TYPES.length * 52) }]}>
               {LICENSE_TYPES.map((type) => (
                 <TouchableOpacity
                   key={type.value}

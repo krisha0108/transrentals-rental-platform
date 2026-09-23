@@ -99,7 +99,7 @@ export function Header() {
               </a> */}
               <span className="flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                <span>150+ Cities Across India</span>
+                <span>500+ Cities Across India</span>
               </span>
             </div>
             <div className="flex items-center gap-4">

@@ -2,8 +2,8 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, ScrollView, Linking, Share, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
@@ -1054,7 +1054,7 @@ export default function MyPostingsScreen({ navigation, route }) {
       </View>
 
       {/* Status Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScrollOuter} contentContainerStyle={s.filterScroll}>
         {activeFilters.map(f => {
           const active = statusFilter === f;
           const cfg = STATUS_CFG[f];
@@ -1067,7 +1067,7 @@ export default function MyPostingsScreen({ navigation, route }) {
             >
               {cfg && <View style={[s.filterDot, { backgroundColor: active ? '#fff' : cfg.dot }]} />}
               {f === 'All' && <Icon name="layers" size={11} color={active ? '#fff' : C.muted} />}
-              <Text style={[s.filterText, active && { color: '#fff', fontWeight: '700' }]}>
+              <Text numberOfLines={1} style={[s.filterText, active && { color: '#fff', fontWeight: '700' }]}>
                 {f === 'All' ? 'All' : (cfg?.label || f)}
               </Text>
               <View style={[s.filterCount, active && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
@@ -1095,23 +1095,25 @@ export default function MyPostingsScreen({ navigation, route }) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
-      <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) }}>
+      <SafeAreaView edges={['bottom', 'left', 'right']} style={{ backgroundColor: C.g950, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) }}>
         {/* Gradient Header */}
         <LinearGradient colors={G.hero} style={s.header}>
           {/* Decorative circles */}
           <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>My Postings</Text>
-            <Text style={s.headerSub}>Manage your P2P listings</Text>
-          </View>
-          {canAdd && (
-            <TouchableOpacity style={s.addHeaderBtn} onPress={handleAdd}>
-              <Icon name="plus" size={18} color="#fff" />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent', flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
             </TouchableOpacity>
-          )}
+            <View style={{ flex: 1 }}>
+              <Text style={s.headerTitle}>My Postings</Text>
+              <Text style={s.headerSub}>Manage your P2P listings</Text>
+            </View>
+            {canAdd && (
+              <TouchableOpacity style={s.addHeaderBtn} onPress={handleAdd}>
+                <Icon name="plus" size={18} color="#fff" />
+              </TouchableOpacity>
+            )}
+          </SafeAreaView>
         </LinearGradient>
       </SafeAreaView>
 
@@ -1219,7 +1221,7 @@ export default function MyPostingsScreen({ navigation, route }) {
 
       {/* Respond Modal */}
       <Modal visible={respondModal} transparent animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             {/* Gradient header with handle */}
@@ -1382,10 +1384,11 @@ const s = StyleSheet.create({
   tabBadgeTextActive: { color: C.g700 },
 
   /* Filter Chips */
-  filterScroll: { paddingHorizontal: 14, paddingVertical: 10, gap: 7 },
+  filterScrollOuter: { flexGrow: 0, flexShrink: 0, height: 58 },
+  filterScroll: { paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
   filterChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 16,
+    paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20,
     backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
   },
   filterDot: { width: 7, height: 7, borderRadius: 4 },

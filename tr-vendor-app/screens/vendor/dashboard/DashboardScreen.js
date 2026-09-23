@@ -513,8 +513,8 @@ export default function DashboardScreen({ navigation }) {
 
   // Fixed icons — use only well-supported MCI / Ionicons names
   const quickActions = React.useMemo(() => [
-    { label: 'Add Vehicle',  icon: 'car-outline',          lib: 'ion', color: C.blue,   route: 'AddVehicleScreen' },
-    { label: 'Add Staff',    icon: 'people-outline',        lib: 'ion', color: C.purple, route: 'AddStaffScreen' },
+    { label: 'Your Vehicles', icon: 'car-outline',          lib: 'ion', color: C.blue,   route: 'FleetListScreen' },
+    { label: 'Your Staff',    icon: 'people-outline',        lib: 'ion', color: C.purple, route: 'StaffListScreen' },
     { label: 'Direct Book',  icon: 'book-outline',          lib: 'ion', color: C.orange, route: 'DirectBookings' },
     { label: 'Links',        icon: 'link-outline',          lib: 'ion', color: C.teal,   route: 'BookingLinks' },
     { label: 'P2P Market',   icon: 'swap-horizontal-outline',lib:'ion', color: C.cyan,   route: 'P2PDashboard' },
@@ -1075,7 +1075,7 @@ export default function DashboardScreen({ navigation }) {
             <View style={{ flexDirection: 'row', gap: BENTO_GAP }}>
               <BentoTile big w={BENTO_BIG_W} h={BENTO_BIG_H} grad={G.hero}
                 icon={quickActions[0].icon} lib={quickActions[0].lib} label={quickActions[0].label}
-                hint="Get started fast" onPress={() => navigation.navigate(quickActions[0].route)} />
+                hint="View & manage fleet" onPress={() => navigation.navigate(quickActions[0].route)} />
               <View style={{ width: BENTO_SIDE_W, gap: BENTO_GAP }}>
                 <BentoTile w={BENTO_SIDE_W} h={BENTO_ROW_H}
                   icon={quickActions[1].icon} lib={quickActions[1].lib} label={quickActions[1].label}

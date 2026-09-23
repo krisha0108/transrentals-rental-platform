@@ -158,14 +158,16 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={["top"]}>
+      <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
         <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.heroFlat}>
           {/* Same orbs as the loaded hero — without them the bar sat flat
               while the booking loaded and then popped into motion. */}
           <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
           <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-          <Header />
+          <SafeAreaView edges={["top"]} style={{ backgroundColor: "transparent" }}>
+            <Header />
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={C.indigo600} />
@@ -177,14 +179,16 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
 
   if (error || !booking) {
     return (
-      <SafeAreaView style={styles.safe} edges={["top"]}>
+      <SafeAreaView style={styles.safe}>
         <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
         <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.heroFlat}>
           {/* Same orbs as the loaded hero — without them the bar sat flat
               while the booking loaded and then popped into motion. */}
           <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
           <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-          <Header />
+          <SafeAreaView edges={["top"]} style={{ backgroundColor: "transparent" }}>
+            <Header />
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.center}>
           <Ionicons name="alert-circle-outline" size={48} color={C.red} />
@@ -210,26 +214,28 @@ export default function SelfBookingDetailScreen({ route, navigation }) {
   const trips = booking.trips || [];
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top"]}>
+    <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="#0F2A22" />
       <LinearGradient colors={["#0F2A22", "#16382E", "#1C6B52"]} style={styles.hero}>
         <AnimatedOrb style={styles.orbA} delay={0} dx={14} dy={12} />
         <AnimatedOrb style={styles.orbB} delay={900} dx={-12} dy={10} />
-        <Header />
-        <View style={styles.heroBody}>
-          <View style={styles.heroIcon}>
-            <Ionicons name={serviceIcon(booking.serviceType)} size={22} color="#fff" />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.heroNumber} numberOfLines={1}>{booking.bookingNumber}</Text>
-            <View style={styles.modePill}>
-              <Ionicons name="business" size={11} color="rgba(255,255,255,0.92)" />
-              <Text style={styles.modePillTxt}>
-                {booking.bookingMode || "COMPANY"} · {String(booking.serviceType || "BOOKING").toUpperCase()}
-              </Text>
+        <SafeAreaView edges={["top"]} style={{ backgroundColor: "transparent" }}>
+          <Header />
+          <View style={styles.heroBody}>
+            <View style={styles.heroIcon}>
+              <Ionicons name={serviceIcon(booking.serviceType)} size={22} color="#fff" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.heroNumber} numberOfLines={1}>{booking.bookingNumber}</Text>
+              <View style={styles.modePill}>
+                <Ionicons name="business" size={11} color="rgba(255,255,255,0.92)" />
+                <Text style={styles.modePillTxt}>
+                  {booking.bookingMode || "COMPANY"} · {String(booking.serviceType || "BOOKING").toUpperCase()}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView

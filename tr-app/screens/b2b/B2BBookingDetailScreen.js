@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, RefreshControl, Dimensions, Modal, TextInput, Image, FlatList,
-  Share, Linking, Clipboard, Platform, StatusBar,
+  Share, Linking, Clipboard, Platform, StatusBar, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -1234,7 +1234,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
 
       {/* Cancel Modal */}
       <Modal visible={showCancelModal} transparent animationType="fade">
-        <View style={s.modalOverlay}>
+        <KeyboardAvoidingView style={s.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={s.cancelModal}>
             <Text style={s.cancelModalTitle}>Cancel Booking</Text>
             <Text style={s.cancelModalSub}>Please provide a reason for cancellation:</Text>
@@ -1261,7 +1261,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Fullscreen Image Viewer */}

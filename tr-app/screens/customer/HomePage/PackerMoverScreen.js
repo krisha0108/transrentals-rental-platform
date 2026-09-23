@@ -140,6 +140,10 @@ export default function PackerMoverScreen() {
     useCallback(() => {
       StatusBar.setBarStyle('light-content');
       if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF');
+      };
     }, [])
   );
 
@@ -356,6 +360,7 @@ export default function PackerMoverScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         onScrollBeginDrag={() => { if (!dropdownTouching.current) setShowSuggestions(false); }}
         contentContainerStyle={{ paddingBottom: hp('4%') }}
       >
@@ -852,8 +857,8 @@ export default function PackerMoverScreen() {
               <View key={idx} style={styles.faqItem}>
                 <TouchableOpacity style={styles.faqHead} onPress={() => toggleFAQ(idx)} activeOpacity={0.8}>
                   <Text style={styles.faqQ}>{item.question}</Text>
-                  <View style={[styles.faqChevronWrap, open && styles.faqChevronWrapOpen]}>
-                    <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={wp('4%')} color={open ? '#FFFFFF' : TEAL_LIGHT} />
+                  <View style={styles.faqChevronWrap}>
+                    <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={wp('3.5%')} color="#FFFFFF" />
                   </View>
                 </TouchableOpacity>
                 {open && <Text style={styles.faqA}>{item.answer}</Text>}
@@ -1017,15 +1022,14 @@ const styles = StyleSheet.create({
   submitText: { color: '#FFFFFF', fontSize: wp('3.8%'), fontWeight: '700', letterSpacing: 0.3 },
 
   // FAQ
-  faqSec: { backgroundColor: TEAL_DEEP, marginTop: hp('2%'), paddingVertical: hp('2.5%'), paddingHorizontal: wp('4%'), borderTopLeftRadius: wp('6%'), borderTopRightRadius: wp('6%') },
+  faqSec: { backgroundColor: TEAL_DEEP, marginHorizontal: wp('3.5%'), marginTop: hp('2%'), padding: wp('4%'), borderRadius: wp('5%') },
   faqHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: hp('1.5%'), gap: wp('2.5%') },
   faqIconCircle: { width: wp('9%'), height: wp('9%'), borderRadius: wp('4.5%'), backgroundColor: 'rgba(16,185,129,0.15)', justifyContent: 'center', alignItems: 'center' },
   faqTitle: { fontSize: wp('4.5%'), fontWeight: '700', color: '#FFFFFF' },
-  faqItem: { borderBottomColor: 'rgba(16,185,129,0.15)', borderBottomWidth: 1, paddingVertical: hp('1.3%') },
+  faqItem: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: wp('3%'), paddingHorizontal: wp('3.5%'), paddingVertical: hp('1.4%'), marginBottom: hp('1%') },
   faqHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   faqQ: { color: '#FFFFFF', fontSize: wp('3.5%'), flex: 1, marginRight: wp('3%'), fontWeight: '500' },
-  faqChevronWrap: { width: wp('7%'), height: wp('7%'), borderRadius: wp('3.5%'), backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
-  faqChevronWrapOpen: { backgroundColor: TEAL },
+  faqChevronWrap: { width: wp('5.5%'), height: wp('5.5%'), borderRadius: wp('2.75%'), backgroundColor: TEAL, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   faqA: { color: TEAL_LIGHT, fontSize: wp('3.2%'), marginTop: hp('0.8%'), lineHeight: hp('2.5%'), paddingLeft: wp('1%') },
 
   // Modal

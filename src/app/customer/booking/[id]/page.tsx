@@ -1431,7 +1431,7 @@ export default function BookingDetailsPage() {
                   {/* Terms */}
                   <p className="text-xs text-gray-500 mt-4">
                     By proceeding, you agree to our{' '}
-                    <a href="/terms-and-conditions" target="_blank" className="text-green-600 underline">Terms</a>,{' '}
+                    <a href="/terms-conditions" target="_blank" className="text-green-600 underline">Terms</a>,{' '}
                     <a href="/privacy-policy" target="_blank" className="text-green-600 underline">Privacy Policy</a>, and{' '}
                     <a href="/cancellations-and-refund" target="_blank" className="text-green-600 underline">Refund Policy</a>.
                   </p>

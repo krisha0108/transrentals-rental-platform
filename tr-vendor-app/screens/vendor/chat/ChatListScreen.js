@@ -284,17 +284,19 @@ export default function ChatListScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={st.safe} edges={['top']}>
+      <SafeAreaView style={st.safe} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} style={st.heroLoading}>
           <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <View style={st.heroTopSimple}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={st.heroTitle}>Messages</Text>
-            <View style={{ width: 38 }} />
-          </View>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={st.heroTopSimple}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Text style={st.heroTitle}>Messages</Text>
+              <View style={{ width: 38 }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 10 }}>
           {[0,1,2,3,4,5].map(i => (
@@ -316,69 +318,71 @@ export default function ChatListScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={st.safe} edges={['top']}>
+    <SafeAreaView style={st.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
       {/* ── HERO HEADER ── */}
       <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.hero}>
         <CornerGrid style={st.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={st.heroTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={st.heroMid}>
-            <Text style={st.heroTitle}>Messages</Text>
-            <Text style={st.heroSub}>
-              {customerGroups.length} customer{customerGroups.length !== 1 ? 's' : ''}{unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
-            </Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={st.heroTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={st.heroMid}>
+              <Text style={st.heroTitle}>Messages</Text>
+              <Text style={st.heroSub}>
+                {customerGroups.length} customer{customerGroups.length !== 1 ? 's' : ''}{unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={st.unreadToggle}
+              onPress={() => {
+                setSearchOpen(v => !v);
+                if (searchOpen) setSearchQuery('');
+              }}
+            >
+              <Ionicons name={searchOpen ? 'close' : 'search'} size={18} color="rgba(255,255,255,0.9)" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[st.unreadToggle, unreadOnly && st.unreadToggleActive]}
+              onPress={() => setUnreadOnly(!unreadOnly)}
+            >
+              <Ionicons name="mail-unread-outline" size={18} color={unreadOnly ? C.g900 : 'rgba(255,255,255,0.8)'} />
+              {unreadCount > 0 && (
+                <View style={st.unreadToggleDot}>
+                  <Text style={st.unreadToggleDotTxt}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={st.unreadToggle}
-            onPress={() => {
-              setSearchOpen(v => !v);
-              if (searchOpen) setSearchQuery('');
-            }}
-          >
-            <Ionicons name={searchOpen ? 'close' : 'search'} size={18} color="rgba(255,255,255,0.9)" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[st.unreadToggle, unreadOnly && st.unreadToggleActive]}
-            onPress={() => setUnreadOnly(!unreadOnly)}
-          >
-            <Ionicons name="mail-unread-outline" size={18} color={unreadOnly ? C.g900 : 'rgba(255,255,255,0.8)'} />
-            {unreadCount > 0 && (
-              <View style={st.unreadToggleDot}>
-                <Text style={st.unreadToggleDotTxt}>{unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
 
-        {/* Search bar — toggled open/closed via the search icon above */}
-        {searchOpen && (
-          <View style={st.searchBar}>
-            <Ionicons name="search" size={16} color="rgba(255,255,255,0.7)" />
-            <TextInput
-              style={st.searchInput}
-              placeholder="Search customer, booking, service..."
-              placeholderTextColor="rgba(255,255,255,0.55)"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoFocus
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.7)" />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+          {/* Search bar — toggled open/closed via the search icon above */}
+          {searchOpen && (
+            <View style={st.searchBar}>
+              <Ionicons name="search" size={16} color="rgba(255,255,255,0.7)" />
+              <TextInput
+                style={st.searchInput}
+                placeholder="Search customer, booking, service..."
+                placeholderTextColor="rgba(255,255,255,0.55)"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.7)" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </SafeAreaView>
       </LinearGradient>
 
       {/* ── SERVICE FILTER CHIPS ── */}
       <View style={st.filterWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.filterScroll}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={st.filterScrollOuter} contentContainerStyle={st.filterScroll}>
           {SERVICE_TYPES.map((s) => {
             const isActive = serviceFilter === s.key;
             const count = s.key === 'all' ? chats.length : (serviceCounts[s.key] || 0);
@@ -391,7 +395,7 @@ export default function ChatListScreen({ navigation }) {
                 activeOpacity={0.75}
               >
                 <MaterialCommunityIcons name={s.icon} size={13} color={isActive ? s.color : C.muted} />
-                <Text style={[st.filterChipTxt, isActive && { color: s.color }]}>{s.label}</Text>
+                <Text numberOfLines={1} style={[st.filterChipTxt, isActive && { color: s.color }]}>{s.label}</Text>
                 {count > 0 && (
                   <View style={[st.filterChipBadge, isActive && { backgroundColor: s.color }]}>
                     <Text style={[st.filterChipBadgeTxt, isActive && { color: '#fff' }]}>{count}</Text>
@@ -461,7 +465,8 @@ const st = StyleSheet.create({
   searchInput: { fontFamily: DISPLAY, flex: 1, fontSize: 14, color: '#fff', padding: 0, fontWeight: '600' },
 
   filterWrap:   { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  filterScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  filterScrollOuter: { flexGrow: 0, flexShrink: 0, height: 62 },
+  filterScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: 'center' },
   filterChip:   { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
   filterChipTxt:   { fontFamily: DISPLAY, fontSize: 13, fontWeight: '700', color: C.muted },
   filterChipBadge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.border, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
