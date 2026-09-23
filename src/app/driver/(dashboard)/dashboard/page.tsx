@@ -26,7 +26,8 @@ import {
   ExternalLink,
   Wallet,
 } from 'lucide-react';
-import BackrCard from '@/components/backr/BackrCard';
+// BackrCard import kept alongside the commented-out usage below — re-enable when ready to launch.
+// import BackrCard from '@/components/backr/BackrCard';
 
 interface Booking {
   id: string;
@@ -496,8 +497,8 @@ export default function DriverDashboardPage() {
         })()}
       </div>
 
-      {/* BACKR Rewards */}
-      <BackrCard type="driver" />
+      {/* BACKR Rewards — hidden for now, not ready to launch yet */}
+      {/* <BackrCard type="driver" /> */}
     </div>
   );
 }
