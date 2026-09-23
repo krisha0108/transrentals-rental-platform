@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Smartphone, Mail, IdCard, Lock, Eye, EyeOff, Loader2, ArrowRight,
-  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar, MapPin, Building2, ChevronDown,
+  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar, MapPin, Building2, ChevronDown, Search,
   Route, TrendingUp, CalendarClock, ShieldCheck,
 } from 'lucide-react';
 import DriverAuthStage from '../_components/DriverAuthStage';
@@ -26,7 +26,9 @@ function CustomDropdown({
   onChange: (id: string) => void; placeholder: string; emptyMessage?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
@@ -37,12 +39,15 @@ function CustomDropdown({
   }, []);
 
   const selected = options.find((o) => o.id === value);
+  const filtered = query.trim()
+    ? options.filter((o) => o.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
 
   return (
     <div ref={ref} className="relative">
       <div
         className="da-field cursor-pointer select-none"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => { setOpen((o) => !o); setQuery(''); }}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
@@ -58,23 +63,40 @@ function CustomDropdown({
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#E3E8F4] rounded-[14px] shadow-lg max-h-56 overflow-y-auto py-1.5">
-          {options.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-gray-400">{emptyMessage || 'Nothing to pick from yet'}</p>
-          ) : (
-            options.map((o) => (
-              <button
-                type="button"
-                key={o.id}
-                onClick={() => { onChange(o.id); setOpen(false); }}
-                className={`w-full text-left px-4 py-2.5 text-sm transition ${
-                  o.id === value ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {o.name}
-              </button>
-            ))
-          )}
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#E3E8F4] rounded-[14px] shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-100">
+            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <input
+              ref={searchRef}
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="w-full text-sm outline-none placeholder:text-gray-400 text-gray-900"
+            />
+          </div>
+          <div className="max-h-52 overflow-y-auto py-1.5">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-gray-400">
+                {options.length === 0 ? (emptyMessage || 'Nothing to pick from yet') : `No match for "${query}"`}
+              </p>
+            ) : (
+              filtered.map((o) => (
+                <button
+                  type="button"
+                  key={o.id}
+                  onClick={() => { onChange(o.id); setOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition ${
+                    o.id === value ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {o.name}
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
