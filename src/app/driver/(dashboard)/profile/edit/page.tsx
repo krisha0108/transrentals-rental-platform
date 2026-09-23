@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {
@@ -126,6 +126,17 @@ export default function EditProfilePage() {
   const [success, setSuccess] = useState('');
   const [bankDetailsComplete, setBankDetailsComplete] = useState(true);
   const [isOldLicense, setIsOldLicense] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  // The offending field is usually further down the form than where Save
+  // was clicked, so the error banner at the top needs to actually grab
+  // attention — scrolled into view and focused, not just rendered.
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.focus();
+      errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
 
   const [form, setForm] = useState({
     name: '', address: '', city: '', state: '', pincode: '',
@@ -227,7 +238,12 @@ export default function EditProfilePage() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2.5 mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+        <div
+          ref={errorRef}
+          role="alert"
+          tabIndex={-1}
+          className="flex items-start gap-2.5 mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm outline-none focus:ring-2 focus:ring-red-400"
+        >
           <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
