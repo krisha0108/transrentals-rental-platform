@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { generateDid } from '@/lib/utils/generate-did';
-import { getAllActiveAdmins, notifyManagers } from '@/lib/notifications/manager-notify';
+import { getAllActiveAdmins, getManagersForLocation, notifyManagers } from '@/lib/notifications/manager-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,7 +78,10 @@ export async function POST(request: NextRequest) {
       aadharNumber, licenseNumber, licenseType, licenseExpiry, isOldLicense,
       bankName, accountHolderName, accountNumber, ifscCode,
       emergencyContact, emergencyPhone,
+      stateId, cityIds,
     } = body;
+
+    const selectedCityIds: string[] = Array.isArray(cityIds) ? cityIds.filter((id) => typeof id === 'string') : [];
 
     // Required fields
     if (!name || !phone || !email || !password) {
@@ -141,6 +144,16 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const did = await generateDid();
 
+    // Resolve the state/city picker's ids to real locations, so
+    // driver_locations only ever points at rows that actually exist, and
+    // drivers.city/state (kept as a simple display summary) show real names.
+    const [selectedState, selectedCities] = await Promise.all([
+      stateId ? prisma.locations.findUnique({ where: { id: stateId }, select: { id: true, name: true } }) : null,
+      selectedCityIds.length > 0
+        ? prisma.locations.findMany({ where: { id: { in: selectedCityIds } }, select: { id: true, name: true } })
+        : [],
+    ]);
+
     const driver = await prisma.drivers.create({
       data: {
         did,
@@ -150,8 +163,8 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         dateOfBirth: parsedDob,
         address: address || null,
-        city: city || null,
-        state: state || null,
+        city: selectedCities.length > 0 ? selectedCities.map((c) => c.name).join(', ') : (city || null),
+        state: selectedState?.name || state || null,
         pincode: pincode || null,
         aadharNumber: aadharNumber || null,
         licenseNumber: normalizedLicenseNumber,
@@ -168,6 +181,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Record which cities this driver operates in, so managers scoped to
+    // those cities (manager_locations) can be found for the notification
+    // below — best-effort, never blocks registration on its own.
+    if (selectedCities.length > 0) {
+      try {
+        await prisma.driver_locations.createMany({
+          data: selectedCities.map((c) => ({ driverId: driver.id, locationId: c.id })),
+          skipDuplicates: true,
+        });
+      } catch (error) {
+        console.error('Failed to save driver_locations:', error);
+      }
+    }
+
     // Let admins know a new driver signed up. Awaited so it actually runs
     // before the response goes out (this route can run somewhere that kills
     // work after the response), but notifyManagers swallows its own
@@ -177,8 +204,25 @@ export async function POST(request: NextRequest) {
       title: 'New driver registered',
       body: `${driver.name} (${normalizedPhone}) just signed up as a driver.`,
       link: `/admin/drivers/${driver.id}`,
+      metadata: { driverId: driver.id },
       dedupeKey: driver.id,
     });
+
+    // Also notify the managers scoped to whichever cities this driver picked
+    // — the area is what they actually care about, admins get every signup.
+    if (selectedCities.length > 0) {
+      const managerIdsPerCity = await Promise.all(selectedCities.map((c) => getManagersForLocation(c.id)));
+      const scopedManagerIds = [...new Set(managerIdsPerCity.flat())];
+      const cityNames = selectedCities.map((c) => c.name).join(', ');
+      await notifyManagers(scopedManagerIds, {
+        type: 'NEW_DRIVER_REGISTRATION',
+        title: 'New driver in your area',
+        body: `${driver.name} (${normalizedPhone}) just registered as a driver in ${cityNames}.`,
+        link: `/manager/drivers/${driver.id}`,
+        metadata: { driverId: driver.id },
+        dedupeKey: driver.id,
+      });
+    }
 
     // Generate JWT
     const token = await new SignJWT({

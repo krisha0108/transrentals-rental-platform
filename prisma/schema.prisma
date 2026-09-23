@@ -1892,6 +1892,7 @@ model locations {
   chauffeur_route_packages_chauffeur_route_packages_toLocationIdTolocations   chauffeur_route_packages[]      @relation("chauffeur_route_packages_toLocationIdTolocations")
   city_distance_matrix_city_distance_matrix_fromLocationIdTolocations         city_distance_matrix[]          @relation("city_distance_matrix_fromLocationIdTolocations")
   city_distance_matrix_city_distance_matrix_toLocationIdTolocations           city_distance_matrix[]          @relation("city_distance_matrix_toLocationIdTolocations")
+  driver_locations                                                            driver_locations[]
   equipment_quote_requests                                                    equipment_quote_requests[]
   fleet_pricing                                                               fleet_pricing[]
   locations                                                                   locations?                      @relation("locationsTolocations", fields: [parentId], references: [id], onDelete: Cascade)
@@ -2234,6 +2235,22 @@ model manager_locations {
 
   @@unique([managerId, locationId])
   @@index([locationId], map: "manager_locations_locationId_fkey")
+}
+
+// Cities a driver picked at registration (a driver can operate in more than
+// one) — separate from drivers.city/state, which stay as a simple display
+// summary. This is what getManagersForLocation() matches against to notify
+// the right managers when a driver joins their area.
+model driver_locations {
+  id         String   @id @default(cuid())
+  driverId   String
+  locationId String
+  createdAt  DateTime @default(now())
+  drivers    drivers  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  locations  locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, locationId])
+  @@index([locationId])
 }
 
 model manager_services {
@@ -6425,6 +6442,7 @@ model drivers {
   chauffeur_bookings chauffeur_bookings[]
   driver_vehicles    driver_vehicles[]
   chat_conversations chat_conversations[]
+  driver_locations   driver_locations[]
 
   @@index([email])
   @@index([phone])

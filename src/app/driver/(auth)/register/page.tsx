@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Smartphone, Mail, IdCard, Lock, Eye, EyeOff, Loader2, ArrowRight,
-  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar,
+  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar, MapPin, Building2,
   Route, TrendingUp, CalendarClock, ShieldCheck,
 } from 'lucide-react';
 import DriverAuthStage from '../_components/DriverAuthStage';
@@ -73,6 +73,12 @@ function validateDlNumber(raw: string): string | null {
   return null;
 }
 
+interface LocationOption {
+  id: string;
+  name: string;
+  locations?: { id: string; name: string; type: string } | null; // parent, for cities
+}
+
 export default function DriverRegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -82,6 +88,13 @@ export default function DriverRegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const [isOldLicense, setIsOldLicense] = useState(false);
+  const [states, setStates] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<LocationOption[]>([]);
+
+  useEffect(() => {
+    fetch('/api/locations?type=STATE').then((r) => r.json()).then((d) => { if (d.success) setStates(d.locations || []); }).catch(() => {});
+    fetch('/api/locations?type=CITY').then((r) => r.json()).then((d) => { if (d.success) setCities(d.locations || []); }).catch(() => {});
+  }, []);
 
   const [form, setForm] = useState({
     name: '',
@@ -91,7 +104,19 @@ export default function DriverRegisterPage() {
     licenseNumber: '',
     password: '',
     confirmPassword: '',
+    stateId: '',
+    cityIds: [] as string[],
   });
+
+  const citiesInSelectedState = cities.filter((c) => c.locations?.id === form.stateId);
+
+  const toggleCity = (cityId: string) => {
+    setForm((f) => ({
+      ...f,
+      cityIds: f.cityIds.includes(cityId) ? f.cityIds.filter((id) => id !== cityId) : [...f.cityIds, cityId],
+    }));
+    if (error) setError('');
+  };
 
   const set = (key: keyof typeof form, val: string) => {
     setForm((f) => ({ ...f, [key]: val }));
@@ -136,6 +161,8 @@ export default function DriverRegisterPage() {
           dateOfBirth: form.dateOfBirth || null,
           licenseNumber: form.licenseNumber.trim(),
           isOldLicense,
+          stateId: form.stateId || null,
+          cityIds: form.cityIds,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -271,6 +298,62 @@ export default function DriverRegisterPage() {
               type="date" value={form.dateOfBirth} max={getMaxDobForAge18()}
               onChange={(e) => set('dateOfBirth', e.target.value)}
             />
+          </div>
+
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <div>
+              <div className="da-field">
+                <span className="da-field-icon"><MapPin className="h-[18px] w-[18px]" /></span>
+                <span className="da-field-body">
+                  <label htmlFor="stateId" className="da-field-label">State</label>
+                  <select
+                    id="stateId"
+                    value={form.stateId}
+                    onChange={(e) => { setForm((f) => ({ ...f, stateId: e.target.value, cityIds: [] })); if (error) setError(''); }}
+                    className="da-field-input"
+                  >
+                    <option value="">Select your state</option>
+                    {states.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </span>
+              </div>
+            </div>
+            <div>
+              <div className={`da-field${!form.stateId ? ' opacity-50' : ''}`} style={{ alignItems: 'flex-start', minHeight: 'auto', padding: '9px 14px' }}>
+                <span className="da-field-icon" style={{ marginTop: '3px' }}><Building2 className="h-[18px] w-[18px]" /></span>
+                <span className="da-field-body">
+                  <label className="da-field-label">
+                    Cities you operate in
+                    <em className="da-opt">(Optional, pick any)</em>
+                  </label>
+                  {form.stateId ? (
+                    citiesInSelectedState.length > 0 ? (
+                      <div className="mt-1.5 max-h-28 overflow-y-auto flex flex-wrap gap-1.5">
+                        {citiesInSelectedState.map((c) => {
+                          const selected = form.cityIds.includes(c.id);
+                          return (
+                            <button
+                              type="button"
+                              key={c.id}
+                              onClick={() => toggleCity(c.id)}
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+                                selected ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-400'
+                              }`}
+                            >
+                              {c.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 mt-1.5">No cities listed for this state yet</p>
+                    )
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-1.5">Pick a state first</p>
+                  )}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div>
