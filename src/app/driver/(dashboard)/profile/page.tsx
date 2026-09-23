@@ -7,9 +7,10 @@ import ProfileShareCard from '@/components/profile/ProfileShareCard';
 import {
   Phone, Mail, CreditCard, Car, Calendar, Building, LogOut,
   Loader2, AlertCircle, Pencil, Camera, Shield, CheckCircle,
-  MapPin, Clock, Zap, ExternalLink, Coins, TrendingUp, Gift,
+  MapPin, Clock, Zap, ExternalLink, Coins, TrendingUp, Gift, Wallet,
 } from 'lucide-react';
-import BackrCard from '@/components/backr/BackrCard';
+// BackrCard import kept alongside the commented-out usage below — re-enable when ready to launch.
+// import BackrCard from '@/components/backr/BackrCard';
 
 interface Driver {
   id: string;
@@ -27,6 +28,9 @@ interface Driver {
   city?: string;
   state?: string;
   vendor?: { id: string; businessName: string };
+  bankDetailsComplete?: boolean;
+  bankName?: string | null;
+  accountNumberLast4?: string | null;
 }
 
 export default function DriverProfilePage() {
@@ -324,6 +328,30 @@ export default function DriverProfilePage() {
             </div>
           </div>
 
+          {/* Row 1.5: Bank Details — payouts have nowhere to go without this */}
+          <div className="bg-white rounded-xl border shadow-sm p-5">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Bank Details</h3>
+            {driver.bankDetailsComplete ? (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
+                  <Wallet className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{driver.bankName}</p>
+                  <p className="text-sm text-gray-400 font-mono">
+                    {driver.accountNumberLast4 ? `•••• ${driver.accountNumberLast4}` : ''}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-24 text-gray-300">
+                <Wallet className="w-10 h-10 mb-2" />
+                <p className="text-sm text-gray-400">No bank details on file — earnings can&apos;t be paid out yet</p>
+                <Link href="/driver/profile/edit" className="text-xs text-emerald-600 hover:underline mt-1">Add bank details →</Link>
+              </div>
+            )}
+          </div>
+
           {/* Row 2: Company (if vendor) + Public share */}
           <div className={`grid gap-4 ${driver.vendor ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {driver.vendor && (
@@ -347,8 +375,8 @@ export default function DriverProfilePage() {
             </div>
           </div>
 
-          {/* Row 3: BACKR Rewards */}
-          <BackrCard type="driver" />
+          {/* Row 3: BACKR Rewards — hidden for now, not ready to launch yet */}
+          {/* <BackrCard type="driver" /> */}
 
         </div>
       </div>

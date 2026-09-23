@@ -1,15 +1,237 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   User, Smartphone, Mail, IdCard, Lock, Eye, EyeOff, Loader2, ArrowRight,
-  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar,
+  AlertCircle, RotateCcw, FileText, UploadCloud, X, Calendar, MapPin, Building2, ChevronDown, Search,
   Route, TrendingUp, CalendarClock, ShieldCheck,
 } from 'lucide-react';
 import DriverAuthStage from '../_components/DriverAuthStage';
 import { AuthCard, CardHeading, Field, PrimaryButton } from '../_components/DriverAuthUI';
+
+interface DropdownOption {
+  id: string;
+  name: string;
+}
+
+/** Styled dropdown matching the `.da-field` look (from DriverAuthUI's global
+ * styles) — a native <select> can't be restyled this way in every browser,
+ * so this opens its own floating option panel instead. */
+function CustomDropdown({
+  icon, label, options, value, onChange, placeholder, emptyMessage,
+}: {
+  icon: React.ReactNode; label: string; options: DropdownOption[]; value: string;
+  onChange: (id: string) => void; placeholder: string; emptyMessage?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const selected = options.find((o) => o.id === value);
+  const filtered = query.trim()
+    ? options.filter((o) => o.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  return (
+    <div ref={ref} className="relative">
+      <div
+        className="da-field cursor-pointer select-none"
+        onClick={() => { setOpen((o) => !o); setQuery(''); }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
+      >
+        <span className="da-field-icon">{icon}</span>
+        <span className="da-field-body">
+          <span className="da-field-label">{label}</span>
+          <span className={`da-field-input block truncate ${!selected ? 'da-empty-date' : ''}`}>
+            {selected ? selected.name : placeholder}
+          </span>
+        </span>
+        <ChevronDown className={`h-4 w-4 text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#E3E8F4] rounded-[14px] shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-100">
+            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <input
+              ref={searchRef}
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="w-full text-sm outline-none placeholder:text-gray-400 text-gray-900"
+            />
+          </div>
+          <div className="max-h-52 overflow-y-auto py-1.5">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-gray-400">
+                {options.length === 0 ? (emptyMessage || 'Nothing to pick from yet') : `No match for "${query}"`}
+              </p>
+            ) : (
+              filtered.map((o) => (
+                <button
+                  type="button"
+                  key={o.id}
+                  onClick={() => { onChange(o.id); setOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition ${
+                    o.id === value ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {o.name}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Same shell as CustomDropdown, but picking an option doesn't close the
+ * panel — a driver usually wants more than one city, so closing on the
+ * first pick would mean reopening it for every additional one. */
+function CustomMultiDropdown({
+  icon, label, options, values, onToggle, placeholder, disabled, disabledMessage, emptyMessage,
+}: {
+  icon: React.ReactNode; label: string; options: DropdownOption[]; values: string[];
+  onToggle: (id: string) => void; placeholder: string; disabled?: boolean; disabledMessage?: string; emptyMessage?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const selected = options.filter((o) => values.includes(o.id));
+  const summary = selected.length === 0
+    ? placeholder
+    : `${selected.length} ${selected.length === 1 ? 'city' : 'cities'} selected`;
+
+  const filtered = query.trim()
+    ? options.filter((o) => o.name.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  return (
+    <div ref={ref} className="relative">
+      <div
+        className={`da-field select-none ${disabled ? 'opacity-50' : 'cursor-pointer'}`}
+        onClick={() => { if (!disabled) { setOpen((o) => !o); setQuery(''); } }}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(e) => { if (!disabled && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setOpen((o) => !o); } }}
+      >
+        <span className="da-field-icon">{icon}</span>
+        <span className="da-field-body">
+          <span className="da-field-label">
+            {label}
+            <em className="da-opt">(Optional, pick any)</em>
+          </span>
+          <span className={`da-field-input block truncate ${selected.length === 0 ? 'da-empty-date' : ''}`}>
+            {disabled ? (disabledMessage || placeholder) : summary}
+          </span>
+        </span>
+        <ChevronDown className={`h-4 w-4 text-gray-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </div>
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1.5 w-full bg-white border border-[#E3E8F4] rounded-[14px] shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-100">
+            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+            <input
+              type="text"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="w-full text-sm outline-none placeholder:text-gray-400 text-gray-900"
+            />
+          </div>
+          <div className="max-h-52 overflow-y-auto py-1.5">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-gray-400">
+                {options.length === 0 ? (emptyMessage || 'Nothing to pick from yet') : `No match for "${query}"`}
+              </p>
+            ) : (
+              filtered.map((o) => {
+                const checked = values.includes(o.id);
+                return (
+                  <button
+                    type="button"
+                    key={o.id}
+                    onClick={() => onToggle(o.id)}
+                    className={`w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-sm transition ${
+                      checked ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded shrink-0 border flex items-center justify-center ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300'}`}>
+                      {checked && <CheckIcon />}
+                    </span>
+                    {o.name}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Every pick shown in full below, not just a count in the trigger —
+          a driver scanning a long list should be able to see exactly which
+          cities they already added without reopening the panel. */}
+      {selected.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selected.map((o) => (
+            <span
+              key={o.id}
+              className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
+            >
+              {o.name}
+              <button
+                type="button"
+                onClick={() => onToggle(o.id)}
+                aria-label={`Remove ${o.name}`}
+                className="w-3.5 h-3.5 rounded-full flex items-center justify-center hover:bg-emerald-200/70 transition"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-2.5 w-2.5" aria-hidden>
+      <path d="M3 8.5L6.2 11.5L13 4.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function DriverAvatar({ className = '' }: { className?: string }) {
   return (
@@ -73,6 +295,12 @@ function validateDlNumber(raw: string): string | null {
   return null;
 }
 
+interface LocationOption {
+  id: string;
+  name: string;
+  locations?: { id: string; name: string; type: string } | null; // parent, for cities
+}
+
 export default function DriverRegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -82,6 +310,13 @@ export default function DriverRegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const [isOldLicense, setIsOldLicense] = useState(false);
+  const [states, setStates] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<LocationOption[]>([]);
+
+  useEffect(() => {
+    fetch('/api/locations?type=STATE').then((r) => r.json()).then((d) => { if (d.success) setStates(d.locations || []); }).catch(() => {});
+    fetch('/api/locations?type=CITY').then((r) => r.json()).then((d) => { if (d.success) setCities(d.locations || []); }).catch(() => {});
+  }, []);
 
   const [form, setForm] = useState({
     name: '',
@@ -91,7 +326,19 @@ export default function DriverRegisterPage() {
     licenseNumber: '',
     password: '',
     confirmPassword: '',
+    stateId: '',
+    cityIds: [] as string[],
   });
+
+  const citiesInSelectedState = cities.filter((c) => c.locations?.id === form.stateId);
+
+  const toggleCity = (cityId: string) => {
+    setForm((f) => ({
+      ...f,
+      cityIds: f.cityIds.includes(cityId) ? f.cityIds.filter((id) => id !== cityId) : [...f.cityIds, cityId],
+    }));
+    if (error) setError('');
+  };
 
   const set = (key: keyof typeof form, val: string) => {
     setForm((f) => ({ ...f, [key]: val }));
@@ -136,6 +383,8 @@ export default function DriverRegisterPage() {
           dateOfBirth: form.dateOfBirth || null,
           licenseNumber: form.licenseNumber.trim(),
           isOldLicense,
+          stateId: form.stateId || null,
+          cityIds: form.cityIds,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -177,7 +426,7 @@ export default function DriverRegisterPage() {
         }
       }
 
-      router.push('/driver');
+      router.push('/driver/dashboard');
     } catch (err: any) {
       setError(
         err instanceof TypeError
@@ -271,6 +520,32 @@ export default function DriverRegisterPage() {
               type="date" value={form.dateOfBirth} max={getMaxDobForAge18()}
               onChange={(e) => set('dateOfBirth', e.target.value)}
             />
+          </div>
+
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <div>
+              <CustomDropdown
+                icon={<MapPin className="h-[18px] w-[18px]" />}
+                label="State"
+                placeholder="Select your state"
+                options={states}
+                value={form.stateId}
+                onChange={(id) => { setForm((f) => ({ ...f, stateId: id, cityIds: [] })); if (error) setError(''); }}
+              />
+            </div>
+            <div>
+              <CustomMultiDropdown
+                icon={<Building2 className="h-[18px] w-[18px]" />}
+                label="Cities you operate in"
+                placeholder={form.stateId ? 'Select cities' : 'Pick a state first'}
+                options={citiesInSelectedState}
+                values={form.cityIds}
+                onToggle={toggleCity}
+                disabled={!form.stateId}
+                disabledMessage="Pick a state first"
+                emptyMessage="No cities listed for this state yet"
+              />
+            </div>
           </div>
 
           <div>

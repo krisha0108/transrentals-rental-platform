@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
-import { Bell, BellRing, Loader2, MapPinPlus, Layers, Mail, Plane, CheckCheck, RefreshCw, Inbox } from 'lucide-react';
+import { Bell, BellRing, Loader2, MapPinPlus, Layers, Mail, Plane, UserPlus, CheckCheck, RefreshCw, Inbox } from 'lucide-react';
 
 interface ManagerNotification {
   id: string;
-  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY' | 'NEW_TRAVEL_AGENT_REGISTRATION';
+  type: 'NEW_LOCATION_REQUEST' | 'NEW_SERVICE_REQUEST' | 'NEW_CONTACT_INQUIRY' | 'NEW_TRAVEL_AGENT_REGISTRATION' | 'NEW_DRIVER_REGISTRATION';
   title: string;
   body: string;
   link: string | null;
@@ -20,6 +20,7 @@ const NOTIFICATION_ICON: Record<string, any> = {
   NEW_SERVICE_REQUEST: Layers,
   NEW_CONTACT_INQUIRY: Mail,
   NEW_TRAVEL_AGENT_REGISTRATION: Plane,
+  NEW_DRIVER_REGISTRATION: UserPlus,
 };
 
 function formatDateTime(iso: string): string {
