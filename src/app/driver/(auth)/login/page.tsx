@@ -3,7 +3,22 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Car, Mail, Lock, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
+import {
+  User, Lock, Eye, EyeOff, Loader2, ArrowRight, AlertCircle,
+  Headphones, ShieldCheck, BellRing, Wallet, Navigation,
+} from 'lucide-react';
+import DriverAuthStage from '../_components/DriverAuthStage';
+import { AuthCard, CardHeading, PlainField, PrimaryButton } from '../_components/DriverAuthUI';
+
+function DriverAvatar({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="12" cy="8.2" r="3.4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4.6 20.2c.8-3.7 3.8-5.8 7.4-5.8s6.6 2.1 7.4 5.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M6.6 6.4c1.3-1.9 3.2-2.9 5.4-2.9s4.1 1 5.4 2.9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function DriverLoginPage() {
   const router = useRouter();
@@ -12,8 +27,6 @@ export default function DriverLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const isDriverId = /^dr-/i.test(identifier);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,135 +40,153 @@ export default function DriverLoginPage() {
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
-      if (!data.success) {
-        throw new Error(data.error || 'Login failed');
+      if (!response.ok || !data?.success) {
+        // Name the actual problem. "Login failed" told a driver with no signal
+        // exactly as much as it told one who had mistyped their password.
+        throw new Error(
+          data?.error ||
+            (response.status === 401
+              ? 'That email or password is not right. Please check and try again.'
+              : response.status >= 500
+                ? 'The server had a problem. Please try again in a moment.'
+                : 'Login failed. Please try again.'),
+        );
       }
 
-      // Store token and driver info in localStorage
-      if (data.token) {
-        localStorage.setItem('driver-token', data.token);
-      }
-      if (data.driver) {
-        localStorage.setItem('driver', JSON.stringify(data.driver));
-      }
+      if (data.token) localStorage.setItem('driver-token', data.token);
+      if (data.driver) localStorage.setItem('driver', JSON.stringify(data.driver));
 
-      // Redirect to dashboard
       router.push('/driver/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(
+        err instanceof TypeError
+          ? 'No internet connection. Check your network and try again.'
+          : err?.message || 'Login failed. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
-            <Car className="w-10 h-10 text-emerald-600" />
+    <DriverAuthStage
+      titleTop="Welcome Back,"
+      titleMain="Driver"
+      blurb={
+        <>
+          Your journey matters. Sign in to pick up <strong>new trips</strong>, follow your{' '}
+          <strong>earnings</strong> day by day, and keep moving with TransRentals.
+        </>
+      }
+      features={[
+        { icon: <BellRing className="h-[22px] w-[22px]" />, title: 'Trip Alerts', body: 'New bookings the moment they land' },
+        { icon: <Wallet className="h-[22px] w-[22px]" />, title: 'Earnings', body: 'Every trip and payout, tracked' },
+        { icon: <Navigation className="h-[22px] w-[22px]" />, title: 'Navigation', body: 'Pickup to drop, the shorter way' },
+        { icon: <Headphones className="h-[22px] w-[22px]" />, title: '24/7 Support', body: 'A real person, any hour' },
+      ]}
+      tagline={['Drive', 'Earn', 'Grow']}
+    >
+      <AuthCard>
+        <CardHeading
+          stacked
+          icon={<DriverAvatar className="h-7 w-7" />}
+          title="Driver Login"
+          subtitle="Sign in to your TransRentals driver account"
+        />
+
+        {error && (
+          <div role="alert" className="da-alert mb-5">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
           </div>
-          <h1 className="text-3xl font-bold text-white">Driver App</h1>
-          <p className="text-emerald-100 mt-2">Login to manage your trips</p>
-        </div>
+        )}
 
-        {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Welcome Back
-          </h2>
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <PlainField
+            id="identifier"
+            icon={<User className="h-[18px] w-[18px]" />}
+            type="text"
+            value={identifier}
+            onChange={(e) => { setIdentifier(e.target.value); setError(''); }}
+            placeholder="Email or Driver ID"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            enterKeyHint="next"
+            required
+          />
 
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
+          <PlainField
+            id="password"
+            icon={<Lock className="h-[18px] w-[18px]" />}
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setError(''); }}
+            placeholder="Password"
+            autoComplete="current-password"
+            enterKeyHint="go"
+            required
+            suffix={
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="da-eye"
+              >
+                {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+              </button>
+            }
+          />
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email or Driver ID
-              </label>
-              <div className="relative">
-                {isDriverId
-                  ? <Shield className="w-5 h-5 text-emerald-500 absolute left-4 top-1/2 -translate-y-1/2" />
-                  : <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                }
-                <input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="Email or dr-0001"
-                  autoComplete="username"
-                  required
-                />
-              </div>
-              <p className="text-xs text-gray-400 mt-1">You can also sign in using your Driver ID (e.g. dr-0001)</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="Enter your password"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10 cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-200 transition disabled:opacity-50 flex items-center justify-center gap-2"
+          <div className="flex justify-end">
+            <Link
+              href="/driver/forgot-password"
+              className="text-[13.5px] font-semibold text-[#15803D] transition hover:text-[#0d5c2c]"
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Logging in...
-                </>
-              ) : (
-                'Login'
-              )}
-            </button>
-          </form>
-
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-sm text-gray-500">Forgot your password?</p>
-            <Link href="/driver/forgot-password" className="text-sm text-emerald-600 font-semibold hover:underline">
-              Reset it here
+              Forgot Password?
             </Link>
           </div>
 
-          <p className="text-center text-sm text-gray-500 mt-3">
-            New driver?{' '}
-            <Link href="/driver/register" className="text-emerald-600 font-semibold hover:underline">
-              Register here
-            </Link>
-          </p>
+          <PrimaryButton type="submit" loading={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="h-[18px] w-[18px] animate-spin" />
+                Signing in…
+              </>
+            ) : (
+              <>
+                Login
+                <ArrowRight className="h-[18px] w-[18px]" />
+              </>
+            )}
+          </PrimaryButton>
+        </form>
+
+        <div className="my-7 flex items-center gap-4">
+          <span className="h-px flex-1 bg-[#E3E8F4]" />
+          <span className="text-[12px] font-semibold text-[#98A2BA]">OR</span>
+          <span className="h-px flex-1 bg-[#E3E8F4]" />
         </div>
 
-        <p className="text-center text-emerald-100 text-sm mt-6">
-          TransRentals Driver Portal
-        </p>
-      </div>
-    </div>
+        <Link href="/driver/register" className="da-soft">
+          New to TransRentals?
+          <strong>Register as Driver</strong>
+          <ArrowRight className="da-soft-arrow h-4 w-4 text-[#15803D]" />
+        </Link>
+
+        <div className="da-strip mt-4">
+          <span>
+            <ShieldCheck className="h-[18px] w-[18px] shrink-0" />
+            Secure Login
+          </span>
+          <span>
+            <Headphones className="h-[18px] w-[18px] shrink-0" />
+            24/7 Driver Support
+          </span>
+        </div>
+      </AuthCard>
+    </DriverAuthStage>
   );
 }
