@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev -H 0.0.0.0",
-    "check:migrations": "node scripts/check-migration-drift.mjs",
+    "check:migrations": "node scripts/check-index-key-length.mjs && node scripts/check-migration-drift.mjs",
+    "check:index-keys": "node scripts/check-index-key-length.mjs",
     "dev:turbo": "cross-env NODE_OPTIONS=--max-old-space-size=8192 next dev -H 0.0.0.0 --turbo",
     "dev:socket": "tsx server.ts",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",
