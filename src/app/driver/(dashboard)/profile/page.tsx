@@ -9,7 +9,8 @@ import {
   Loader2, AlertCircle, Pencil, Camera, Shield, CheckCircle,
   MapPin, Clock, Zap, ExternalLink, Coins, TrendingUp, Gift,
 } from 'lucide-react';
-import BackrCard from '@/components/backr/BackrCard';
+// BackrCard import kept alongside the commented-out usage below — re-enable when ready to launch.
+// import BackrCard from '@/components/backr/BackrCard';
 
 interface Driver {
   id: string;
@@ -347,8 +348,8 @@ export default function DriverProfilePage() {
             </div>
           </div>
 
-          {/* Row 3: BACKR Rewards */}
-          <BackrCard type="driver" />
+          {/* Row 3: BACKR Rewards — hidden for now, not ready to launch yet */}
+          {/* <BackrCard type="driver" /> */}
 
         </div>
       </div>
