@@ -2651,7 +2651,12 @@ model route_pricing {
 // their own independent schedules against the same row.
 model site_audit_pages {
   id            String  @id
-  url           String  @unique @db.VarChar(1000)
+  // The index on this column is a 768-character prefix, which is what it
+  // has always been in the database. Asking for a whole-column unique
+  // index instead is what broke production: varchar(1000) in utf8mb4 is
+  // 4000 bytes and InnoDB stops at 3072, so that statement can never run.
+  // 768 x 4 = 3072 bytes exactly, which is the most MySQL will take.
+  url           String  @unique(length: 768) @db.VarChar(1000)
   sourceSitemap String?
 
   // Our own HTTP crawl
