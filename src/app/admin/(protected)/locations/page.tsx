@@ -42,17 +42,33 @@ interface Location {
 }
 
 const TYPE_CONFIG = {
-  COUNTRY: { label: 'Country', icon: Globe, color: 'bg-blue-100 text-blue-700', order: 1 },
-  STATE: { label: 'State', icon: Building2, color: 'bg-purple-100 text-purple-700', order: 2 },
-  UNION_TERRITORY: { label: 'Union Territory', icon: MapPin, color: 'bg-indigo-100 text-indigo-700', order: 3 },
-  CITY: { label: 'City', icon: Map, color: 'bg-green-100 text-green-700', order: 4 },
-  VILLAGE: { label: 'Village', icon: Home, color: 'bg-emerald-100 text-emerald-700', order: 5 },
-  AREA: { label: 'Area', icon: Navigation, color: 'bg-amber-100 text-amber-700', order: 6 },
-  AIRPORT: { label: 'Airport', icon: Plane, color: 'bg-sky-100 text-sky-700', order: 7 },
+  COUNTRY: { label: 'Country', plural: 'Countries', icon: Globe, color: 'bg-blue-100 text-blue-700', order: 1 },
+  STATE: { label: 'State', plural: 'States', icon: Building2, color: 'bg-purple-100 text-purple-700', order: 2 },
+  UNION_TERRITORY: { label: 'Union Territory', plural: 'Union Territories', icon: MapPin, color: 'bg-indigo-100 text-indigo-700', order: 3 },
+  CITY: { label: 'City', plural: 'Cities', icon: Map, color: 'bg-green-100 text-green-700', order: 4 },
+  VILLAGE: { label: 'Village', plural: 'Villages', icon: Home, color: 'bg-emerald-100 text-emerald-700', order: 5 },
+  AREA: { label: 'Area', plural: 'Areas', icon: Navigation, color: 'bg-amber-100 text-amber-700', order: 6 },
+  AIRPORT: { label: 'Airport', plural: 'Airports', icon: Plane, color: 'bg-sky-100 text-sky-700', order: 7 },
 };
+
+// The levels that get their own count tile, in the hierarchy order the page
+// uses everywhere else. Villages and areas are left out: the tiles are for the
+// levels the catalogue is actually built on. Both still appear in the tree, in
+// the flat-view type filter and inside the All Locations total.
+const COUNT_TILE_TYPES = (['COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AIRPORT'] as const)
+  .slice()
+  .sort((a, b) => TYPE_CONFIG[a].order - TYPE_CONFIG[b].order);
+
+interface LocationStats {
+  total: number;
+  active: number;
+  inactive: number;
+  byType: Record<string, number>;
+}
 
 export default function LocationsManagementPage() {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [stats, setStats] = useState<LocationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -137,6 +153,18 @@ export default function LocationsManagementPage() {
     }
   }, [viewMode, typeFilter]);
 
+  // Counted server-side over the whole table — the list on screen is either
+  // nested (tree view) or already narrowed by the type filter (flat view), so
+  // neither can answer "how many locations are there".
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/locations/stats');
+      if (res.ok) setStats(await res.json());
+    } catch (error) {
+      console.error('Failed to fetch location stats:', error);
+    }
+  }, []);
+
   // Hierarchy: COUNTRY -> (STATE | UNION_TERRITORY) -> CITY -> (AREA | AIRPORT)
   // VILLAGE: parent can be STATE, UNION_TERRITORY, or CITY (flexible — some villages sit directly under a state, others under a city)
   const getValidParentTypes = (type: string): string[] => {
@@ -174,6 +202,10 @@ export default function LocationsManagementPage() {
   useEffect(() => {
     fetchLocations();
   }, [fetchLocations]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -285,6 +317,7 @@ export default function LocationsManagementPage() {
       if (res.ok) {
         setShowModal(false);
         fetchLocations();
+        fetchStats();
       } else {
         const error = await res.json();
         const errorMessage = error.details
@@ -310,6 +343,7 @@ export default function LocationsManagementPage() {
       const res = await fetch(`/api/admin/locations/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchLocations();
+        fetchStats();
       } else {
         const error = await res.json();
         alert(error.error || 'Failed to delete location');
@@ -520,6 +554,60 @@ export default function LocationsManagementPage() {
           <Plus className="w-4 h-4 mr-2" />
           Add Location
         </Button>
+      </div>
+
+      {/* Counts — every location in the table, not just the rows on screen */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { label: 'All Locations', value: stats?.total, icon: MapPinned, accent: 'bg-blue-400', iconWrap: 'bg-blue-100 text-blue-600', valColor: 'text-gray-900' },
+            { label: 'Active', value: stats?.active, icon: Globe, accent: 'bg-green-400', iconWrap: 'bg-green-100 text-green-600', valColor: 'text-green-600' },
+            { label: 'Inactive', value: stats?.inactive, icon: X, accent: 'bg-gray-300', iconWrap: 'bg-gray-100 text-gray-500', valColor: 'text-gray-500' },
+          ].map(({ label, value, icon: Icon, accent, iconWrap, valColor }) => (
+            <div key={label} className="relative overflow-hidden bg-white rounded-xl p-4 shadow-sm border">
+              <span className={`absolute inset-y-0 left-0 w-1 ${accent}`} />
+              <div className="flex items-center gap-3 pl-1">
+                <div className={`p-2.5 rounded-lg ${iconWrap}`}><Icon className="w-5 h-5" /></div>
+                <div>
+                  <p className={`text-2xl font-bold leading-none ${valColor}`}>
+                    {value === undefined ? '—' : value.toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{label}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* One tile per level of the hierarchy. Clicking a tile shows exactly
+            those rows, so a count is never a number you then have to go and
+            find by hand. */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {COUNT_TILE_TYPES.map((type) => {
+            const { plural, icon: Icon, color } = TYPE_CONFIG[type];
+            const selected = viewMode === 'flat' && typeFilter === type;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => {
+                  // A second click on the same tile clears it again.
+                  if (selected) { setTypeFilter(''); return; }
+                  setViewMode('flat');
+                  setTypeFilter(type);
+                }}
+                aria-pressed={selected}
+                className={`bg-white rounded-xl p-3 shadow-sm border text-left transition hover:border-blue-300 hover:shadow ${selected ? 'border-blue-500 ring-2 ring-blue-100' : ''}`}
+              >
+                <div className={`inline-flex p-1.5 rounded-lg ${color}`}><Icon className="w-4 h-4" /></div>
+                <p className="text-xl font-bold text-gray-900 leading-none mt-2">
+                  {stats ? (stats.byType[type] || 0).toLocaleString('en-IN') : '—'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1 truncate">{plural}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Filters */}

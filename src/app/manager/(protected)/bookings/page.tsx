@@ -175,6 +175,9 @@ function ManagerBookingsPageInner() {
     router.push(qs ? `/manager/bookings?${qs}` : '/manager/bookings', { scroll: false });
   }, [searchParams, router]);
 
+  // What the URL currently says, carried to a booking and back again.
+  const listQuery = searchParams.toString();
+
   // Drives the Clear all button — every filter this page puts in the URL.
   const activeFilterCount =
     (searchTerm ? 1 : 0) +
@@ -459,7 +462,10 @@ function ManagerBookingsPageInner() {
               return (
                 <Link
                   key={booking.id}
-                  href={`/manager/bookings/${booking.id}`}
+                  // Hand the current filters and page along, so the detail
+                  // page's back arrow can return to this exact list rather
+                  // than a reset one.
+                  href={`/manager/bookings/${booking.id}${listQuery ? `?from=${encodeURIComponent(listQuery)}` : ''}`}
                   className="block p-4 sm:p-5 hover:bg-gray-50 transition"
                 >
                   <div className="flex items-start gap-4">
