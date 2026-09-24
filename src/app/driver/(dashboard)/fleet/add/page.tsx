@@ -22,7 +22,7 @@ const DOC_SLOTS = [
   { key: 'permit', label: 'Permit', fieldKey: 'permitExpiry', numberKey: null, numberPlaceholder: '' },
 ];
 
-const inp = 'w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition';
+const inp = 'w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition';
 
 export default function AddVehiclePage() {
   const router = useRouter();
@@ -85,7 +85,7 @@ export default function AddVehiclePage() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Gradient Header */}
-      <div className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-500 rounded-2xl p-5 mb-5 text-white shadow-lg shadow-emerald-200">
+      <div className="bg-gradient-to-r from-green-700 via-green-600 to-teal-500 rounded-2xl p-5 mb-5 text-white shadow-lg shadow-green-200">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition shrink-0">
             <ArrowLeft className="w-5 h-5" />
@@ -95,7 +95,7 @@ export default function AddVehiclePage() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight">Add Vehicle</h1>
-            <p className="text-emerald-100 text-xs mt-0.5">Add a new vehicle to your fleet</p>
+            <p className="text-green-100 text-xs mt-0.5">Add a new vehicle to your fleet</p>
           </div>
         </div>
       </div>
@@ -105,11 +105,11 @@ export default function AddVehiclePage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Vehicle Details */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-3 bg-emerald-50 border-b border-emerald-100">
-            <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <Car className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="flex items-center gap-2.5 px-5 py-3 bg-green-50 border-b border-green-100">
+            <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+              <Car className="w-3.5 h-3.5 text-green-600" />
             </div>
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Vehicle Details</span>
+            <span className="text-xs font-bold text-green-800 uppercase tracking-wider">Vehicle Details</span>
           </div>
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -141,7 +141,7 @@ export default function AddVehiclePage() {
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map(c => (
                   <button key={c} type="button" onClick={() => set('category', form.category === c ? '' : c)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition ${form.category === c ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-400'}`}>
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition ${form.category === c ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-500 border-gray-200 hover:border-green-400'}`}>
                     {c}
                   </button>
                 ))}
@@ -190,25 +190,25 @@ export default function AddVehiclePage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 cursor-pointer hover:text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-green-600 cursor-pointer hover:text-green-700 bg-green-50 px-2.5 py-1.5 rounded-lg border border-green-200">
                       <Camera className="w-3 h-3" /> Upload Photo
                       <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) selectPhoto(doc.key, f); e.target.value = ''; }} />
                     </label>
                   )}
                 </div>
                 {doc.numberKey && (
-                  <input className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent mb-2"
+                  <input className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent mb-2"
                     placeholder={doc.numberPlaceholder}
                     value={(form as any)[doc.numberKey] || ''}
                     onChange={e => set(doc.numberKey!, e.target.value)} />
                 )}
-                <input type="date" className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                <input type="date" className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   value={(form as any)[doc.fieldKey]} onChange={e => set(doc.fieldKey, e.target.value)} />
               </div>
             ))}
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
               <label className="text-sm font-semibold text-gray-700 mb-2.5 block">Next Service Date</label>
-              <input type="date" className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              <input type="date" className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 value={form.nextServiceDate} onChange={e => set('nextServiceDate', e.target.value)} />
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function AddVehiclePage() {
         </div>
 
         <button type="submit" disabled={isLoading}
-          className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl font-bold text-sm hover:from-emerald-700 hover:to-teal-600 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-200">
+          className="w-full py-4 bg-gradient-to-r from-green-600 to-teal-500 text-white rounded-2xl font-bold text-sm hover:from-green-700 hover:to-teal-600 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-green-200">
           {isLoading
             ? <><Loader2 className="w-4 h-4 animate-spin" />{Object.keys(photos).length > 0 ? 'Adding & uploading photos...' : 'Adding vehicle...'}</>
             : 'Add Vehicle to Fleet'}

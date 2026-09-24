@@ -7,8 +7,9 @@ import ProfileShareCard from '@/components/profile/ProfileShareCard';
 import {
   Phone, Mail, CreditCard, Car, Calendar, Building, LogOut,
   Loader2, AlertCircle, Pencil, Camera, Shield, CheckCircle,
-  MapPin, Clock, Zap, ExternalLink, Coins, TrendingUp, Gift, Wallet,
+  MapPin, Clock, Zap, ExternalLink, Coins, TrendingUp, Gift, Wallet, User,
 } from 'lucide-react';
+import { PageHeader } from '../_components/PortalUI';
 // BackrCard import kept alongside the commented-out usage below — re-enable when ready to launch.
 // import BackrCard from '@/components/backr/BackrCard';
 
@@ -72,7 +73,7 @@ export default function DriverProfilePage() {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+      <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
     </div>
   );
 
@@ -92,27 +93,25 @@ export default function DriverProfilePage() {
   return (
     <div className="space-y-6">
 
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Your TransRentals driver identity</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/driver/profile/edit"
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-          >
-            <Pencil className="w-4 h-4" /> Edit Profile
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition"
-          >
-            <LogOut className="w-4 h-4" /> Logout
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={User}
+        title="My Profile"
+        subtitle="Your TransRentals driver identity"
+        actions={
+          <>
+            <Link href="/driver/profile/edit" className="dv-action-ghost">
+              <Pencil className="w-4 h-4" /> Edit profile
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-100 text-red-600 rounded-xl text-[13.5px] font-semibold hover:bg-red-100 transition"
+            >
+              <LogOut className="w-4 h-4" /> Logout
+            </button>
+          </>
+        }
+      />
 
       {/* ── LICENSE WARNING ─────────────────────────────────────────────── */}
       {(licenseExpired || licenseExpiringSoon) && (
@@ -130,13 +129,13 @@ export default function DriverProfilePage() {
       <div className="flex gap-6 items-start">
 
         {/* ══ ID CARD (fixed width, portrait) ═══════════════════════════ */}
-        <div className="w-72 shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-emerald-900/20 select-none">
+        <div className="w-72 shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-green-900/20 select-none">
 
           {/* Card header */}
-          <div className="bg-emerald-900 flex items-center justify-between px-4 py-3 gap-2">
+          <div className="bg-green-900 flex items-center justify-between px-4 py-3 gap-2">
             <div className="flex flex-col items-start gap-0.5 min-w-0">
               <img src="/assets/logo-white.png" alt="TransRentals" className="h-5 object-contain object-left" style={{ width: '100px' }} />
-              <p className="text-emerald-400 text-[9px] tracking-widest uppercase leading-none whitespace-nowrap">Driver ID Card</p>
+              <p className="text-green-400 text-[9px] tracking-widest uppercase leading-none whitespace-nowrap">Driver ID Card</p>
             </div>
             <div className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isActive ? 'bg-green-500/20 border-green-500/30 text-green-300' : 'bg-red-500/20 border-red-500/30 text-red-300'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
@@ -145,7 +144,7 @@ export default function DriverProfilePage() {
           </div>
 
           {/* Photo area */}
-          <div className="bg-gradient-to-b from-emerald-800 to-emerald-700 flex flex-col items-center py-6 gap-3">
+          <div className="bg-gradient-to-b from-green-800 to-green-700 flex flex-col items-center py-6 gap-3">
             <div className="relative">
               <div className="w-28 h-28 rounded-2xl overflow-hidden border-4 border-white/20 bg-white/10 flex items-center justify-center shadow-xl">
                 {driver.profilePhoto
@@ -155,8 +154,8 @@ export default function DriverProfilePage() {
               </div>
               <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center cursor-pointer shadow-lg border border-gray-100 hover:bg-gray-50 transition">
                 {uploadingPhoto
-                  ? <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
-                  : <Camera className="w-4 h-4 text-emerald-600" />
+                  ? <Loader2 className="w-4 h-4 text-green-600 animate-spin" />
+                  : <Camera className="w-4 h-4 text-green-600" />
                 }
                 <input type="file" accept="image/*" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ''; }} />
@@ -166,44 +165,44 @@ export default function DriverProfilePage() {
               <h2 className="text-white font-black text-xl leading-tight">{driver.name}</h2>
               {driver.did && (
                 <div className="inline-flex items-center gap-1.5 mt-2 bg-white/10 border border-white/20 rounded-lg px-3 py-1">
-                  <Shield className="w-3.5 h-3.5 text-emerald-300" />
+                  <Shield className="w-3.5 h-3.5 text-green-300" />
                   <span className="text-white font-mono font-bold text-sm tracking-widest">{driver.did}</span>
                 </div>
               )}
               {driver.vendor && (
-                <p className="text-emerald-300 text-xs mt-2 truncate px-2">{driver.vendor.businessName}</p>
+                <p className="text-green-300 text-xs mt-2 truncate px-2">{driver.vendor.businessName}</p>
               )}
             </div>
           </div>
 
           {/* Card details strip */}
-          <div className="bg-emerald-700 px-4 py-3 space-y-2.5">
+          <div className="bg-green-700 px-4 py-3 space-y-2.5">
             {/* Contact Info Row */}
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Phone</p>
+                <p className="text-green-400 text-[9px] uppercase tracking-widest">Phone</p>
                 <p className="text-white font-mono font-bold text-sm mt-0.5">{driver.phone || '—'}</p>
               </div>
               <div className="text-right">
-                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Email</p>
+                <p className="text-green-400 text-[9px] uppercase tracking-widest">Email</p>
                 <p className="text-white font-bold text-xs mt-0.5 truncate">{driver.email || '—'}</p>
               </div>
             </div>
 
             {/* Location */}
             <div>
-              <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Location</p>
+              <p className="text-green-400 text-[9px] uppercase tracking-widest">Location</p>
               <p className="text-white font-bold text-sm mt-0.5">{[driver.city, driver.state].filter(Boolean).join(', ') || '—'}</p>
             </div>
 
             {/* License Info Row */}
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">License No.</p>
+                <p className="text-green-400 text-[9px] uppercase tracking-widest">License No.</p>
                 <p className="text-white font-mono font-bold text-sm mt-0.5">{driver.licenseNumber || '—'}</p>
               </div>
               <div className="text-right">
-                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Valid Until</p>
+                <p className="text-green-400 text-[9px] uppercase tracking-widest">Valid Until</p>
                 <p className={`font-bold text-sm mt-0.5 ${licenseExpired ? 'text-red-300' : licenseExpiringSoon ? 'text-yellow-300' : 'text-white'}`}>
                   {driver.licenseExpiry ? fmtDate(driver.licenseExpiry) : '—'}
                 </p>
@@ -212,7 +211,7 @@ export default function DriverProfilePage() {
           </div>
 
           {/* Card footer */}
-          <div className="bg-emerald-950 px-4 py-2.5 flex items-center justify-between">
+          <div className="bg-green-950 px-4 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               {isActive
                 ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
@@ -237,8 +236,8 @@ export default function DriverProfilePage() {
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Contact Information</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
-                    <Phone className="w-5 h-5 text-emerald-600" />
+                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
+                    <Phone className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
                     <p className="text-[11px] text-gray-400">Phone Number</p>
@@ -246,8 +245,8 @@ export default function DriverProfilePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
-                    <Mail className="w-5 h-5 text-emerald-600" />
+                  <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5 text-green-600" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[11px] text-gray-400">Email Address</p>
@@ -256,8 +255,8 @@ export default function DriverProfilePage() {
                 </div>
                 {(driver.city || driver.state) && (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
-                      <MapPin className="w-5 h-5 text-emerald-600" />
+                    <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-400">Location</p>
@@ -267,8 +266,8 @@ export default function DriverProfilePage() {
                 )}
                 {joinDate && (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-emerald-600" />
+                    <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
+                      <Clock className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-400">Member Since</p>
@@ -322,7 +321,7 @@ export default function DriverProfilePage() {
                 <div className="flex flex-col items-center justify-center h-32 text-gray-300">
                   <CreditCard className="w-10 h-10 mb-2" />
                   <p className="text-sm text-gray-400">No license on file</p>
-                  <Link href="/driver/profile/edit" className="text-xs text-emerald-600 hover:underline mt-1">Add license →</Link>
+                  <Link href="/driver/profile/edit" className="text-xs text-green-600 hover:underline mt-1">Add license →</Link>
                 </div>
               )}
             </div>
@@ -333,8 +332,8 @@ export default function DriverProfilePage() {
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Bank Details</h3>
             {driver.bankDetailsComplete ? (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
-                  <Wallet className="w-5 h-5 text-emerald-600" />
+                <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
+                  <Wallet className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">{driver.bankName}</p>
@@ -347,7 +346,7 @@ export default function DriverProfilePage() {
               <div className="flex flex-col items-center justify-center h-24 text-gray-300">
                 <Wallet className="w-10 h-10 mb-2" />
                 <p className="text-sm text-gray-400">No bank details on file — earnings can&apos;t be paid out yet</p>
-                <Link href="/driver/profile/edit" className="text-xs text-emerald-600 hover:underline mt-1">Add bank details →</Link>
+                <Link href="/driver/profile/edit" className="text-xs text-green-600 hover:underline mt-1">Add bank details →</Link>
               </div>
             )}
           </div>

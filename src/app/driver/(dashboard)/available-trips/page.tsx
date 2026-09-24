@@ -169,7 +169,7 @@ export default function AvailableTripsPage() {
             key={t}
             onClick={() => setTripTypeFilter(t)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition flex items-center gap-1.5 ${
-              tripTypeFilter === t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
+              tripTypeFilter === t ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-200 hover:border-green-300'
             }`}
           >
             {t === 'ALL' ? 'All Types' : TRIP_TYPE_LABELS[t] || t}
@@ -184,7 +184,7 @@ export default function AvailableTripsPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border p-10 text-center">
@@ -193,7 +193,7 @@ export default function AvailableTripsPage() {
           <p className="text-sm text-gray-500">
             {tripTypeFilter !== 'ALL' ? 'No trips for this type. Try changing the filter.' : 'No broadcasted trips right now. Check back later.'}
           </p>
-          <button onClick={() => fetchBookings()} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+          <button onClick={() => fetchBookings()} className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition">
             Refresh
           </button>
         </div>
@@ -213,14 +213,14 @@ export default function AvailableTripsPage() {
                 {/* Top row */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <Car className="w-5 h-5 text-emerald-600" />
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Car className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <p className="text-xs font-mono text-gray-400">#{booking.bookingNumber}</p>
                         {newTrip && !isPast && (
-                          <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                          <span className="flex items-center gap-0.5 text-xs font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
                             <Zap className="w-2.5 h-2.5" /> NEW
                           </span>
                         )}
@@ -235,7 +235,7 @@ export default function AvailableTripsPage() {
                   {booking.driverBatta != null && booking.driverBatta > 0 && (
                     <div className="text-right">
                       <p className="text-xs text-gray-500">Your Earning</p>
-                      <p className="font-bold text-emerald-700 flex items-center gap-0.5">
+                      <p className="font-bold text-green-700 flex items-center gap-0.5">
                         <IndianRupee className="w-3.5 h-3.5" />{booking.driverBatta.toLocaleString()}
                       </p>
                     </div>
@@ -245,7 +245,7 @@ export default function AvailableTripsPage() {
                 {/* Details grid */}
                 <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                   <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <MapPin className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-gray-500">Route</p>
                       <p className="font-medium">
@@ -255,7 +255,7 @@ export default function AvailableTripsPage() {
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <Clock className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    <Clock className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs text-gray-500">Pickup</p>
                       <p className="font-medium">
@@ -267,7 +267,7 @@ export default function AvailableTripsPage() {
 
                   {booking.estimatedDistance != null && booking.estimatedDistance > 0 && (
                     <div className="flex items-start gap-2">
-                      <Calendar className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                      <Calendar className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-xs text-gray-500">Distance</p>
                         <p className="font-medium">{booking.estimatedDistance} km</p>
@@ -304,7 +304,7 @@ export default function AvailableTripsPage() {
                   <button
                     onClick={() => handleAccept(booking)}
                     disabled={isAccepting || accepting !== null || isPast}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition disabled:opacity-50"
                   >
                     {isAccepting ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</>

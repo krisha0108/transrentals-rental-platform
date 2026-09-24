@@ -141,7 +141,7 @@ interface Booking {
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   // Car/Bus/Truck statuses
   BROADCASTED: { label: 'Available Trip', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  ACCEPTED: { label: 'Trip Accepted', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
+  ACCEPTED: { label: 'Trip Accepted', color: 'text-green-700', bgColor: 'bg-green-100' },
   DRIVER_ASSIGNED: { label: 'Ready to Start', color: 'text-amber-700', bgColor: 'bg-amber-100' },
   VEHICLE_ASSIGNED: { label: 'Ready to Start', color: 'text-amber-700', bgColor: 'bg-amber-100' },
   IN_PROGRESS: { label: 'Trip in Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
@@ -429,7 +429,7 @@ export default function DriverBookingDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
       </div>
     );
   }
@@ -438,7 +438,7 @@ export default function DriverBookingDetailPage() {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">{error || 'Booking not found'}</p>
-        <Link href="/driver/bookings" className="text-emerald-600 mt-4 inline-block">
+        <Link href="/driver/bookings" className="text-green-600 mt-4 inline-block">
           Go back to trips
         </Link>
       </div>
@@ -463,7 +463,7 @@ export default function DriverBookingDetailPage() {
     if (isPackers) return { bg: 'bg-cyan-200', text: 'text-cyan-700' };
     if (isEquipment) return { bg: 'bg-amber-200', text: 'text-amber-700' };
     if (isLuxury) return { bg: 'bg-purple-200', text: 'text-purple-700' };
-    return { bg: 'bg-emerald-200', text: 'text-emerald-700' };
+    return { bg: 'bg-green-200', text: 'text-green-700' };
   };
   const serviceColors = getServiceColors();
 
@@ -545,7 +545,7 @@ export default function DriverBookingDetailPage() {
             <button
               onClick={handleAcceptTrip}
               disabled={acceptLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50"
             >
               {acceptLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</> : 'Accept This Trip'}
             </button>
@@ -587,7 +587,7 @@ export default function DriverBookingDetailPage() {
             </p>
           </div>
           <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Play className="w-5 h-5 text-emerald-600" />
+            <Play className="w-5 h-5 text-green-600" />
             Enter OTP from Customer
           </h2>
           <div>
@@ -600,7 +600,7 @@ export default function DriverBookingDetailPage() {
                 type="text"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500"
                 placeholder="- - - - - -"
                 maxLength={4}
                 inputMode="numeric"
@@ -610,7 +610,7 @@ export default function DriverBookingDetailPage() {
           <button
             onClick={handleStartTrip}
             disabled={actionLoading || otp.length !== 4}
-            className="w-full mt-4 py-3 bg-emerald-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-emerald-700 flex items-center justify-center gap-2"
+            className="w-full mt-4 py-3 bg-green-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-green-700 flex items-center justify-center gap-2"
           >
             {actionLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -628,7 +628,7 @@ export default function DriverBookingDetailPage() {
       {booking.status === 'ACCEPTED' && !isBus && !isTruck && !isPackers && !isEquipment && !isLuxury && !isB2B && (
         <div className="bg-white rounded-xl border p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-2">
-            <Car className="w-5 h-5 text-emerald-600" /> Assign a Vehicle
+            <Car className="w-5 h-5 text-green-600" /> Assign a Vehicle
           </h2>
           <p className="text-sm text-gray-500 mb-4">Select a vehicle from your fleet or enter details manually to assign to this trip.</p>
 
@@ -636,13 +636,13 @@ export default function DriverBookingDetailPage() {
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setUseManualVehicle(false)}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${!useManualVehicle ? 'bg-emerald-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${!useManualVehicle ? 'bg-green-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               My Fleet
             </button>
             <button
               onClick={() => setUseManualVehicle(true)}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${useManualVehicle ? 'bg-emerald-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${useManualVehicle ? 'bg-green-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               Manual Entry
             </button>
@@ -653,7 +653,7 @@ export default function DriverBookingDetailPage() {
               <div className="text-center py-6 text-gray-500">
                 <Car className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm">No vehicles in fleet.</p>
-                <button onClick={() => setUseManualVehicle(true)} className="text-emerald-600 text-sm font-medium mt-1 hover:underline">
+                <button onClick={() => setUseManualVehicle(true)} className="text-green-600 text-sm font-medium mt-1 hover:underline">
                   Enter manually instead
                 </button>
               </div>
@@ -663,17 +663,17 @@ export default function DriverBookingDetailPage() {
                   <button
                     key={v.id}
                     onClick={() => setSelectedVehicleId(v.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition text-left ${selectedVehicleId === v.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition text-left ${selectedVehicleId === v.id ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}
                   >
-                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                      <Car className="w-5 h-5 text-emerald-600" />
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Car className="w-5 h-5 text-green-600" />
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900 text-sm">{v.make} {v.model}</p>
-                      <p className="text-xs text-emerald-700 font-medium">{v.registrationNo || 'No reg. no.'}</p>
+                      <p className="text-xs text-green-700 font-medium">{v.registrationNo || 'No reg. no.'}</p>
                       {v.category && <p className="text-xs text-gray-500">{v.category}{v.fuelType ? ` · ${v.fuelType}` : ''}</p>}
                     </div>
-                    {selectedVehicleId === v.id && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
+                    {selectedVehicleId === v.id && <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />}
                   </button>
                 ))}
               </div>
@@ -685,7 +685,7 @@ export default function DriverBookingDetailPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number *</label>
                 <input
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm uppercase"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 text-sm uppercase"
                   placeholder="MH12AB1234"
                   value={manualVehicleNo}
                   onChange={e => setManualVehicleNo(e.target.value.toUpperCase())}
@@ -694,7 +694,7 @@ export default function DriverBookingDetailPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Model</label>
                 <input
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 text-sm"
                   placeholder="e.g. Maruti Swift Dzire"
                   value={manualVehicleModel}
                   onChange={e => setManualVehicleModel(e.target.value)}
@@ -706,7 +706,7 @@ export default function DriverBookingDetailPage() {
           <button
             onClick={handleAssignVehicle}
             disabled={assignLoading}
-            className="w-full py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {assignLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Assigning...</> : <><CheckCircle className="w-4 h-4" /> Confirm Vehicle Assignment</>}
           </button>
@@ -717,7 +717,7 @@ export default function DriverBookingDetailPage() {
       {(booking.status === 'DRIVER_ASSIGNED' || booking.status === 'VEHICLE_ASSIGNED') && !isLuxury && !(isB2B && booking.b2bStatus === 'DRIVER_ARRIVED') && (
         <div className="bg-white rounded-xl border p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            {isTruck ? <Package className="w-5 h-5 text-indigo-600" /> : <Play className="w-5 h-5 text-emerald-600" />}
+            {isTruck ? <Package className="w-5 h-5 text-indigo-600" /> : <Play className="w-5 h-5 text-green-600" />}
             {isB2B ? 'Mark Arrival' : isTruck ? 'Start Loading' : 'Start Trip'}
           </h2>
 
@@ -776,7 +776,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, isCarRental ? 6 : 4))}
                     className={`w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 ${
-                      isTruck ? 'focus:ring-indigo-500' : 'focus:ring-emerald-500'
+                      isTruck ? 'focus:ring-indigo-500' : 'focus:ring-green-500'
                     }`}
                     placeholder="• • • • • •"
                     maxLength={isCarRental ? 6 : 4}
@@ -803,7 +803,7 @@ export default function DriverBookingDetailPage() {
                   onClick={handleStartTrip}
                   disabled={actionLoading || otp.length !== (isCarRental ? 6 : 4)}
                   className={`flex-1 py-3 text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 ${
-                    isTruck ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                    isTruck ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-green-600 hover:bg-green-700'
                   }`}
                 >
                   {actionLoading ? (
@@ -2122,7 +2122,7 @@ export default function DriverBookingDetailPage() {
                 <div className="flex flex-col items-center pt-1 flex-shrink-0">
                   {allPoints.map((p, i) => (
                     <div key={i} className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full ${p.type === 'pickup' ? 'bg-emerald-500' : p.type === 'drop' ? 'bg-red-500' : 'bg-orange-400'}`} />
+                      <div className={`w-3 h-3 rounded-full ${p.type === 'pickup' ? 'bg-green-500' : p.type === 'drop' ? 'bg-red-500' : 'bg-orange-400'}`} />
                       {i < allPoints.length - 1 && <div className="w-0.5 bg-gray-200" style={{ height: stops.length > 0 ? '2.75rem' : '2.25rem' }} />}
                     </div>
                   ))}
@@ -2144,7 +2144,7 @@ export default function DriverBookingDetailPage() {
 
           {/* Date/Time based on service type */}
           <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-emerald-600 mt-0.5" />
+            <Calendar className="w-5 h-5 text-green-600 mt-0.5" />
             <div>
               <p className="text-sm text-gray-500">
                 {isEquipment ? 'Rental Period' : isPackers ? 'Moving Date' : 'Pickup Date & Time'}
@@ -2180,7 +2180,7 @@ export default function DriverBookingDetailPage() {
 
           {booking.localPackageHours && (
             <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-emerald-600 mt-0.5" />
+              <Clock className="w-5 h-5 text-green-600 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500">Package</p>
                 <p className="font-medium">
@@ -2205,7 +2205,7 @@ export default function DriverBookingDetailPage() {
 
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-emerald-600" />
+            <User className="w-5 h-5 text-green-600" />
             <div>
               <p className="text-sm text-gray-500">Name</p>
               <p className="font-medium">{booking.customerName}</p>
@@ -2213,12 +2213,12 @@ export default function DriverBookingDetailPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Phone className="w-5 h-5 text-emerald-600" />
+            <Phone className="w-5 h-5 text-green-600" />
             <div>
               <p className="text-sm text-gray-500">Phone</p>
               <a
                 href={`tel:${booking.customerPhone}`}
-                className="font-medium text-emerald-600"
+                className="font-medium text-green-600"
               >
                 {booking.customerPhone}
               </a>
@@ -2227,7 +2227,7 @@ export default function DriverBookingDetailPage() {
 
           {booking.customerEmail && (
             <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-emerald-600" />
+              <Mail className="w-5 h-5 text-green-600" />
               <div>
                 <p className="text-sm text-gray-500">Email</p>
                 <p className="font-medium">{booking.customerEmail}</p>
@@ -2240,7 +2240,7 @@ export default function DriverBookingDetailPage() {
         <div className="mt-4 flex flex-col gap-2">
           <a
             href={`tel:${booking.customerPhone}`}
-            className="w-full py-3 bg-emerald-100 text-emerald-700 rounded-xl font-medium flex items-center justify-center gap-2"
+            className="w-full py-3 bg-green-100 text-green-700 rounded-xl font-medium flex items-center justify-center gap-2"
           >
             <Phone className="w-5 h-5" />
             Call Customer
@@ -2260,7 +2260,7 @@ export default function DriverBookingDetailPage() {
         <div className="bg-white rounded-xl border p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-3">Vehicle Details</h2>
           <div className="flex items-center gap-3">
-            <Car className="w-5 h-5 text-emerald-600" />
+            <Car className="w-5 h-5 text-green-600" />
             <div>
               <p className="font-medium">{booking.vehicleNumber}</p>
               {booking.vehicle_models && (
