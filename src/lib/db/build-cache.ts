@@ -13,9 +13,16 @@ const _serviceCache = new Map<string, string | null>();
 
 async function getOrCacheService(key: string, fn: () => Promise<string | null>): Promise<string | null> {
   if (_serviceCache.has(key)) return _serviceCache.get(key) as string | null;
-  const result = await fn();
-  _serviceCache.set(key, result);
-  return result;
+  // Don't cache a DB-error null — that would wrongly stick as "service doesn't
+  // exist" for the life of the process after a transient outage. A genuinely
+  // missing service (fn() resolves to null) is still cached below.
+  try {
+    const result = await fn();
+    _serviceCache.set(key, result);
+    return result;
+  } catch {
+    return null;
+  }
 }
 
 /** Returns the id of the luxury-car-rental service (cached). */

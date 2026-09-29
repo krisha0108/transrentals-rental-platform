@@ -1325,7 +1325,7 @@ export default function CustomerSelfDriveBookingPage() {
                   {/* Terms */}
                   <p className="text-xs text-gray-500 mt-4 text-center">
                     By proceeding, you agree to our{' '}
-                    <a href="/terms-and-conditions" target="_blank" className="text-blue-600 underline">Terms</a> and{' '}
+                    <a href="/terms-conditions" target="_blank" className="text-blue-600 underline">Terms</a> and{' '}
                     <a href="/cancellations-and-refund" target="_blank" className="text-blue-600 underline">Refund Policy</a>.
                   </p>
                 </>

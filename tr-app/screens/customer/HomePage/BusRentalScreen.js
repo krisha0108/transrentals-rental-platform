@@ -545,7 +545,7 @@ export default function BusRentalScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 20 }}>
         {/* form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>

@@ -29,6 +29,42 @@ function safeDate(input: unknown): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function isAtLeast18(dob: Date): boolean {
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+  return age >= 18;
+}
+
+// Mirrors the format check in the vendor's driver register page — server
+// side, so a direct API call can't skip past what the form already enforces.
+const INDIAN_STATE_CODES = [
+  'AN', 'AP', 'AR', 'AS', 'BR', 'CH', 'CG', 'DD', 'DN', 'DH', 'DL', 'GA', 'GJ',
+  'HP', 'HR', 'JH', 'JK', 'KA', 'KL', 'LA', 'LD', 'MH', 'ML', 'MN', 'MP', 'MZ',
+  'NL', 'OD', 'OR', 'PB', 'PY', 'RJ', 'SK', 'TN', 'TR', 'TS', 'UK', 'UP', 'WB',
+];
+const DL_NUMBER_REGEX = /^([A-Z]{2})(\d{2})(\d{4})(\d{7})$/;
+
+function normalizeAndValidateDlNumber(raw: unknown): { value: string | null; error: string | null } {
+  if (typeof raw !== 'string') return { value: null, error: 'License number is required' };
+  const value = raw.trim().toUpperCase().replace(/[\s-]/g, '');
+  const match = DL_NUMBER_REGEX.exec(value);
+  if (!match) {
+    return { value: null, error: 'Enter a valid 15-character DL number (e.g. DL0120110012345), or check "issued before 2011" if yours is an older licence.' };
+  }
+  const [, stateCode, , yearStr] = match;
+  if (!INDIAN_STATE_CODES.includes(stateCode)) {
+    return { value: null, error: `"${stateCode}" isn't a recognized state/UT code` };
+  }
+  const year = parseInt(yearStr, 10);
+  const currentYear = new Date().getFullYear();
+  if (year < 1950 || year > currentYear) {
+    return { value: null, error: `License issue year (${year}) looks invalid` };
+  }
+  return { value, error: null };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
@@ -38,7 +74,7 @@ export async function POST(request: NextRequest) {
     const {
       name, phone, email, password,
       dateOfBirth, address, city, state, pincode,
-      aadharNumber, licenseNumber, licenseType, licenseExpiry,
+      aadharNumber, licenseNumber, licenseType, licenseExpiry, isOldLicense,
       bankName, accountHolderName, accountNumber, ifscCode,
       emergencyContact, emergencyPhone,
     } = body;
@@ -47,8 +83,34 @@ export async function POST(request: NextRequest) {
     if (!name || !phone || !email || !password) {
       return NextResponse.json({ success: false, error: 'Name, phone, email and password are required' }, { status: 400 });
     }
+
+    // Pre-2011 booklet-format licences don't follow a single standard format
+    // across states, so a self-declared "old licence" checkbox skips the
+    // strict regex and just requires a plausible, non-trivial value instead.
+    let normalizedLicenseNumber: string | null;
+    if (isOldLicense) {
+      const trimmed = typeof licenseNumber === 'string' ? licenseNumber.trim().toUpperCase() : '';
+      if (trimmed.length < 4) {
+        return NextResponse.json({ success: false, error: 'Enter your licence number exactly as printed on your card' }, { status: 400 });
+      }
+      normalizedLicenseNumber = trimmed;
+    } else {
+      const dlCheck = normalizeAndValidateDlNumber(licenseNumber);
+      if (dlCheck.error) {
+        return NextResponse.json({ success: false, error: dlCheck.error }, { status: 400 });
+      }
+      normalizedLicenseNumber = dlCheck.value;
+    }
     if (typeof password !== 'string' || password.length < 6) {
       return NextResponse.json({ success: false, error: 'Password must be at least 6 characters' }, { status: 400 });
+    }
+
+    const parsedDob = safeDate(dateOfBirth);
+    if (dateOfBirth && (!parsedDob || !isAtLeast18(parsedDob))) {
+      return NextResponse.json(
+        { success: false, error: 'You must be at least 18 years old to register as a driver' },
+        { status: 400 }
+      );
     }
 
     const normalizedPhone = normalizeIndianPhone(phone);
@@ -85,13 +147,13 @@ export async function POST(request: NextRequest) {
         phone: normalizedPhone,
         email: normalizedEmail,
         password: hashedPassword,
-        dateOfBirth: safeDate(dateOfBirth),
+        dateOfBirth: parsedDob,
         address: address || null,
         city: city || null,
         state: state || null,
         pincode: pincode || null,
         aadharNumber: aadharNumber || null,
-        licenseNumber: licenseNumber || null,
+        licenseNumber: normalizedLicenseNumber,
         licenseType: licenseType || null,
         licenseExpiry: safeDate(licenseExpiry),
         bankName: bankName || null,

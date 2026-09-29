@@ -217,7 +217,7 @@ const WHY_CHOOSE_US = [
     image: '/images/why-choose/instant-booking.png',
   },
   {
-    title: '50K+ Happy Customers',
+    title: '40K+ Happy Customers',
     description: 'Thousands already trust us',
     icon: Star,
     color: '#F59E0B',
@@ -231,7 +231,7 @@ const WHY_CHOOSE_US = [
     image: '/images/why-choose/support.png',
   },
   {
-    title: '150+ Cities',
+    title: '500+ Cities',
     description: 'Growing across India',
     icon: MapPin,
     color: '#EF4444',
@@ -268,7 +268,7 @@ const COMPARISON = [
 const FAQS = [
   {
     q: 'Is TransRentals a rental company or a marketplace?',
-    a: 'We’re a marketplace. TransRentals doesn’t own the bikes, cars, buses or equipment listed here — we connect you with 10,000+ independently verified vendors across 150+ cities, so you can compare and choose, the same way you’d compare flights or restaurants.',
+    a: 'We’re a marketplace. TransRentals doesn’t own the bikes, cars, buses or equipment listed here — we connect you with 10,000+ independently verified vendors across 500+ cities, so you can compare and choose, the same way you’d compare flights or restaurants.',
   },
   {
     q: 'How are vendors verified?',
@@ -538,7 +538,7 @@ export default function MarketplacePage() {
 
                     <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-300 lg:mx-0">
                       Post your requirement once. <strong className="text-white">10,000+ verified vendors</strong> across
-                      150+ cities compete for your business — you compare real prices and pick who wins.
+                      500+ cities compete for your business — you compare real prices and pick who wins.
                     </p>
                   </motion.div>
                 )}
@@ -548,7 +548,7 @@ export default function MarketplacePage() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-slate-300 lg:justify-start">
                 <span className="flex items-center gap-1.5"><Star className="h-4 w-4 fill-amber-400 text-amber-400" /> 4.8/5 rated</span>
                 <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-primary-300" /> 10,000+ verified vendors</span>
-                <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-primary-300" /> 150+ cities</span>
+                <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-primary-300" /> 500+ cities</span>
                 <span className="flex items-center gap-1.5"><Users className="h-4 w-4 text-primary-300" /> 2,00,000+ bookings</span>
               </div>
 
@@ -2847,7 +2847,7 @@ function TransportSearchHero({ locations, variant = 'hero' }: { locations: Locat
                   <div className="flex items-center gap-1.5 text-[15px] font-bold text-white">
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> 4.8/5
                   </div>
-                  <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 20,000+ reviews</p>
+                  <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">From 1K+ reviews</p>
                 </div>
                 <p className="w-full text-[13px] font-medium text-slate-200 sm:w-auto sm:whitespace-nowrap">Trusted by Thousands of Customers</p>
               </div>

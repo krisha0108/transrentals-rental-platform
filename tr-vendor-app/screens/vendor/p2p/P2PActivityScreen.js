@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Modal, TextInput, StatusBar,
-  KeyboardAvoidingView, Platform,
+  RefreshControl, ActivityIndicator, Modal, TextInput, StatusBar, ScrollView,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -521,22 +521,24 @@ export default function P2PActivityScreen({ navigation }) {
       <StatusBar barStyle="light-content" backgroundColor={C.g950} />
 
       {/* ─────────── FIXED HEADER ─────────── */}
-      <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) }}>
+      <SafeAreaView edges={['bottom', 'left', 'right']} style={{ backgroundColor: C.g950, overflow: 'hidden', borderBottomLeftRadius: rs(24), borderBottomRightRadius: rs(24) }}>
         <LinearGradient colors={G.hero} style={s.headerGrad}>
           {/* Decorative circles */}
           <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-          {/* Nav row */}
-          <View style={s.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-            <View style={s.headerCenter}>
-              <Text style={s.headerTitle}>My P2P Activity</Text>
-              <Text style={s.headerSub}>Track transactions & earnings</Text>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            {/* Nav row */}
+            <View style={s.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.headerCenter}>
+                <Text style={s.headerTitle}>My P2P Activity</Text>
+                <Text style={s.headerSub}>Track transactions & earnings</Text>
+              </View>
+              <View style={{ width: 40 }} />
             </View>
-            <View style={{ width: 40 }} />
-          </View>
+          </SafeAreaView>
         </LinearGradient>
       </SafeAreaView>
 
@@ -669,7 +671,7 @@ export default function P2PActivityScreen({ navigation }) {
 
       {/* ─────────── RATING MODAL ─────────── */}
       <Modal visible={ratingModal} transparent animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setRatingModal(false)} />
           <View style={s.modalSheet}>
@@ -692,7 +694,12 @@ export default function P2PActivityScreen({ navigation }) {
             </LinearGradient>
 
             {/* Body */}
-            <View style={s.modalBody}>
+            <ScrollView
+              bounces={false}
+              keyboardShouldPersistTaps="handled"
+              style={{ maxHeight: '65%' }}
+              contentContainerStyle={s.modalBody}
+            >
               <Text style={s.formLabel}>OVERALL RATING</Text>
 
               <View style={s.starsRow}>
@@ -737,7 +744,7 @@ export default function P2PActivityScreen({ navigation }) {
                   }
                 </LinearGradient>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
         </View>
         </KeyboardAvoidingView>

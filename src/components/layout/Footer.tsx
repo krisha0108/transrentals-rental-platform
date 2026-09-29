@@ -197,7 +197,7 @@ export function Footer() {
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               India's largest vehicle rental marketplace connecting customers
-              with verified vendors across 150+ cities.
+              with verified vendors across 500+ cities.
             </p>
             <div className="flex gap-3">
               {contactSettings.facebookUrl && (
@@ -343,7 +343,7 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-2 text-sm">
                 <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>150+ Cities Across India</span>
+                <span>500+ Cities Across India</span>
               </li>
             </ul>
           </div>

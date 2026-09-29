@@ -51,7 +51,7 @@ const BASE_METADATA: Metadata = {
     template: '%s',
   },
   description:
-    'Rent bikes, cars, buses & trucks in 150+ Indian cities. Affordable prices, doorstep delivery. Book now on TransRentals.',
+    'Rent bikes, cars, buses & trucks in 500+ Indian cities. Affordable prices, doorstep delivery. Book now on TransRentals.',
   keywords: [
     'bike rental',
     'car rental',
@@ -78,7 +78,7 @@ const BASE_METADATA: Metadata = {
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.in',
     title: 'TransRentals - India\'s Largest Vehicle Rental Marketplace',
     description:
-      'Rent bikes, cars, buses, trucks & equipment across 150+ cities in India. Best prices guaranteed.',
+      'Rent bikes, cars, buses, trucks & equipment across 500+ cities in India. Best prices guaranteed.',
     siteName: 'TransRentals',
     images: [
       {
@@ -93,7 +93,7 @@ const BASE_METADATA: Metadata = {
     card: 'summary_large_image',
     title: 'TransRentals - India\'s Largest Vehicle Rental Marketplace',
     description:
-      'Rent bikes, cars, buses, trucks & equipment across 150+ cities in India.',
+      'Rent bikes, cars, buses, trucks & equipment across 500+ cities in India.',
     images: ['/images/og/homepage.jpg'],
     creator: '@transrentals',
   },

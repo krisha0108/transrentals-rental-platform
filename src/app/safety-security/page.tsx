@@ -175,7 +175,7 @@ export default function SafetySecurityPage() {
               Applies to every service
             </span>
             <span className="rounded-full border border-slate-200 bg-white px-4 py-2 font-semibold">
-              150+ Cities
+              500+ Cities
             </span>
             <span className="rounded-full border border-slate-200 bg-white px-4 py-2 font-semibold">
               Verified vendors only

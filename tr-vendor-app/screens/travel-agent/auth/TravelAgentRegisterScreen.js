@@ -41,7 +41,7 @@ import {
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
-import CustomAlert from "../../CustomAlertmahek";
+import { showError } from "../../../services/alertService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DISPLAY } from "../_shared/typography";
 import AnimatedOrb from "../_shared/AnimatedOrb";
@@ -226,16 +226,6 @@ export default function TravelAgentRegisterScreen({ navigation }) {
   const [showAgencyTypeModal, setShowAgencyTypeModal] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
 
-  // CustomAlert
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState("");
-  const [alertMessage, setAlertMessage] = useState("");
-  const showAlert = (title, message) => {
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertVisible(true);
-  };
-
   // Entrance animation
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(16)).current;
@@ -386,12 +376,12 @@ export default function TravelAgentRegisterScreen({ navigation }) {
   }, [formData, isEmailValid, isPhoneValid, isPasswordValid, passwordsMatch]);
 
   const validateStep1 = () => {
-    if (!formData.agencyName.trim()) { showAlert("Required", "Agency name is required"); return false; }
-    if (!formData.ownerName.trim()) { showAlert("Required", "Owner name is required"); return false; }
-    if (!isEmailValid) { showAlert("Invalid Email", "Please enter a valid email"); return false; }
-    if (!isPhoneValid) { showAlert("Invalid Phone", "Please enter a valid 10-digit phone number"); return false; }
-    if (!isPasswordValid) { showAlert("Weak Password", "Password must be at least 8 characters"); return false; }
-    if (!passwordsMatch) { showAlert("Password Mismatch", "Passwords do not match"); return false; }
+    if (!formData.agencyName.trim()) { showError("Agency name is required", "Required"); return false; }
+    if (!formData.ownerName.trim()) { showError("Owner name is required", "Required"); return false; }
+    if (!isEmailValid) { showError("Please enter a valid email", "Invalid Email"); return false; }
+    if (!isPhoneValid) { showError("Please enter a valid 10-digit phone number", "Invalid Phone"); return false; }
+    if (!isPasswordValid) { showError("Password must be at least 8 characters", "Weak Password"); return false; }
+    if (!passwordsMatch) { showError("Passwords do not match", "Password Mismatch"); return false; }
     return true;
   };
 
@@ -443,13 +433,13 @@ export default function TravelAgentRegisterScreen({ navigation }) {
           setSuccess(true);
         }
       } else {
-        showAlert("Error", result.error || "Registration failed");
+        showError(result.error || "Registration failed", "Error");
       }
     } catch (err) {
       console.log("TA Register Error:", err?.response?.data || err);
       const errorMessage =
         err?.response?.data?.error || err?.message || "Something went wrong. Please try again.";
-      showAlert("Error", errorMessage);
+      showError(errorMessage, "Error");
     } finally {
       setLoading(false);
     }
@@ -1016,13 +1006,6 @@ export default function TravelAgentRegisterScreen({ navigation }) {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <CustomAlert
-        visible={alertVisible}
-        title={alertTitle}
-        message={alertMessage}
-        onClose={() => setAlertVisible(false)}
-      />
 
       {/* Agency Type Modal */}
       <Modal

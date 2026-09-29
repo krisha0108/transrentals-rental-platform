@@ -231,7 +231,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             <div className="relative overflow-hidden rounded-2xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-lg p-6">
               <h4 className="text-xl font-bold mb-2 text-[#191c1e]">Need a vehicle?</h4>
               <p className="text-sm text-[#545f73] mb-5">
-                Book from our curated fleet across 150+ cities in India.
+                Book from our curated fleet across 500+ cities in India.
               </p>
               <Link
                 href="/services"
@@ -306,7 +306,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </div>
               <div>
                 <h3 className="text-2xl md:text-3xl font-bold mb-1 text-white">Ready to book your ride?</h3>
-                <p className="text-white/85">Compare and book vehicles across 150+ cities in minutes.</p>
+                <p className="text-white/85">Compare and book vehicles across 500+ cities in minutes.</p>
               </div>
             </div>
 

@@ -25,7 +25,7 @@ const BACKERS = [
 const ACHIEVEMENTS = [
   {
     icon: <Users className="w-8 h-8" />,
-    number: '50,000+',
+    number: '40,000+',
     label: 'Happy Customers',
     gradient: 'from-blue-500 to-cyan-500',
   },
@@ -37,7 +37,7 @@ const ACHIEVEMENTS = [
   },
   {
     icon: <Globe className="w-8 h-8" />,
-    number: '150+',
+    number: '500+',
     label: 'Cities Covered',
     gradient: 'from-purple-500 to-pink-500',
   },

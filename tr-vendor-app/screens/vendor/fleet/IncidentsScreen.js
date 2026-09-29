@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, TextInput, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -346,7 +346,7 @@ export default function IncidentsScreen({ navigation }) {
 
       {/* ── REPORT INCIDENT MODAL ── */}
       <Modal visible={modal} transparent animationType="slide" onRequestClose={() => setModal(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.sheetHandleWrap}><View style={s.sheetHandle} /></View>

@@ -9,10 +9,9 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  Platform,
   StatusBar,
-  KeyboardAvoidingView,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -480,7 +479,7 @@ export default function StaffPayrollScreen({ navigation }) {
 
       {/* Payment Modal */}
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.sheetHandleWrap}><View style={styles.sheetHandle} /></View>

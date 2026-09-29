@@ -16,7 +16,6 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
-  KeyboardAvoidingView,
   ActivityIndicator,
   Animated,
   Easing,
@@ -24,13 +23,14 @@ import {
   StatusBar,
   Dimensions,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import messaging from '@react-native-firebase/messaging';
-import CustomAlert from '../../CustomAlertmahek';
+import { showError } from '../../../services/alertService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DISPLAY } from '../../travel-agent/_shared/typography';
 import { C, G, rs, rf, GUT, cardShadow } from '../../travel-agent/_shared/theme';
@@ -121,16 +121,6 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [fcmToken, setFcmToken] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // CustomAlert
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState('');
-  const [alertMessage, setAlertMessage] = useState('');
-  const showAlert = (title, message) => {
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertVisible(true);
-  };
 
   // entrance animation
   const fade = useRef(new Animated.Value(0)).current;
@@ -226,11 +216,11 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!isIdentifierValid) {
-      showAlert('Invalid Login', 'Please enter a valid email, Vendor ID (vn-0001) or Agent ID (ta-0001).');
+      showError('Please enter a valid email, Vendor ID (vn-0001) or Agent ID (ta-0001).', 'Invalid Login');
       return;
     }
     if (!isPasswordValid) {
-      showAlert('Weak Password', 'Password must be at least 6 characters.');
+      showError('Password must be at least 6 characters.', 'Weak Password');
       return;
     }
 
@@ -242,7 +232,7 @@ export default function LoginScreen({ navigation }) {
       const result = await loginUnified(email, password, fcmToken);
 
       if (!result?.success) {
-        showAlert('Login Failed', 'Unexpected response. Please try again.');
+        showError('Unexpected response. Please try again.', 'Login Failed');
         return;
       }
 
@@ -255,9 +245,9 @@ export default function LoginScreen({ navigation }) {
             routes: [{ name: 'TravelAgentDocuments' }],
           });
         } else if (ta.status === 'REJECTED') {
-          showAlert(
-            'Application Rejected',
-            ta.rejectionReason || 'Your application was rejected. Please contact support.'
+          showError(
+            ta.rejectionReason || 'Your application was rejected. Please contact support.',
+            'Application Rejected'
           );
         } else {
           navigation.reset({
@@ -277,7 +267,7 @@ export default function LoginScreen({ navigation }) {
             routes: [{ name: 'VendorDocuments' }],
           });
         } else if (vendor.status === 'PENDING_APPROVAL') {
-          showAlert('Pending Approval', 'Your account is under review. We will notify you once approved.');
+          showError('Your account is under review. We will notify you once approved.', 'Pending Approval');
         } else if (vendor.status === 'APPROVED' || vendor.status === 'ACTIVE') {
           navigation.reset({
             index: 0,
@@ -289,12 +279,12 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      showAlert('Login Failed', 'Unexpected response. Please try again.');
+      showError('Unexpected response. Please try again.', 'Login Failed');
     } catch (error) {
       const errorMessage = error?.response?.data?.error
         || error?.message
         || 'Something went wrong. Please try again later.';
-      showAlert('Login Failed', errorMessage);
+      showError(errorMessage, 'Login Failed');
     } finally {
       setLoading(false);
     }
@@ -331,6 +321,7 @@ export default function LoginScreen({ navigation }) {
         style={{ flex: 1 }}
       >
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -506,13 +497,6 @@ export default function LoginScreen({ navigation }) {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <CustomAlert
-        visible={alertVisible}
-        title={alertTitle}
-        message={alertMessage}
-        onClose={() => setAlertVisible(false)}
-      />
     </View>
   );
 }

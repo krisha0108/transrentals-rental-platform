@@ -441,14 +441,14 @@ export default function SocialFeedScreen({ navigation, route }) {
       {/* ===== Category + view filter chips (feed tab only) ===== */}
       {tab === "feed" && (
         <View style={styles.filterRow}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRowContent}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRowContentOuter} contentContainerStyle={styles.filterRowContent}>
             {/* View filter: All posts vs General only */}
             <TouchableOpacity
               style={[styles.filterChip, feedView === "all" && styles.filterChipActive]}
               onPress={() => { setFeedView("all"); setCategoryFilter(null); }}
             >
               <Ionicons name="apps" size={12} color={feedView === "all" && !categoryFilter ? C.emerald700 : C.subText} />
-              <Text style={[styles.filterChipText, feedView === "all" && !categoryFilter && styles.filterChipTextActive]}>All</Text>
+              <Text numberOfLines={1} style={[styles.filterChipText, feedView === "all" && !categoryFilter && styles.filterChipTextActive]}>All</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.filterChip, feedView === "general" && styles.filterChipActive]}
@@ -458,7 +458,7 @@ export default function SocialFeedScreen({ navigation, route }) {
                   labelled "General", which collided with a backend category
                   literally named "general" sitting a few chips to the right. */}
               <Ionicons name="newspaper" size={12} color={feedView === "general" ? C.emerald700 : C.subText} />
-              <Text style={[styles.filterChipText, feedView === "general" && styles.filterChipTextActive]}>Non-SOS</Text>
+              <Text numberOfLines={1} style={[styles.filterChipText, feedView === "general" && styles.filterChipTextActive]}>Non-SOS</Text>
             </TouchableOpacity>
             {/* Category chips — no separator here any more. It added its own
                 4px margins on both sides, so the gap around it came to 23px
@@ -1817,6 +1817,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
     paddingTop: 10, paddingBottom: 8,
   },
+  filterRowContentOuter: { flexGrow: 0, flexShrink: 0, height: 36 },
   filterRowContent: { paddingHorizontal: 12, gap: 7, flexDirection: "row", alignItems: "center" },
   // Fully rounded, so they read as chips against the square-cornered tab pills.
   filterChip: {

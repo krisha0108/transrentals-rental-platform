@@ -125,6 +125,10 @@ export default function TruckRentalScreen() {
     useCallback(() => {
       StatusBar.setBarStyle('light-content');
       if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#FFFFFF');
+      };
     }, [])
   );
 
@@ -272,20 +276,40 @@ export default function TruckRentalScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.headerGradient}>
+      <LinearGradient colors={[TEAL_MID, TEAL]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.headerGradient}>
         <View style={styles.decorCircle1} /><View style={styles.decorCircle2} /><View style={styles.decorCircle3} />
-        <View style={styles.headerContent}>
+        <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={wp('5%')} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.topTitle}>Truck Rental</Text>
           <TouchableOpacity onPress={() => navigation.navigate('MyTruckBookings')} style={styles.myBookingsBtn}>
             <Ionicons name="document-text-outline" size={wp('5%')} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+        <View style={styles.headerHero}>
+          <View style={styles.truckIconBadge}>
+            <Icon name="truck" size={wp('6.5%')} color="#FFFFFF" />
+          </View>
+          <Text style={styles.topTitle}>Truck Rental</Text>
+          <Text style={styles.topSubtitle}>Compare quotes from verified vendors</Text>
+        </View>
+        <View style={styles.trustRow}>
+          <View style={styles.trustChip}>
+            <Ionicons name="people-outline" size={wp('3.2%')} color="#FFFFFF" />
+            <Text style={styles.trustChipText}>500+ Vendors</Text>
+          </View>
+          <View style={styles.trustChip}>
+            <Ionicons name="flash-outline" size={wp('3.2%')} color="#FFFFFF" />
+            <Text style={styles.trustChipText}>Quick Response</Text>
+          </View>
+          <View style={styles.trustChip}>
+            <Ionicons name="cash-outline" size={wp('3.2%')} color="#FFFFFF" />
+            <Text style={styles.trustChipText}>No Booking Fee</Text>
+          </View>
+        </View>
       </LinearGradient>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: hp('2%') }}>
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
             <View style={{ flex: 1 }}>
@@ -604,9 +628,11 @@ export default function TruckRentalScreen() {
             const open = expandedIndex === idx;
             return (
               <View key={idx} style={styles.faqItem}>
-                <TouchableOpacity style={styles.faqHead} onPress={() => toggleFAQ(idx)}>
+                <TouchableOpacity style={styles.faqHead} onPress={() => toggleFAQ(idx)} activeOpacity={0.8}>
                   <Text style={styles.faqQ}>{item.question}</Text>
-                  <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={wp('4.5%')} color="#E2E8F0" />
+                  <View style={styles.faqChevWrap}>
+                    <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={wp('3.5%')} color="#FFFFFF" />
+                  </View>
                 </TouchableOpacity>
                 {open && <Text style={styles.faqA}>{item.answer}</Text>}
               </View>
@@ -663,14 +689,20 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   container: { backgroundColor: 'transparent' },
 
-  headerGradient: { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8, paddingBottom: hp('2.5%'), paddingHorizontal: wp('4%'), borderBottomLeftRadius: wp('6%'), borderBottomRightRadius: wp('6%'), overflow: 'hidden' },
+  headerGradient: { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, paddingBottom: hp('1.8%'), paddingHorizontal: wp('4%'), borderBottomLeftRadius: wp('7%'), borderBottomRightRadius: wp('7%'), overflow: 'hidden' },
   decorCircle1: { position: 'absolute', width: wp('35%'), height: wp('35%'), borderRadius: wp('17.5%'), backgroundColor: 'rgba(255,255,255,0.06)', top: -wp('10%'), right: -wp('8%') },
   decorCircle2: { position: 'absolute', width: wp('25%'), height: wp('25%'), borderRadius: wp('12.5%'), backgroundColor: 'rgba(255,255,255,0.04)', bottom: -wp('5%'), left: -wp('5%') },
   decorCircle3: { position: 'absolute', width: wp('15%'), height: wp('15%'), borderRadius: wp('7.5%'), backgroundColor: 'rgba(255,255,255,0.05)', top: hp('2%'), left: wp('30%') },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backBtn: { width: wp('10%'), height: wp('10%'), borderRadius: wp('5%'), backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  topTitle: { fontSize: wp('4.8%'), fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
   myBookingsBtn: { width: wp('10%'), height: wp('10%'), borderRadius: wp('5%'), backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerHero: { alignItems: 'center', marginTop: hp('0.2%') },
+  truckIconBadge: { width: wp('11.5%'), height: wp('11.5%'), borderRadius: wp('5.75%'), backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: hp('0.7%') },
+  topTitle: { fontSize: wp('5%'), fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  topSubtitle: { fontSize: wp('3.1%'), color: 'rgba(255,255,255,0.85)', marginTop: hp('0.3%'), textAlign: 'center' },
+  trustRow: { flexDirection: 'row', justifyContent: 'center', gap: wp('2%'), marginTop: hp('1.1%'), flexWrap: 'wrap' },
+  trustChip: { flexDirection: 'row', alignItems: 'center', gap: wp('1.2%'), backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: wp('5%'), paddingHorizontal: wp('2.8%'), paddingVertical: hp('0.6%') },
+  trustChipText: { color: '#FFFFFF', fontSize: wp('2.6%'), fontWeight: '600' },
 
   formCard: { backgroundColor: CARD, marginHorizontal: wp('3.5%'), marginTop: hp('1.5%'), borderRadius: wp('5.5%'), paddingVertical: hp('1.5%'), paddingHorizontal: wp('4%'), ...SHADOW_SM },
   formHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp('1%') },
@@ -765,11 +797,12 @@ const styles = StyleSheet.create({
   submitBtn: { borderRadius: wp('10%'), paddingVertical: hp('1.6%'), alignItems: 'center', justifyContent: 'center' },
   submitText: { color: '#FFFFFF', fontSize: wp('3.8%'), fontWeight: '700', letterSpacing: 0.3 },
 
-  faqSec: { backgroundColor: TEAL_DEEP, marginTop: hp('2%'), padding: wp('4%'), borderTopLeftRadius: wp('5%'), borderTopRightRadius: wp('5%') },
+  faqSec: { backgroundColor: TEAL_DEEP, marginHorizontal: wp('3.5%'), marginTop: hp('2%'), padding: wp('4%'), borderRadius: wp('5%') },
   faqTitle: { fontSize: wp('4.5%'), fontWeight: '700', color: '#FFFFFF', marginBottom: hp('1.5%') },
-  faqItem: { borderBottomColor: 'rgba(255,255,255,0.1)', borderBottomWidth: 1, paddingVertical: hp('1.2%') },
+  faqItem: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: wp('3%'), paddingHorizontal: wp('3.5%'), paddingVertical: hp('1.4%'), marginBottom: hp('1%') },
   faqHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   faqQ: { color: '#FFFFFF', fontSize: wp('3.5%'), flex: 1, marginRight: wp('3%'), fontWeight: '500' },
+  faqChevWrap: { width: wp('5.5%'), height: wp('5.5%'), borderRadius: wp('2.75%'), backgroundColor: TEAL, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   faqA: { color: TEAL_LIGHT, fontSize: wp('3.2%'), marginTop: hp('0.8%'), lineHeight: hp('2.5%') },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },

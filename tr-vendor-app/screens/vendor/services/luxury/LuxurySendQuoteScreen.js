@@ -9,11 +9,10 @@ import {
   ActivityIndicator,
   Modal,
   StatusBar,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -67,6 +66,7 @@ const DEFAULT_TERMS = [
 ];
 
 export default function LuxurySendQuoteScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const { requestId } = route.params || {};
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -255,17 +255,19 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
   /* ─── LOADING STATE ─── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={['left','right']}>
         <StatusBar backgroundColor={C.g900} barStyle="light-content" />
         <LinearGradient colors={G.hero} style={styles.gradientHeader}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitleWhite}>Send Quote</Text>
-            <Text style={styles.headerSubtitleWhite}>Luxury Cars</Text>
-          </View>
-          <View style={{ width: 40 }} />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitleWhite}>Send Quote</Text>
+              <Text style={styles.headerSubtitleWhite}>Luxury Cars</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </SafeAreaView>
         </LinearGradient>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
           {/* Request Summary skeleton */}
@@ -324,25 +326,27 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
   const advance = calculateAdvance();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['left','right']}>
       <StatusBar backgroundColor={C.g900} barStyle="light-content" />
 
       {/* ─── GRADIENT HEADER ─── */}
       <LinearGradient colors={G.hero} style={styles.gradientHeader}>
         <CornerGrid style={styles.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitleWhite}>Send Quote</Text>
-          <Text style={styles.headerSubtitleWhite}>Luxury Cars</Text>
-        </View>
-        <View style={[styles.headerIconBadge]}>
-          <MaterialCommunityIcons name="car-sports" size={18} color="rgba(255,255,255,0.85)" />
-        </View>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitleWhite}>Send Quote</Text>
+            <Text style={styles.headerSubtitleWhite}>Luxury Cars</Text>
+          </View>
+          <View style={[styles.headerIconBadge]}>
+            <MaterialCommunityIcons name="car-sports" size={18} color="rgba(255,255,255,0.85)" />
+          </View>
+        </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
 
         {/* ─── REQUEST SUMMARY ─── */}
@@ -810,10 +814,9 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
 
         <View style={{ height: 110 }} />
       </ScrollView>
-      </KeyboardAvoidingView>
 
       {/* ─── SUBMIT FOOTER ─── */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
         <LinearGradient
           colors={[C.g700, C.g600]}
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
@@ -838,6 +841,7 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
           </TouchableOpacity>
         </LinearGradient>
       </View>
+      </KeyboardAvoidingView>
 
       <DateTimePickerModal
         isVisible={showDatePicker}
@@ -861,7 +865,7 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
           style={{ flex: 1 }}
         >
         <View style={styles.modalOverlay}>
@@ -1034,7 +1038,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 0,
     backgroundColor: C.card,
     borderTopWidth: 1,
     borderTopColor: C.border,

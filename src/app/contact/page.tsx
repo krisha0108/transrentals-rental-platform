@@ -42,7 +42,7 @@ const contactMethods = [
   {
     icon: Clock,
     title: 'Coverage',
-    value: '150+ Cities',
+    value: '500+ Cities',
     description: 'Across India',
   },
   {

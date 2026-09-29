@@ -5,6 +5,7 @@ import {
   StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -394,8 +395,9 @@ export default function EquipmentBookingDetailScreen({ route, navigation }) {
   steps.forEach((x, i) => { x.current = i === curIdx; });
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
 
       {/* ══ Hero ═════════════════════════════════════════════════════════ */}
       <LinearGradient
@@ -405,16 +407,18 @@ export default function EquipmentBookingDetailScreen({ route, navigation }) {
       >
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
 
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.titleWrap}>
-            <MaterialCommunityIcons name="hammer" size={18} color={C.g400} />
-            <Text style={s.heroTitle}>Booking Detail</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="hammer" size={18} color={C.g400} />
+              <Text style={s.heroTitle}>Booking Detail</Text>
+            </View>
+            <View style={{ width: 36 }} />
           </View>
-          <View style={{ width: 36 }} />
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -935,6 +939,7 @@ export default function EquipmentBookingDetailScreen({ route, navigation }) {
           )}
         </View>
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

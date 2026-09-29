@@ -14,7 +14,6 @@ import {
   StyleSheet,
   ScrollView,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Animated,
@@ -25,12 +24,13 @@ import {
   Dimensions,
   Keyboard,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import CustomAlert from "../../CustomAlertmahek";
+import { showError } from "../../../services/alertService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DISPLAY } from "../../travel-agent/_shared/typography";
 import { C, G, rs, rf, GUT, cardShadow, SHEET_RADIUS } from "../../travel-agent/_shared/theme";
@@ -393,16 +393,6 @@ export default function VendorRegisterScreen({ navigation }) {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [serviceLocations, setServiceLocations] = useState([]);
 
-  // CustomAlert
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState("");
-  const [alertMessage, setAlertMessage] = useState("");
-  const showAlert = (title, message) => {
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertVisible(true);
-  };
-
   // Entrance animation
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(16)).current;
@@ -580,29 +570,29 @@ export default function VendorRegisterScreen({ navigation }) {
 
   const handleNextStep = () => {
     if (!formData.businessName.trim()) {
-      return showAlert("Required", "Business name is required");
+      return showError("Business name is required", "Required");
     }
     if (!formData.ownerName.trim()) {
-      return showAlert("Required", "Owner name is required");
+      return showError("Owner name is required", "Required");
     }
     if (!isEmailValid) {
-      return showAlert("Invalid Email", "Please enter a valid email");
+      return showError("Please enter a valid email", "Invalid Email");
     }
     if (!isPhoneValid) {
-      return showAlert("Invalid Phone", "Please enter a valid 10-digit phone number");
+      return showError("Please enter a valid 10-digit phone number", "Invalid Phone");
     }
     if (!isPasswordValid) {
-      return showAlert("Weak Password", "Password must be at least 8 characters");
+      return showError("Password must be at least 8 characters", "Weak Password");
     }
     if (!passwordsMatch) {
-      return showAlert("Password Mismatch", "Passwords do not match");
+      return showError("Passwords do not match", "Password Mismatch");
     }
     setStep(2);
   };
 
   const handleRegister = async () => {
     if (serviceLocations.length === 0) {
-      return showAlert("Required", "Add at least one service location — where you want to operate");
+      return showError("Add at least one service location — where you want to operate", "Required");
     }
     try {
       setLoading(true);
@@ -653,14 +643,14 @@ export default function VendorRegisterScreen({ navigation }) {
           setSuccess(true);
         }
       } else {
-        showAlert("Error", result.error || "Registration failed");
+        showError(result.error || "Registration failed", "Error");
       }
     } catch (err) {
       console.log("Register Error:", err?.response?.data || err);
       const errorMessage = err?.response?.data?.error
         || err?.message
         || "Something went wrong. Please try again.";
-      showAlert("Error", errorMessage);
+      showError(errorMessage, "Error");
     } finally {
       setLoading(false);
     }
@@ -791,6 +781,7 @@ export default function VendorRegisterScreen({ navigation }) {
         style={{ flex: 1 }}
       >
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -1222,13 +1213,6 @@ export default function VendorRegisterScreen({ navigation }) {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <CustomAlert
-        visible={alertVisible}
-        title={alertTitle}
-        message={alertMessage}
-        onClose={() => setAlertVisible(false)}
-      />
 
       {/* Business Type Modal */}
       <Modal

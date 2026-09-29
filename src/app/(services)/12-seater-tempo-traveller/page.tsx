@@ -71,7 +71,7 @@ export default function TwelveSeaterTempoTravellerPage() {
         heroStats={[
           { icon: 'tag', value: '₹18/km', label: 'Starting rate' },
           { icon: 'shield', value: '500+', label: 'Verified operators' },
-          { icon: 'map', value: '150+', label: 'Cities served' },
+          { icon: 'map', value: '500+', label: 'Cities served' },
           { icon: 'headphones', value: '24/7', label: 'Customer support' },
         ]}
       />

@@ -18,6 +18,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -675,9 +676,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                       style={styles.suggestionItem}
                       onPress={() => selectStopLocation(stop.id, loc)}
                     >
-                      <Ionicons name="location" size={16} color={loc._distance && loc._distance < 200 ? '#F59E0B' : '#64748B'} />
+                      <Ionicons name="location" size={16} color={typeof loc._distance === 'number' && loc._distance < 200 ? '#F59E0B' : '#64748B'} />
                       <Text style={[styles.suggestionText, { flex: 1 }]}>{loc.name}</Text>
-                      {loc._distance && loc._distance < 5000 && (
+                      {typeof loc._distance === 'number' && loc._distance < 5000 && (
                         <Text style={styles.distanceBadge}>~{loc._distance} km</Text>
                       )}
                     </TouchableOpacity>
@@ -705,7 +706,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     );
   };
 
-  const renderLocationInput = (target) => {
+  // Same search/select logic as before — just a compact "route field" row
+  // (label + value) instead of its own bordered box with a pin icon, since
+  // the route-card's dot/line on the left now carries that meaning.
+  const renderLocationField = (target, { isLast } = {}) => {
     const isFrom = target === 'from';
     const location = isFrom ? fromLocation : toLocation;
     const query = isFrom ? fromQuery : toQuery;
@@ -719,21 +723,19 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       (airportDirection === 'drop' && !isFrom)
     );
 
-    const suggestions = filteredLocations(query, showAirports);
+    // Only run the filter/sort (it re-sorts the whole city list by distance)
+    // when the dropdown is actually visible — this used to run on every
+    // render of the step, even with the dropdown closed.
+    const suggestions = showSuggestions ? filteredLocations(query, showAirports) : [];
 
     return (
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          {isFrom ? 'From' : 'To'} {showAirports ? '(Airport)' : '(City)'}
+      <View style={[styles.rfield, isLast && styles.rfieldLast]}>
+        <Text style={styles.rfieldLabel}>
+          {isFrom ? 'Pickup' : 'Drop'} {showAirports ? '· Airport' : ''}
         </Text>
-        <TouchableOpacity style={styles.locationRow} activeOpacity={0.9}>
-          <Ionicons
-            name={showAirports ? 'airplane-outline' : 'location-outline'}
-            size={18}
-            color="#0F172A"
-          />
+        <View style={styles.rfieldInputRow}>
           <TextInput
-            style={styles.locationInput}
+            style={styles.rfieldInput}
             value={query || location?.name || ''}
             onChangeText={(text) => {
               setQuery(text);
@@ -750,10 +752,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               if (isFrom) setFromLocation(null);
               else setToLocation(null);
             }}>
-              <Ionicons name="close-circle" size={20} color="#CBD5E1" />
+              <Ionicons name="close-circle" size={18} color="#CBD5E1" />
             </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
 
         {showSuggestions && suggestions.length > 0 && (
           <View style={styles.inlineSuggestions}>
@@ -772,19 +774,29 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                 <Ionicons
                   name={loc.type === 'airport' ? 'airplane-outline' : 'location'}
                   size={16}
-                  color={loc._distance && loc._distance < 200 ? '#2563EB' : '#64748B'}
+                  color={typeof loc._distance === 'number' && loc._distance < 200 ? '#2563EB' : '#64748B'}
                 />
                 <Text style={[styles.suggestionText, { flex: 1 }]}>{loc.name}</Text>
-                {loc._distance && loc._distance < 5000 && (
+                {typeof loc._distance === 'number' && loc._distance < 5000 && (
                   <Text style={styles.distanceBadge}>~{loc._distance} km</Text>
                 )}
-                {loc.code && <Text style={styles.suggestionCode}>{loc.code}</Text>}
+                {loc.code ? <Text style={styles.suggestionCode}>{loc.code}</Text> : null}
               </TouchableOpacity>
             ))}
           </View>
         )}
       </View>
     );
+  };
+
+  // New — swaps pickup/drop, used by the route-card's swap button.
+  const swapLocations = () => {
+    const prevFromLoc = fromLocation;
+    const prevFromQuery = fromQuery;
+    setFromLocation(toLocation);
+    setFromQuery(toQuery);
+    setToLocation(prevFromLoc);
+    setToQuery(prevFromQuery);
   };
 
   const renderPackageSelector = () => {
@@ -941,10 +953,12 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
             {/* Price breakdown */}
             <View style={styles.breakdownSection}>
-              <View style={styles.breakdownRow}>
-                <Text style={styles.breakdownLabel}>Distance ({vehiclePrice.totalKm} km × ₹{vehiclePrice.perKmRate}/km)</Text>
-                <Text style={styles.breakdownValue}>₹{(vehiclePrice.totalKm * vehiclePrice.perKmRate)?.toLocaleString()}</Text>
-              </View>
+              {typeof vehiclePrice.perKmRate === 'number' && vehiclePrice.perKmRate > 0 && (
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Distance ({vehiclePrice.totalKm} km × ₹{vehiclePrice.perKmRate}/km)</Text>
+                  <Text style={styles.breakdownValue}>₹{(vehiclePrice.totalKm * vehiclePrice.perKmRate)?.toLocaleString()}</Text>
+                </View>
+              )}
               {vehiclePrice.driverAllowance > 0 && (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>
@@ -979,35 +993,48 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   const renderStep1 = () => (
     <ScrollView style={styles.stepContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardDismissMode="on-drag">
-      {/* Hero Section Wrapper for Trip Type */}
-      <View style={styles.heroWrapper}>
-        <Text style={styles.heroTitle}>Where are you going?</Text>
-        <Text style={styles.heroSubtitle}>Select your trip type and pickup details</Text>
+      {/* Trip type — small tabs instead of a colour hero + icon grid */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsRow} contentContainerStyle={{ paddingRight: 16 }}>
+        {TRIP_TYPES.map((type) => {
+          const isActive = tripType === type.id;
+          return (
+            <TouchableOpacity
+              key={type.id}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => {
+                setTripType(type.id);
+                setFromLocation(null);
+                setToLocation(null);
+                setSelectedPackage(null);
+                setMultiStops([]);
+              }}
+            >
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{type.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
-        <View style={styles.tripTypeGrid}>
-          {TRIP_TYPES.map((type) => {
-            const isActive = tripType === type.id;
-            return (
-              <TouchableOpacity
-                key={type.id}
-                style={[styles.tripTypeCard, isActive && styles.tripTypeCardActive]}
-                onPress={() => {
-                  setTripType(type.id);
-                  setFromLocation(null);
-                  setToLocation(null);
-                  setSelectedPackage(null);
-                  setMultiStops([]);
-                }}
-              >
-                <View style={[styles.tripTypeIcon, isActive && styles.tripTypeIconActive]}>
-                  <Icon name={type.icon} size={18} color={isActive ? '#fff' : BRAND_TEAL} />
-                </View>
-                <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
-                  {type.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      {/* Route card — pickup/drop as a dot-and-line "journey" instead of two
+          separate boxed inputs, matching the approved mockup. */}
+      <View style={styles.routeWrap}>
+        <View style={styles.routeCard}>
+          <View style={styles.routeTrack}>
+            <View style={styles.routeDots}>
+              <View style={styles.rdot} />
+              {tripType !== 'local' && <View style={styles.rline} />}
+              {tripType !== 'local' && <View style={[styles.rdot, styles.rdotHollow]} />}
+            </View>
+            <View style={styles.routeFields}>
+              {renderLocationField('from', { isLast: tripType === 'local' })}
+              {tripType !== 'local' && renderLocationField('to', { isLast: true })}
+            </View>
+          </View>
+          {tripType !== 'local' && (
+            <TouchableOpacity style={styles.swapBtn} onPress={swapLocations}>
+              <Icon name="repeat" size={14} color={BRAND_TEAL} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -1051,12 +1078,13 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         </View>
       )}
 
-      {/* Location Inputs */}
-      <View style={styles.locationsSection}>
-        {renderLocationInput('from')}
-        {(tripType === 'one_way' || tripType === 'round_trip') && renderMultiStops()}
-        {tripType !== 'local' && renderLocationInput('to')}
-      </View>
+      {/* Via Stops — same multi-stop UI/logic as before, now sits below the
+          route card instead of being sandwiched between the two fields. */}
+      {(tripType === 'one_way' || tripType === 'round_trip') && (
+        <View style={styles.locationsSection}>
+          {renderMultiStops()}
+        </View>
+      )}
 
       {/* Package Selector (for local trips) */}
       {tripType === 'local' && loadingPackages && (
@@ -1350,49 +1378,54 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => {
-            if (step > 1) {
-              setStep(step - 1);
-            } else {
-              navigation.goBack();
-            }
-          }}
-        >
-          <Icon name="arrow-left" size={20} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : 'Confirm Booking'}
-        </Text>
-        <View style={{ width: 40 }} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+      {/* Header — plain/white; the teal "hero" moment already lives in the
+          Step 1 heroWrapper below, so the header stays quiet to not clash. */}
+      <View style={styles.headerGradient}>
+        <View style={styles.header}>
           <TouchableOpacity
-                  onPress={() => navigation.navigate('MyCarBookings')}
-                  style={styles.myBookingsBtn}
-                >
-                  <Ionicons name="document-text-outline" size={20} color={GREEN} />
-                </TouchableOpacity>
-      </View>
+            style={styles.backBtn}
+            onPress={() => {
+              if (step > 1) {
+                setStep(step - 1);
+              } else {
+                navigation.goBack();
+              }
+            }}
+          >
+            <Icon name="arrow-left" size={20} color="#0F172A" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : 'Confirm Booking'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyCarBookings')}
+            style={styles.myBookingsBtn}
+          >
+            <Ionicons name="document-text-outline" size={18} color={BRAND_TEAL} />
+          </TouchableOpacity>
+        </View>
 
-      {/* Steps Indicator */}
-      <View style={styles.stepsRow}>
-        {[1, 2, 3].map((s) => (
-          <View key={s} style={styles.stepItem}>
-            <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
-              {step > s ? (
-                <Icon name="check" size={14} color="#fff" />
-              ) : (
-                <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
-              )}
-            </View>
-            <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
-              {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : 'Confirm'}
-            </Text>
-          </View>
-        ))}
+        {/* Steps Indicator */}
+        <View style={styles.stepsRow}>
+          {[1, 2, 3].map((s) => (
+            <React.Fragment key={s}>
+              <View style={styles.stepItem}>
+                <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
+                  {step > s ? (
+                    <Icon name="check" size={13} color="#FFF" />
+                  ) : (
+                    <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
+                  )}
+                </View>
+                <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
+                  {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : 'Confirm'}
+                </Text>
+              </View>
+              {s < 3 && <View style={[styles.stepConnector, step > s && styles.stepConnectorActive]} />}
+            </React.Fragment>
+          ))}
+        </View>
       </View>
 
       {/* Content */}
@@ -1403,14 +1436,14 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.nextBtn, submitting && styles.nextBtnDisabled]}
+          style={[styles.nextBtn, (submitting || loadingPrices) && styles.nextBtnDisabled]}
           onPress={() => {
             if (step === 3) handleBooking();
             else handleNext();
           }}
           disabled={submitting || loadingPrices}
         >
-          {submitting ? (
+          {submitting || loadingPrices ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.nextBtnText}>
@@ -1461,50 +1494,67 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   // Header
+  headerGradient: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 14,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: BG,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
+  myBookingsBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: '#0F172A' },
 
   // Steps
   stepsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    gap: 32,
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
   },
-  stepItem: { alignItems: 'center' },
+  stepItem: { alignItems: 'center', width: 64 },
   stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 5,
   },
   stepCircleActive: { backgroundColor: GREEN },
-  stepNumber: { fontSize: 13, fontWeight: '600', color: '#94A3B8' },
+  stepNumber: { fontSize: 12, fontWeight: '700', color: '#94A3B8' },
   stepNumberActive: { color: '#fff' },
-  stepLabel: { fontSize: 12, color: '#94A3B8' },
-  stepLabelActive: { color: GREEN, fontWeight: '600' },
+  stepLabel: { fontSize: 10.5, color: '#94A3B8', fontWeight: '600' },
+  stepLabelActive: { color: GREEN, fontWeight: '800' },
+  stepConnector: {
+    height: 1.5,
+    flex: 1,
+    backgroundColor: '#E2E8F0',
+    marginTop: 13,
+    marginHorizontal: -12,
+  },
+  stepConnectorActive: { backgroundColor: GREEN },
 
   // Content
   stepContent: { flex: 1, padding: 16 },
@@ -1557,64 +1607,73 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // Hero
-  heroWrapper: {
-    backgroundColor: BRAND_TEAL,
-    marginHorizontal: -16,
-    marginTop: -16,
-    padding: 24,
-    paddingBottom: 32,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    marginBottom: 24,
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 24,
-  },
-
-  // Trip Type
-  tripTypeGrid: {
+  // Trip type tabs
+  tabsRow: {
     flexDirection: 'row',
-    gap: 8,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    marginTop: -4,
+    marginBottom: 14,
   },
-  tripTypeCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    padding: 12,
-    alignItems: 'center',
+  tab: {
+    flexShrink: 0,
+    backgroundColor: BG,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: '#E2E8F0',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
   },
-  tripTypeCardActive: {
-    backgroundColor: '#fff',
-    borderColor: '#fff',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+  tabActive: {
+    backgroundColor: BRAND_TEAL,
+    borderColor: BRAND_TEAL,
   },
-  tripTypeIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  tabText: { fontSize: 12.5, fontWeight: '700', color: TEXT_SECONDARY },
+  tabTextActive: { color: '#fff' },
+
+  // Route card — pickup/drop as a connected dot-and-line "journey"
+  routeWrap: { marginBottom: 12 },
+  routeCard: {
+    backgroundColor: CARD,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 14,
+    position: 'relative',
+  },
+  routeTrack: { flexDirection: 'row' },
+  routeDots: { width: 18, alignItems: 'center', paddingTop: 6 },
+  rdot: { width: 9, height: 9, borderRadius: 5, backgroundColor: BRAND_TEAL, flexShrink: 0 },
+  rdotHollow: { backgroundColor: '#fff', borderWidth: 2, borderColor: '#94A3B8' },
+  rline: { width: 1.5, flex: 1, minHeight: 20, backgroundColor: '#E2E8F0', marginVertical: 3 },
+  routeFields: { flex: 1, marginLeft: 10 },
+  rfield: { paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+  rfieldLast: { borderBottomWidth: 0 },
+  rfieldLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: '#94A3B8',
+    marginBottom: 2,
+  },
+  rfieldInputRow: { flexDirection: 'row', alignItems: 'center' },
+  rfieldInput: { flex: 1, fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, padding: 0 },
+  swapBtn: {
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    marginTop: -15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#EBFBF3',
+    borderWidth: 1,
+    borderColor: '#CFEFDD',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  tripTypeIconActive: { backgroundColor: BRAND_TEAL },
-  tripTypeLabel: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  tripTypeLabelActive: { color: BRAND_TEAL },
 
   // Airport Direction
   airportDirectionWrap: {

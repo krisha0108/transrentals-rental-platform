@@ -7,7 +7,7 @@ import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
 export const metadata: Metadata = {
   title: 'Royal Enfield on Rent - Classic 350, Himalayan & More @₹599/Day | TransRentals',
   description:
-    'Rent Royal Enfield bikes for your road trips. Classic 350, Himalayan, Meteor, Hunter available across 150+ cities. Perfect for Ladakh & mountain trips. Book now!',
+    'Rent Royal Enfield bikes for your road trips. Classic 350, Himalayan, Meteor, Hunter available across 500+ cities. Perfect for Ladakh & mountain trips. Book now!',
   keywords: [
     'royal enfield on rent',
     'royal enfield rental',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Royal Enfield on Rent - Starting @₹599/Day | TransRentals',
-    description: 'Rent Royal Enfield bikes for road trips across 150+ cities in India.',
+    description: 'Rent Royal Enfield bikes for road trips across 500+ cities in India.',
     images: ['https://transrentals.in/images/og/royal-enfield-rental.jpg'],
   },
   alternates: {

@@ -273,6 +273,7 @@ export default function BikeRentalScreen() {
         style={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         onScrollBeginDrag={() => setShowSuggestions(false)}
       >
         {/* HERO SECTION */}

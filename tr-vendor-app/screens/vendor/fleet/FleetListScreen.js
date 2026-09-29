@@ -260,8 +260,8 @@ export default function FleetListScreen({ navigation }) {
     const featuredImage = item.vehicle_models?.sideImage || item.chauffeur_vehicle_categories?.image;
     const imageUri = getFullImageUrl(featuredImage);
 
-    const seatingCapacity = item.vehicle_models?.seatingCapacity || item.chauffeur_vehicle_categories?.seatingCapacity || item.seatingCapacity;
-    const fuelType        = item.vehicle_models?.fuelType        || item.chauffeur_vehicle_categories?.fuelType        || item.fuelType;
+    const seatingCapacity = item.seatingCapacity || item.vehicle_models?.seatingCapacity || item.chauffeur_vehicle_categories?.seatingCapacity || null;
+    const fuelType        = item.fuelType        || item.vehicle_models?.fuelType        || item.chauffeur_vehicle_categories?.fuelType        || null;
 
     return (
       <View style={styles.card}>
@@ -439,7 +439,7 @@ export default function FleetListScreen({ navigation }) {
 
       {/* Filters — fixed, always visible above the scrolling list */}
       <View style={styles.filtersFixed}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.svcScroll}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.svcScrollOuter} contentContainerStyle={styles.svcScroll}>
           {[{ slug:'all', icon:'car-multiple', color: C.g700, shortLabel:'All', count: vehicles.length }, ...availableServices].map(svc => {
             const isActive = serviceFilter === svc.slug;
             return (
@@ -450,7 +450,7 @@ export default function FleetListScreen({ navigation }) {
                 activeOpacity={0.75}
               >
                 <MaterialCommunityIcons name={svc.icon} size={13} color={isActive ? svc.color : C.muted} />
-                <Text style={[styles.svcChipTxt, isActive && { color: svc.color }]}>{svc.shortLabel}</Text>
+                <Text numberOfLines={1} style={[styles.svcChipTxt, isActive && { color: svc.color }]}>{svc.shortLabel}</Text>
                 <Text style={[styles.svcChipCnt, isActive && { color: svc.color }]}>{svc.count}</Text>
               </TouchableOpacity>
             );
@@ -617,7 +617,8 @@ const styles = StyleSheet.create({
 
   /* Fixed filters */
   filtersFixed: { paddingTop: 8 },
-  svcScroll: { gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
+  svcScrollOuter: { flexGrow: 0, flexShrink: 0, height: 50 },
+  svcScroll: { gap: 8, paddingHorizontal: 16, paddingBottom: 10, alignItems: 'center' },
   svcChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border },
   svcChipTxt: { fontSize: 13, fontWeight: '700', color: C.muted, fontFamily: DISPLAY },
   svcChipCnt: { fontSize: 12, fontWeight: '800', color: C.muted },

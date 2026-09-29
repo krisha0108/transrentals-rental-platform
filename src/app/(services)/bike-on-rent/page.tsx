@@ -12,7 +12,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 export const metadata: Metadata = {
   title: formatPriceHighlight('Bike on Rent - Rent Bikes Starting @₹399/Day | TransRentals'),
   description:
-    formatPriceHighlight('Rent bikes across 150+ cities in India. Choose from Royal Enfield, KTM, Honda, Yamaha & more. Best prices guaranteed. Book your bike rental now!'),
+    formatPriceHighlight('Rent bikes across 500+ cities in India. Choose from Royal Enfield, KTM, Honda, Yamaha & more. Best prices guaranteed. Book your bike rental now!'),
   keywords: [
     'bike on rent',
     'bike rental',
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: formatPriceHighlight('Bike on Rent - Starting @₹399/Day | TransRentals'),
-    description: formatPriceHighlight('Rent bikes across 150+ cities in India. Royal Enfield, KTM, Honda & more.'),
+    description: formatPriceHighlight('Rent bikes across 500+ cities in India. Royal Enfield, KTM, Honda & more.'),
     type: 'website',
     url: 'https://transrentals.in/bike-on-rent',
     images: [
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: formatPriceHighlight('Bike on Rent - Starting @₹399/Day | TransRentals'),
-    description: formatPriceHighlight('Rent bikes across 150+ cities in India. Royal Enfield, KTM, Honda & more.'),
+    description: formatPriceHighlight('Rent bikes across 500+ cities in India. Royal Enfield, KTM, Honda & more.'),
     images: ['https://transrentals.in/api/og?service=bike-on-rent'],
   },
   alternates: {
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
 const fallbackContent = {
   hero: {
     title: 'Bike Rental Services',
-    subtitle: 'Rent bikes and scooters across 150+ Indian cities - Royal Enfield, KTM, Honda & more',
+    subtitle: 'Rent bikes and scooters across 500+ Indian cities - Royal Enfield, KTM, Honda & more',
     backgroundImage: '',
     ctaText: 'Rent Now',
     ctaLink: '#locations',
@@ -62,7 +62,7 @@ const fallbackContent = {
     { id: '1', icon: 'shield', title: 'Verified Bikes', description: 'All bikes are thoroughly inspected and maintained for your safety.' },
     { id: '2', icon: 'credit-card', title: 'Best Prices', description: 'Compare prices from multiple vendors starting at just ₹399/day.' },
     { id: '3', icon: 'headphones', title: '24/7 Support', description: 'Roadside assistance and customer support available round the clock.' },
-    { id: '4', icon: 'map-pin', title: '150+ Cities', description: 'Wide network of bike rental partners across major Indian cities.' },
+    { id: '4', icon: 'map-pin', title: '500+ Cities', description: 'Wide network of bike rental partners across major Indian cities.' },
     { id: '5', icon: 'car', title: 'All Bike Types', description: 'From scooters to superbikes - find the perfect ride for your needs.' },
     { id: '6', icon: 'clock', title: 'Flexible Rentals', description: 'Hourly, daily, weekly, or monthly rentals available.' },
   ],
@@ -133,7 +133,7 @@ export default function BikeRentalPage() {
       <BikeServiceSchema
         serviceName="Bike on Rent"
         serviceSlug="bike-on-rent"
-        description="Rent bikes across 150+ cities in India. Choose from Royal Enfield, KTM, Honda, Yamaha & more. Best prices guaranteed."
+        description="Rent bikes across 500+ cities in India. Choose from Royal Enfield, KTM, Honda, Yamaha & more. Best prices guaranteed."
         faqs={schemaFaqs}
         vehicles={schemaVehicles}
         priceRange={{ min: 299, max: 1499 }}
@@ -142,10 +142,10 @@ export default function BikeRentalPage() {
       />
       <HowToSchema
         name="How to Rent a Bike on TransRentals"
-        description="Book a bike rental in 4 simple steps on TransRentals across 150+ cities in India."
+        description="Book a bike rental in 4 simple steps on TransRentals across 500+ cities in India."
         totalTime="PT10M"
         steps={[
-          { name: 'Select Your City', text: 'Choose your pickup city from 150+ available locations across India.' },
+          { name: 'Select Your City', text: 'Choose your pickup city from 500+ available locations across India.' },
           { name: 'Pick Your Bike', text: 'Browse available bikes — Royal Enfield, KTM, Honda, Yamaha & more. Filter by type, price, and brand.' },
           { name: 'Book Online', text: 'Complete your booking with secure online payment. Instant confirmation.' },
           { name: 'Ride Away', text: 'Pick up your bike from the vendor location with your licence and ID proof. Enjoy your ride!' },

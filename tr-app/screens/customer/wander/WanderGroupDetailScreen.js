@@ -1398,7 +1398,7 @@ export default function WanderGroupDetailScreen() {
       {/* ── CHAT TAB ── */}
       {activeTab === 'chat' && (
         <KeyboardAvoidingView style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <FlatList
             ref={chatListRef}
             data={messages}
@@ -1542,7 +1542,7 @@ export default function WanderGroupDetailScreen() {
 
       {/* Feature 9: Settings Modal */}
       <Modal visible={showSettings} transparent animationType="slide" onRequestClose={() => setShowSettings(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />

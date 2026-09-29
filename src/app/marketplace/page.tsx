@@ -33,7 +33,7 @@ const homepageSchema = {
         width: 200,
         height: 60,
       },
-      description: "India's largest vehicle rental marketplace — cars, bikes, buses, equipment across 150+ cities.",
+      description: "India's largest vehicle rental marketplace — cars, bikes, buses, equipment across 500+ cities.",
       contactPoint: {
         '@type': 'ContactPoint',
         telephone: '+91-9737965551',

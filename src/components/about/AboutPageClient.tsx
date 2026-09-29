@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const IMPACT_STATS = [
-  { icon: Sparkles, target: 50000, suffix: '+', label: 'Happy Customers' },
+  { icon: Sparkles, target: 40000, suffix: '+', label: 'Happy Customers' },
   { icon: Car, target: 1000, suffix: '+', label: 'Verified Vehicles' },
   { icon: MapPin, target: 500, suffix: '+', label: 'Cities Covered' },
   { icon: Zap, target: 2500, suffix: '+', label: 'Daily Inquiries' },

@@ -6,7 +6,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Share, FlatList,
-  Modal, RefreshControl, Platform, Image,
+  Modal, RefreshControl, Platform, Image, KeyboardAvoidingView,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -276,6 +276,7 @@ export default function WanderGroupScreen() {
             <View style={{ width: 40 }} />
           </View>
 
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={{ padding: 20 }}>
             {/* Tour context */}
             {listingTitle && (
@@ -414,6 +415,7 @@ export default function WanderGroupScreen() {
               }
             </TouchableOpacity>
           </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 

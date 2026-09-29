@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -336,7 +337,7 @@ const handleBookingSubmit = async () => {
         );
       case 1:
         return (
-          <View style={styles.stepContainer}>
+          <ScrollView contentContainerStyle={styles.stepContainer}>
             <Text style={styles.label}>Your Destination Location</Text>
             <TextInput
               style={styles.input}
@@ -352,12 +353,12 @@ const handleBookingSubmit = async () => {
                 <Text style={styles.nextBtnText}>Next</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         );
 
         case 2:
           return (
-            <View style={styles.stepContainer}>
+            <ScrollView contentContainerStyle={styles.stepContainer}>
               <Text style={styles.label}>Select Truck Type</Text>
               <TouchableOpacity
                 style={styles.input}
@@ -403,15 +404,15 @@ const handleBookingSubmit = async () => {
                   <Text style={styles.nextBtnText}>Next</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           );
-        
+
         // Other cases for the next steps...
       
         
         case 3:
           return (
-            <View style={styles.stepContainer}>
+            <ScrollView contentContainerStyle={styles.stepContainer}>
               <Text style={styles.label}>Start Date & Time</Text>
               <TouchableOpacity
                 onPress={openStartDateTimePicker}
@@ -427,7 +428,7 @@ const handleBookingSubmit = async () => {
                   <Text style={styles.nextBtnText}>Next</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </ScrollView>
           );
         
   
@@ -435,7 +436,7 @@ const handleBookingSubmit = async () => {
 
       case 4:
         return (
-          <View style={styles.stepContainer}>
+          <ScrollView contentContainerStyle={styles.stepContainer}>
             <Text style={styles.label}>Any Other Details</Text>
             <TextInput
               style={[styles.input, { height: 120 }]}
@@ -465,16 +466,16 @@ const handleBookingSubmit = async () => {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         );
 
       default:
         return null;
     }
-  };  
-  
+  };
 
-  return <SafeAreaView style={styles.container}>{renderStep()}<BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} /></SafeAreaView>;
+
+  return <SafeAreaView style={styles.container}><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{renderStep()}</KeyboardAvoidingView><BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} /></SafeAreaView>;
 };
 
 const styles = StyleSheet.create({

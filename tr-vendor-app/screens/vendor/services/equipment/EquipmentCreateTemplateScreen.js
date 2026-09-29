@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, Switch, StatusBar,
-  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -150,19 +150,21 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
 
   if (initializing) {
     return (
-      <SafeAreaView style={s.safe} edges={['top']}>
+      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
           <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-          <View style={s.topBar}>
-            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-              <Icon name="arrow-left" size={18} color="#fff" />
-            </TouchableOpacity>
-            <View style={s.headerTextWrap}>
-              <Text style={s.heroTitle}>Create Template</Text>
-              <Text style={s.heroSub}>Equipment Rental</Text>
+          <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.headerTextWrap}>
+                <Text style={s.heroTitle}>Create Template</Text>
+                <Text style={s.heroSub}>Equipment Rental</Text>
+              </View>
             </View>
-          </View>
+          </SafeAreaView>
         </LinearGradient>
 
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
@@ -188,8 +190,9 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
 
       <LinearGradient
         colors={G.hero}
@@ -197,15 +200,17 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
         style={s.hero}
       >
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
-        <View style={s.topBar}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={18} color="#fff" />
-          </TouchableOpacity>
-          <View style={s.headerTextWrap}>
-            <Text style={s.heroTitle}>Create Template</Text>
-            <Text style={s.heroSub}>Equipment Rental</Text>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: 'transparent' }}>
+          <View style={s.topBar}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerTextWrap}>
+              <Text style={s.heroTitle}>Create Template</Text>
+              <Text style={s.heroSub}>Equipment Rental</Text>
+            </View>
           </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
@@ -326,10 +331,11 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
           )}
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
 
       {/* Edit Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}>

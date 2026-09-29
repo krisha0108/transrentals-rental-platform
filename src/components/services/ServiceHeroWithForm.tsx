@@ -43,12 +43,12 @@ const SERVICE_HERO_CONFIGS: Record<string, {
     title: 'Rent a Bike for Your',
     titleHighlight: 'Next Adventure',
     description: 'Choose from 500+ bikes including Royal Enfield, KTM, Honda, Yamaha and more. Get instant quotes from verified vendors.',
-    citiesCount: '150+',
+    citiesCount: '500+',
     gradient: { from: 'blue-50', to: 'green-50', accent: 'from-primary to-green-600' },
     stats: [
       { value: '500+', label: 'Bikes Available' },
-      { value: '150+', label: 'Cities Covered' },
-      { value: '50K+', label: 'Happy Customers' },
+      { value: '500+', label: 'Cities Covered' },
+      { value: '40K+', label: 'Happy Customers' },
     ],
     features: [
       { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
@@ -151,11 +151,11 @@ const SERVICE_HERO_CONFIGS: Record<string, {
     title: 'Professional Relocation',
     titleHighlight: 'Starting from ₹4999',
     description: 'Home shifting, office relocation, vehicle transport. Insured and reliable packers & movers across India.',
-    citiesCount: '150+',
+    citiesCount: '500+',
     gradient: { from: 'emerald-50', to: 'teal-50', accent: 'from-emerald-600 to-teal-600' },
     stats: [
       { value: '25K+', label: 'Moves Completed' },
-      { value: '150+', label: 'Cities Covered' },
+      { value: '500+', label: 'Cities Covered' },
       { value: '98%', label: 'Satisfaction Rate' },
     ],
     features: [

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/about' },
   openGraph: {
     title: "About TransRentals - India's #1 Vehicle Rental Marketplace",
-    description: "India's largest vehicle rental marketplace. 50K+ customers, 1000+ verified vehicles, 500+ cities.",
+    description: "India's largest vehicle rental marketplace. 40K+ customers, 1000+ verified vehicles, 500+ cities.",
     type: 'website',
     url: 'https://transrentals.in/about',
   },
