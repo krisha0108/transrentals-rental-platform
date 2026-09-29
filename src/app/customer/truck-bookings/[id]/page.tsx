@@ -26,6 +26,7 @@ import CustomerHeader from '@/components/customer/CustomerHeader';
 import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 import { quoteDisplay } from '@/lib/quote-font';
 import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
+import RefundStatusCard from '@/components/customer/RefundStatusCard';
 
 interface Customer {
   id: string;
@@ -888,7 +889,6 @@ export default function CustomerTruckBookingDetailPage() {
           </div>
         )}
 
-        {booking.vendor && <BookingPaymentSafetyNotice />}
 
         {/* Actions */}
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -933,6 +933,16 @@ export default function CustomerTruckBookingDetailPage() {
         </div>
         </aside>
         {/* /Right rail */}
+      </div>
+
+      {/* Outside the grid on purpose: the right rail is sticky, and a sticky
+          grid item paints over anything sharing its rows. Full content width. */}
+      <div className="max-w-7xl mx-auto space-y-5 px-4 pb-5 sm:px-6 lg:px-8">
+        {/* Renders itself away when there is no refund to talk about. A refund
+            is owed whether or not a vendor was ever assigned, so it does not
+            sit behind the notice's vendor guard. */}
+        <RefundStatusCard source="truck_bookings" bookingId={booking.id} />
+        {booking.vendor && <BookingPaymentSafetyNotice />}
       </div>
 
       {/* Cancel Booking Modal */}

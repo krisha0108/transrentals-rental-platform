@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
 import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
 
 // GET - Get single Self-Drive car booking details
@@ -212,21 +214,36 @@ export async function PATCH(
         },
       });
 
-      // Notify vendor if one was assigned
-      if (booking.assignedVendorId || booking.acceptedVendorId) {
-        const vendorId = booking.assignedVendorId || booking.acceptedVendorId;
-        await prisma.notifications.create({
-          data: {
-            userId: vendorId!,
-            userType: 'VENDOR',
-            title: 'Booking Cancelled by Customer',
-            message: `Booking #${booking.bookingNumber} has been cancelled by the customer. Reason: ${reason || 'No reason provided'}.`,
-            type: 'BOOKING_CANCELLED',
-            bookingId: booking.id,
-            bookingType: 'self_drive',
-          },
-        }).catch(() => {}); // non-blocking
+      // Non-blocking: the vendor has a slot held for this job. This used to
+      // write to `notifications`, which is the customer's table and has no
+      // userId/userType/message columns — it threw on every cancel and the
+      // empty catch hid it.
+      const cancelledVendorId = booking.assignedVendorId || booking.acceptedVendorId;
+      if (cancelledVendorId) {
+        sendVendorDirectNotification({
+          vendorId: cancelledVendorId,
+          title: 'Booking cancelled by customer',
+          body: `Booking #${booking.bookingNumber} was cancelled. Reason: ${reason || 'not given'}.`,
+          type: 'booking_cancelled',
+          serviceType: 'self-drive',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+        }).catch((err: unknown) => console.error('[Cancel] vendor notification failed:', err));
       }
+
+      // Money owed goes on the refunds queue and the desk is told. Never
+      // blocks the cancellation.
+      openRefundFollowup({
+        source: 'car_bookings',
+        bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
+        serviceType: 'Self Drive',
+        customerId: booking.customerId,
+        customerName: booking.customerName,
+        amount: refundEligibleAmount,
+        reason,
+        paidAmount: booking.paidAmount || 0,
+      }).catch(() => {});
 
       return NextResponse.json({
         success: true,
