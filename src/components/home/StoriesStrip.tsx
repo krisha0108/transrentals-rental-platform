@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
 import {
   Zap,
   Clock,
@@ -72,12 +71,10 @@ function wrappedOffset(index: number, centerIndex: number, length: number) {
 function StoryCard({
   story,
   offset,
-  onSelect,
   dragDeltaX = 0,
 }: {
   story: Story;
   offset: number;
-  onSelect: () => void;
   dragDeltaX?: number;
 }) {
   const isCenter = offset === 0;
@@ -131,25 +128,19 @@ function StoryCard({
   );
 
   return (
-    <motion.div
+    <div
       className="absolute top-0 left-1/2"
-      style={{ marginLeft: -width / 2 }}
-      animate={{
-        x: offset * SPACING + dragDeltaX * 0.5,
-        scale: isCenter ? 1 : 0.94,
-        opacity: 1,
+      style={{
+        marginLeft: -width / 2,
+        transform: `translateX(${offset * SPACING + dragDeltaX * 0.5}px) scale(${isCenter ? 1 : 0.94})`,
         zIndex: 20 - dist,
+        // Skip the transition while actively dragging so the card tracks the
+        // pointer 1:1 with no lag, then ease into place on release.
+        transition: dragDeltaX !== 0 ? 'none' : 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
       }}
-      transition={dragDeltaX !== 0 ? { type: 'tween', duration: 0 } : { type: 'spring', stiffness: 260, damping: 30 }}
     >
-      {isCenter ? (
-        <Link href={`/stories/${story.slug}`}>{content}</Link>
-      ) : (
-        <button type="button" onClick={onSelect} className="block cursor-pointer">
-          {content}
-        </button>
-      )}
-    </motion.div>
+      <Link href={`/stories/${story.slug}`}>{content}</Link>
+    </div>
   );
 }
 
@@ -162,10 +153,10 @@ export function StoriesStrip() {
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
-    fetch('/api/web-stories?featured=true', { signal: controller.signal })
+    fetch('/api/web-stories?featured=true&limit=5', { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => {
-        const list = d.stories?.slice(0, 20) || [];
+        const list = d.stories?.slice(0, 5) || [];
         setStories(list);
         setCenterIndex(0);
       })
@@ -197,39 +188,41 @@ export function StoriesStrip() {
     return (prev + 1) % len;
   });
 
-  // Drag-to-change: mouse or touch, in either direction. `draggedRef` marks
-  // a gesture that actually moved (past a tiny jitter threshold) so the
-  // click-capture handler below can swallow the click that follows a drag
-  // release — otherwise dragging over the center card would also navigate
-  // to it via its <Link>.
+  // Drag-to-change: mouse or touch, in either direction. `justShiftedRef` is
+  // only set true when a drag actually moved the carousel to a new center
+  // card, so the click-capture handler below can swallow the click that
+  // follows that release — otherwise the card sliding under the cursor would
+  // also navigate via its <Link>.
+  //
+  // This used to key off a separate "did the pointer move more than N px"
+  // flag instead, checked at a lower threshold than the one that actually
+  // shifts the carousel. That left a dead zone: a click with any incidental
+  // pointer movement in between (trackpads and an unsteady hand do this
+  // constantly — and a synthetic/automated drag gesture can too) got flagged
+  // as "dragged" and had its click swallowed, even on gestures nowhere near
+  // large enough to move the carousel — so nothing happened at all on click.
+  // Tying the flag directly to "did we just call goNext/goPrev" removes the
+  // guesswork: only a drag that actually did something blocks the click.
   const dragStartXRef = useRef<number | null>(null);
-  const draggedRef = useRef(false);
+  const justShiftedRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [dragDeltaX, setDragDeltaX] = useState(0);
   const DRAG_THRESHOLD = 50;
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     dragStartXRef.current = e.clientX;
-    draggedRef.current = false;
     setDragging(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (dragStartXRef.current === null) return;
     const delta = e.clientX - dragStartXRef.current;
-    // A real click/tap almost never lands at exactly 0px of movement —
-    // mouse and (especially) touch input naturally jitter a few pixels
-    // between pointerdown and pointerup. At 6px that jitter alone was
-    // enough to get misclassified as a drag, which then preventDefault/
-    // stopPropagation'd the click and silently ate the "Read Story" tap
-    // on the center card's <Link>. 15px still catches real drags quickly.
-    if (Math.abs(delta) > 15) draggedRef.current = true;
     setDragDeltaX(Math.max(-160, Math.min(160, delta)));
   };
   const endDrag = (commit: boolean) => {
-    if (commit && draggedRef.current) {
-      if (dragDeltaX <= -DRAG_THRESHOLD) goNext();
-      else if (dragDeltaX >= DRAG_THRESHOLD) goPrev();
+    if (commit) {
+      if (dragDeltaX <= -DRAG_THRESHOLD) { goNext(); justShiftedRef.current = true; }
+      else if (dragDeltaX >= DRAG_THRESHOLD) { goPrev(); justShiftedRef.current = true; }
     }
     dragStartXRef.current = null;
     setDragging(false);
@@ -238,10 +231,10 @@ export function StoriesStrip() {
   const handlePointerUp = () => endDrag(true);
   const handlePointerCancel = () => endDrag(false);
   const handleTrackClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (draggedRef.current) {
+    if (justShiftedRef.current) {
       e.preventDefault();
       e.stopPropagation();
-      draggedRef.current = false;
+      justShiftedRef.current = false;
     }
   };
 
@@ -339,7 +332,7 @@ export function StoriesStrip() {
               : visibleStories.map((story, i) => {
                   const offset = wrappedOffset(i, centerIndex, visibleStories.length);
                   return (
-                    <StoryCard key={story.id} story={story} offset={offset} onSelect={() => setCenterIndex(i)} dragDeltaX={dragDeltaX} />
+                    <StoryCard key={story.id} story={story} offset={offset} dragDeltaX={dragDeltaX} />
                   );
                 })}
           </div>

@@ -6308,6 +6308,7 @@ model web_stories {
   displayOrder     Int                   @default(0)
   expiresAt        DateTime?
   publishedAt      DateTime?
+  scheduledAt      DateTime?
   targetServices   String?               @db.Text
   targetLocations  String?               @db.Text
   createdAt        DateTime              @default(now())
@@ -6321,6 +6322,7 @@ model web_stories {
   @@index([isFeatured])
   @@index([expiresAt])
   @@index([displayOrder])
+  @@index([scheduledAt])
 }
 
 model web_story_slides {

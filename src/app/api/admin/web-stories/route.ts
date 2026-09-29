@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import crypto from 'crypto';
 import logger from '@/lib/security/logger';
+import { publishScheduledStories } from '@/lib/web-stories/publish-scheduled';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    await publishScheduledStories();
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -103,6 +106,7 @@ export async function GET(request: NextRequest) {
       displayOrder: s.displayOrder,
       expiresAt: s.expiresAt?.toISOString() || null,
       publishedAt: s.publishedAt?.toISOString() || null,
+      scheduledAt: s.scheduledAt?.toISOString() || null,
       createdAt: s.createdAt.toISOString(),
       updatedAt: s.updatedAt.toISOString(),
       slideCount: s.slides.length,
@@ -179,6 +183,7 @@ export async function POST(request: NextRequest) {
         publisherLogo: body.publisherLogo || null,
         category: body.category?.trim() || null,
         expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+        scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : null,
         displayOrder: body.displayOrder ?? 0,
       },
     });
