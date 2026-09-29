@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import {
     UserPlus,
-    LogIn,
     FileCheck,
     MapPin,
     Zap,
@@ -22,6 +21,16 @@ import {
     Tag,
     IndianRupee,
     ImagePlus,
+    Truck,
+    Users,
+    Repeat,
+    Building2,
+    Network,
+    Compass,
+    Smartphone,
+    QrCode,
+    Wrench,
+    AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -370,7 +379,7 @@ function LocationSelectMock() {
                 </div>
                 <div className="flex items-start gap-2 bg-teal-50 rounded-lg p-3 border border-teal-100">
                     <MapPin className="w-3.5 h-3.5 text-teal-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-teal-700 font-medium">Mumbai, Pune, Nagpur selected — Admin will review your request within 24–48 hrs</p>
+                    <p className="text-xs text-teal-700 font-medium">Mumbai, Pune, Nagpur selected — our team will review your request</p>
                 </div>
                 <div className="bg-teal-700 text-white rounded-lg py-2 text-center text-xs font-bold">Request Selected (3) →</div>
             </div>
@@ -424,7 +433,7 @@ function UnderReviewMock() {
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="bg-amber-500 px-5 py-4 text-center">
                 <p className="text-white font-bold text-sm">⏳ Request Under Review</p>
-                <p className="text-amber-100 text-xs mt-0.5">Typical review time: 24–48 hours</p>
+                <p className="text-amber-100 text-xs mt-0.5">Reviewed by a person, not automatically</p>
             </div>
             <div className="p-5 space-y-4">
                 <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 space-y-2">
@@ -557,9 +566,10 @@ function RequestDetailMock() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   STEP 11 — SEND A QUOTE (Self-Drive Car Rental only — the one service
-   where the vendor sets a custom price. Bike/Car/Bus/Truck bookings
-   arrive pre-priced — see Step 10.)
+   STEP 11 — SEND A QUOTE. Every service except Car Rental has its own
+   Requests and Quotes pages, so this is the normal path, not a Self-Drive
+   special case. These screens are Self-Drive; the rest follow the same
+   shape. Car Rental arrives pre-priced — see Step 10.
    ───────────────────────────────────────────────────────────── */
 
 function QuoteVehicleSelectMock() {
@@ -1676,53 +1686,671 @@ function VehicleAddedSuccessMock() {
    STEPS DATA
    ───────────────────────────────────────────────────────────── */
 
+/* ─────────────────────────────────────────────────────────────
+   SCREENS FOR STEPS 8–15 — the rest of the platform, drawn the same
+   way as the screens above: a coloured header bar, rows or a stat grid,
+   and a pin legend where a screen needs explaining.
+   ───────────────────────────────────────────────────────────── */
+
+/** A row of small stat tiles, the shape used by the dashboard screens. */
+function StatGrid({ items, cols = 2 }: { items: { label: string; value: string; bg: string; text: string }[]; cols?: number }) {
+    return (
+        <div className={`p-4 grid gap-2 ${cols === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            {items.map((s) => (
+                <div key={s.label} className={`rounded-xl border p-3 ${s.bg}`}>
+                    <p className={`font-black text-lg leading-none ${s.text}`}>{s.value}</p>
+                    <p className={`text-[10px] font-semibold opacity-70 mt-1 ${s.text}`}>{s.label}</p>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/** A screen frame with the coloured title bar every mockup here uses. */
+function Screen({
+    title,
+    subtitle,
+    badge,
+    bar,
+    children,
+}: {
+    title: string;
+    subtitle?: string;
+    badge?: string;
+    bar: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className={`${bar} px-5 py-3 flex items-center justify-between`}>
+                <div>
+                    <p className="text-white font-bold text-sm">{title}</p>
+                    {subtitle && <p className="text-white/70 text-[10px]">{subtitle}</p>}
+                </div>
+                {badge && (
+                    <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
+                        {badge}
+                    </span>
+                )}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+/** A list of rows: label on the left, a status chip on the right. */
+function Rows({ rows }: { rows: { name: string; sub?: string; chip?: string; chipStyle?: string; pin?: number; pinColor?: string }[] }) {
+    return (
+        <div className="divide-y divide-slate-100">
+            {rows.map((r) => (
+                <div key={r.name} className="flex items-center justify-between px-4 py-3 gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{r.name}</p>
+                            {r.sub && <p className="text-[10px] text-slate-400">{r.sub}</p>}
+                        </div>
+                        {r.pin && <Pin n={r.pin} color={r.pinColor ?? 'blue'} />}
+                    </div>
+                    {r.chip && (
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border whitespace-nowrap ${r.chipStyle ?? 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                            {r.chip}
+                        </span>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+const OK = 'bg-green-50 border-green-200 text-green-700';
+const WARN = 'bg-amber-50 border-amber-200 text-amber-700';
+const BAD = 'bg-red-50 border-red-200 text-red-700';
+const MUTED = 'bg-slate-50 border-slate-200 text-slate-500';
+const INFO = 'bg-blue-50 border-blue-200 text-blue-700';
+
+/* ── Step 15: bank details & the partnership agreement ──────────────────── */
+
+function BankDetailsMock() {
+    return (
+        <Screen title="Bank Details" subtitle="Where your earnings are paid" bar="bg-emerald-700" badge="Payout account">
+            <div className="p-4 space-y-3">
+                <Field label="Account Holder" value="Sharma Travels Pvt. Ltd." pin={1} color="teal" />
+                <Field label="Account Number" value="•••• •••• 4417" />
+                <Field label="IFSC Code" value="HDFC0001234" hint="Branch fills in automatically" />
+                <Field label="Cancelled Cheque" value="cheque-scan.jpg — optional" pin={2} color="teal" />
+            </div>
+            <PinLegend items={['Must match the name on your PAN', 'Optional, but it speeds up verification']} color="teal" />
+        </Screen>
+    );
+}
+
+function AgreementMock() {
+    return (
+        <Screen title="Partnership Agreement" subtitle="Read once, accept once" bar="bg-slate-800">
+            <div className="p-4">
+                <div className="h-28 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[10px] leading-relaxed text-slate-500">
+                        This agreement sets out the terms on which you list and fulfil bookings through
+                        TransRentals — commission on completed bookings, payout timelines, cancellation
+                        handling, and the standards expected of a verified vendor…
+                    </p>
+                </div>
+                <label className="mt-3 flex items-start gap-2.5">
+                    <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 border-emerald-500 bg-emerald-500 text-[9px] font-black text-white">
+                        ✓
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-600">
+                        I have read and accept the terms of partnership
+                    </span>
+                </label>
+                <div className="mt-3 rounded-xl bg-slate-900 px-4 py-2.5 text-center text-xs font-bold text-white">
+                    Accept &amp; Continue
+                </div>
+            </div>
+        </Screen>
+    );
+}
+
+/* ── Step 16: fleet documents and what is expiring ──────────────────────── */
+
+function FleetDocsMock() {
+    return (
+        <Screen title="Fleet Documents" subtitle="GJ 01 AB 1234 · Swift Dzire" bar="bg-blue-700" badge="1 expiring">
+            <Rows
+                rows={[
+                    { name: 'Registration Certificate (RC)', sub: 'Valid till 12 Mar 2031', chip: 'VALID', chipStyle: OK },
+                    { name: 'Insurance', sub: 'Expires in 19 days', chip: 'EXPIRING', chipStyle: WARN, pin: 1, pinColor: 'blue' },
+                    { name: 'Permit', sub: 'Valid till 30 Sep 2027', chip: 'VALID', chipStyle: OK },
+                    { name: 'Fitness Certificate', sub: 'Not uploaded', chip: 'UPLOAD', chipStyle: MUTED },
+                ]}
+            />
+            <PinLegend items={['You are warned before it lapses, not after']} color="blue" />
+        </Screen>
+    );
+}
+
+/* ── Step 17: service history and incidents ─────────────────────────────── */
+
+function ServiceLogMock() {
+    return (
+        <Screen title="Service & Maintenance" subtitle="GJ 01 AB 1234" bar="bg-indigo-700" badge="Next due in 1,200 km">
+            <Rows
+                rows={[
+                    { name: 'General service · 40,000 km', sub: '14 Aug 2026 · ₹6,400', chip: 'DONE', chipStyle: OK },
+                    { name: 'Brake pads replaced', sub: '02 Jun 2026 · ₹2,100', chip: 'DONE', chipStyle: OK },
+                    { name: 'Next service · 50,000 km', sub: 'Due around 20 Oct 2026', chip: 'UPCOMING', chipStyle: INFO, pin: 1, pinColor: 'indigo' },
+                ]}
+            />
+            <PinLegend items={['Log the reading and the next one is worked out for you']} color="indigo" />
+        </Screen>
+    );
+}
+
+function IncidentMock() {
+    return (
+        <Screen title="Incident & Claim" subtitle="Reported 09 Sep 2026" bar="bg-rose-700" badge="Claim open">
+            <div className="p-4 space-y-3">
+                <Field label="Vehicle" value="GJ 01 AB 1234 · Swift Dzire" />
+                <Field label="What happened" value="Rear bumper damaged while parked" />
+                <Field label="Insurance Claim No." value="CLM-2026-08812" pin={1} color="orange" />
+                <div className="flex gap-2">
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${WARN}`}>SURVEYOR ASSIGNED</span>
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${MUTED}`}>₹18,500 CLAIMED</span>
+                </div>
+            </div>
+            <PinLegend items={['The claim stays attached to the vehicle, not to a WhatsApp thread']} color="orange" />
+        </Screen>
+    );
+}
+
+/* ── Step 18: fuel cost and how the fleet is doing ──────────────────────── */
+
+function FuelLogMock() {
+    return (
+        <Screen title="Fuel Tracking" subtitle="September 2026" bar="bg-orange-600" badge="₹41,280 this month">
+            <Rows
+                rows={[
+                    { name: 'GJ 01 AB 1234 · Swift Dzire', sub: '38 L · 24 Sep', chip: '₹3,990', chipStyle: MUTED },
+                    { name: 'GJ 01 CD 5678 · Innova', sub: '52 L · 23 Sep', chip: '₹5,460', chipStyle: MUTED },
+                    { name: 'GJ 05 EF 9012 · Activa', sub: '9 L · 23 Sep', chip: '₹945', chipStyle: MUTED },
+                ]}
+            />
+            <PinLegend items={['Per vehicle, so you can see which one is quietly eating the money']} color="orange" />
+        </Screen>
+    );
+}
+
+function FleetAnalyticsMock() {
+    return (
+        <Screen title="Fleet Analytics" subtitle="Last 30 days" bar="bg-teal-700">
+            <StatGrid
+                items={[
+                    { label: 'Utilisation', value: '68%', bg: 'bg-teal-50 border-teal-200', text: 'text-teal-800' },
+                    { label: 'Active vehicles', value: '14', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-800' },
+                    { label: 'Idle 7+ days', value: '3', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800' },
+                    { label: 'Top earner', value: 'Innova', bg: 'bg-green-50 border-green-200', text: 'text-green-800' },
+                ]}
+            />
+            <div className="px-4 pb-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Earnings by vehicle</p>
+                {[
+                    ['Innova · GJ 01 CD 5678', '82%'],
+                    ['Swift Dzire · GJ 01 AB 1234', '64%'],
+                    ['Activa · GJ 05 EF 9012', '31%'],
+                ].map(([name, pct]) => (
+                    <div key={name} className="mb-2">
+                        <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                            <span>{name}</span>
+                            <span className="font-bold">{pct}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-slate-100">
+                            <div className="h-1.5 rounded-full bg-teal-500" style={{ width: pct }} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </Screen>
+    );
+}
+
+/* ── Step 19: staff, attendance and payroll ─────────────────────────────── */
+
+function StaffListMock() {
+    return (
+        <Screen title="All Staff" subtitle="Sharma Travels Pvt. Ltd." bar="bg-violet-700" badge="6 employees">
+            <Rows
+                rows={[
+                    { name: 'Rakesh Yadav', sub: 'Driver · ₹18,000 / month', chip: 'ACTIVE', chipStyle: OK },
+                    { name: 'Imran Shaikh', sub: 'Driver · ₹18,000 / month', chip: 'ACTIVE', chipStyle: OK },
+                    { name: 'Meena Patel', sub: 'Office · ₹22,000 / month', chip: 'ACTIVE', chipStyle: OK },
+                    { name: 'Suresh Rao', sub: 'Driver · ₹18,000 / month', chip: 'ON LEAVE', chipStyle: WARN },
+                ]}
+            />
+        </Screen>
+    );
+}
+
+function AttendanceMock() {
+    const days = ['P', 'P', 'P', 'A', 'P', 'P', 'H', 'P', 'P', 'P', 'P', 'P', 'A', 'H'];
+    return (
+        <Screen title="Attendance" subtitle="Rakesh Yadav · September" bar="bg-violet-700" badge="24 / 26 present">
+            <div className="p-4">
+                <div className="grid grid-cols-7 gap-1.5">
+                    {days.map((d, i) => (
+                        <div
+                            key={i}
+                            className={`aspect-square rounded-lg flex items-center justify-center text-[10px] font-black ${
+                                d === 'P' ? 'bg-green-100 text-green-700' : d === 'A' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400'
+                            }`}
+                        >
+                            {d}
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-3 flex gap-3 text-[10px] text-slate-400">
+                    <span><b className="text-green-600">P</b> Present</span>
+                    <span><b className="text-red-500">A</b> Absent</span>
+                    <span><b className="text-slate-400">H</b> Holiday</span>
+                </div>
+            </div>
+            <PinLegend items={['Mark it daily — payroll reads straight off this']} color="purple" />
+        </Screen>
+    );
+}
+
+function PayrollMock() {
+    return (
+        <Screen title="Payroll" subtitle="September 2026" bar="bg-emerald-700" badge="Auto-calculated">
+            <Rows
+                rows={[
+                    { name: 'Rakesh Yadav', sub: '24 days present', chip: '₹16,615', chipStyle: OK },
+                    { name: 'Imran Shaikh', sub: '26 days present', chip: '₹18,000', chipStyle: OK },
+                    { name: 'Meena Patel', sub: '25 days present', chip: '₹21,153', chipStyle: OK },
+                    { name: 'Suresh Rao', sub: '11 days present', chip: '₹7,615', chipStyle: WARN, pin: 1, pinColor: 'teal' },
+                ]}
+            />
+            <PinLegend items={['Worked out from attendance — no month-end arithmetic by hand']} color="teal" />
+        </Screen>
+    );
+}
+
+/* ── Step 20: bookings you bring in yourself ────────────────────────────── */
+
+function DirectBookingMock() {
+    return (
+        <Screen title="New Direct Booking" subtitle="Customer who called you" bar="bg-blue-700" badge="No quote cycle">
+            <div className="p-4 space-y-3">
+                <Field label="Customer Name" value="Anil Kapadia" pin={1} color="blue" />
+                <Field label="Mobile" value="+91 98240 11223" />
+                <Field label="Vehicle" value="Swift Dzire · GJ 01 AB 1234" />
+                <Field label="Dates" value="28 Sep → 01 Oct 2026 · 3 days" />
+                <Field label="Amount" value="₹7,500" hint="You set it — this booking never went through search" />
+            </div>
+            <PinLegend items={['Your customer, booked into the same dashboard as ours']} color="blue" />
+        </Screen>
+    );
+}
+
+function BookingLinkMock() {
+    return (
+        <Screen title="My Booking Link" subtitle="Share it anywhere" bar="bg-indigo-700" badge="Live">
+            <div className="p-4">
+                <div className="flex items-center gap-4">
+                    <div className="grid h-20 w-20 flex-shrink-0 grid-cols-5 grid-rows-5 gap-0.5 rounded-lg border border-slate-200 bg-white p-1.5">
+                        {Array.from({ length: 25 }).map((_, i) => (
+                            <span key={i} className={`rounded-[1px] ${[0, 1, 2, 5, 7, 10, 12, 14, 18, 20, 22, 23, 24, 3, 9, 16].includes(i) ? 'bg-slate-900' : 'bg-transparent'}`} />
+                        ))}
+                    </div>
+                    <div className="min-w-0">
+                        <p className="truncate rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[11px] font-medium text-slate-600">
+                            transrentals.in/book/sharma-travels
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                            <span className="rounded-lg bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white">Copy link</span>
+                            <span className="rounded-lg border border-slate-200 px-3 py-1.5 text-[10px] font-bold text-slate-500">Download QR</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <PinLegend items={['On WhatsApp, on your shop board — every booking still lands here']} color="indigo" />
+        </Screen>
+    );
+}
+
+/* ── Step 21: the big jobs ──────────────────────────────────────────────── */
+
+function BulkBookingMock() {
+    return (
+        <Screen title="Bulk / Event Booking" subtitle="Wedding · Patel family" bar="bg-purple-700" badge="6 vehicles">
+            <Rows
+                rows={[
+                    { name: '2 × Innova Crysta', sub: '28 Nov · Baraat · 10 hrs', chip: 'ASSIGNED', chipStyle: OK },
+                    { name: '3 × Tempo Traveller', sub: '28 Nov · Guest pickup', chip: 'ASSIGNED', chipStyle: OK },
+                    { name: '1 × Luxury sedan', sub: '29 Nov · Couple', chip: 'PENDING', chipStyle: WARN, pin: 1, pinColor: 'purple' },
+                ]}
+            />
+            <div className="border-t border-slate-100 px-4 py-3 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</span>
+                <span className="text-sm font-black text-slate-800">₹1,84,000</span>
+            </div>
+            <PinLegend items={['Short a vehicle? Pull one in through P2P instead of refusing the job']} color="purple" />
+        </Screen>
+    );
+}
+
+/* ── Step 22: corporate work ────────────────────────────────────────────── */
+
+function B2BRequestsMock() {
+    return (
+        <Screen title="B2B — Open Requests" subtitle="Corporate clients" bar="bg-slate-800" badge="4 open">
+            <Rows
+                rows={[
+                    { name: 'Infibeam Avenues Ltd.', sub: 'Daily staff pickup · 3 months', chip: 'PICK UP', chipStyle: INFO, pin: 1, pinColor: 'blue' },
+                    { name: 'Torrent Power', sub: 'Site visits · 12 vehicles', chip: 'PICK UP', chipStyle: INFO },
+                    { name: 'Adani Conference 2026', sub: 'Event fleet · 2 days', chip: 'PICK UP', chipStyle: INFO },
+                    { name: 'Zydus Lifesciences', sub: 'Airport transfers · ongoing', chip: 'TAKEN', chipStyle: MUTED },
+                ]}
+            />
+            <PinLegend items={['Work a single operator rarely wins alone — it comes to you here']} color="blue" />
+        </Screen>
+    );
+}
+
+function B2BAssignmentsMock() {
+    return (
+        <Screen title="My Assignments" subtitle="What you have taken on" bar="bg-slate-800" badge="2 running">
+            <Rows
+                rows={[
+                    { name: 'Infibeam Avenues Ltd.', sub: 'Started 01 Sep · ₹2.4L / month', chip: 'RUNNING', chipStyle: OK },
+                    { name: 'Torrent Power', sub: 'Starts 01 Oct', chip: 'SCHEDULED', chipStyle: INFO },
+                ]}
+            />
+        </Screen>
+    );
+}
+
+/* ── Step 23: vendor to vendor ──────────────────────────────────────────── */
+
+function P2PPostMock() {
+    return (
+        <Screen title="Post an Idle Vehicle" subtitle="Let it earn instead of sitting" bar="bg-cyan-700" badge="P2P">
+            <div className="p-4 space-y-3">
+                <Field label="Vehicle" value="Innova Crysta · GJ 01 CD 5678" pin={1} color="teal" />
+                <Field label="Free between" value="26 Sep → 30 Sep 2026" />
+                <Field label="Your rate to other vendors" value="₹2,600 / day" hint="They quote their own customer on top" />
+                <div className="rounded-xl bg-cyan-600 px-4 py-2.5 text-center text-xs font-bold text-white">
+                    Post to marketplace
+                </div>
+            </div>
+            <PinLegend items={['Only vehicles with no booking in that window can be posted']} color="teal" />
+        </Screen>
+    );
+}
+
+function P2PBrowseMock() {
+    return (
+        <Screen title="Available from other vendors" subtitle="Ahmedabad · 28 Nov" bar="bg-cyan-700" badge="Rent in">
+            <Rows
+                rows={[
+                    { name: 'Tempo Traveller · 17 seat', sub: 'Krishna Tours · 2.1 km away', chip: '₹4,200/day', chipStyle: INFO },
+                    { name: 'Innova Crysta', sub: 'Maruti Travels · 5.4 km away', chip: '₹2,800/day', chipStyle: INFO },
+                    { name: 'Swift Dzire', sub: 'Shree Cabs · 1.8 km away', chip: '₹1,900/day', chipStyle: INFO, pin: 1, pinColor: 'teal' },
+                ]}
+            />
+            <PinLegend items={['More demand than vehicles? Borrow instead of turning the customer away']} color="teal" />
+        </Screen>
+    );
+}
+
+/* ── Step 24: tour packages ─────────────────────────────────────────────── */
+
+function WanderListingMock() {
+    return (
+        <Screen title="Wander — My Listings" subtitle="Tour packages" bar="bg-fuchsia-700" badge="3 live">
+            <Rows
+                rows={[
+                    { name: 'Gir + Somnath · 3 nights', sub: 'From ₹12,400 per person', chip: 'LIVE', chipStyle: OK },
+                    { name: 'Rann of Kutch · 2 nights', sub: 'From ₹9,800 per person', chip: 'LIVE', chipStyle: OK },
+                    { name: 'Saputara weekend', sub: 'Draft — itinerary incomplete', chip: 'DRAFT', chipStyle: MUTED, pin: 1, pinColor: 'purple' },
+                ]}
+            />
+            <PinLegend items={['Destination, itinerary and pricing — then it goes live']} color="purple" />
+        </Screen>
+    );
+}
+
+function WanderAnalyticsMock() {
+    return (
+        <Screen title="Listing Analytics" subtitle="Gir + Somnath · 3 nights" bar="bg-fuchsia-700">
+            <StatGrid
+                items={[
+                    { label: 'Views', value: '1,842', bg: 'bg-fuchsia-50 border-fuchsia-200', text: 'text-fuchsia-800' },
+                    { label: 'Enquiries', value: '96', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-800' },
+                    { label: 'Booked', value: '31', bg: 'bg-green-50 border-green-200', text: 'text-green-800' },
+                    { label: 'Rating', value: '4.7 ★', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800' },
+                ]}
+            />
+            <div className="border-t border-slate-100 px-4 py-3">
+                <p className="text-[10px] text-slate-500">
+                    <b className="text-slate-700">&ldquo;Guide knew every corner of Gir.&rdquo;</b> — Ritu M., 12 Sep
+                </p>
+            </div>
+        </Screen>
+    );
+}
+
+/* ── Step 25: the money, all in one place ───────────────────────────────── */
+
+function FinancialsMock() {
+    return (
+        <Screen title="Financials" subtitle="All services · September 2026" bar="bg-green-700" badge="Combined">
+            <StatGrid
+                items={[
+                    { label: 'Earned', value: '₹4.82L', bg: 'bg-green-50 border-green-200', text: 'text-green-800' },
+                    { label: 'Paid out', value: '₹3.90L', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-800' },
+                    { label: 'Pending payout', value: '₹92,400', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800' },
+                    { label: 'Expenses', value: '₹1.14L', bg: 'bg-rose-50 border-rose-200', text: 'text-rose-800' },
+                ]}
+            />
+            <div className="px-4 pb-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">By service</p>
+                {[
+                    ['Self-Drive', '₹1.96L'],
+                    ['Bike Rental', '₹1.12L'],
+                    ['Bus & Tempo', '₹88,000'],
+                    ['P2P & B2B', '₹86,000'],
+                ].map(([svc, amt]) => (
+                    <div key={svc} className="flex justify-between border-b border-slate-100 py-1.5 text-[11px] last:border-0">
+                        <span className="text-slate-500">{svc}</span>
+                        <span className="font-bold text-slate-700">{amt}</span>
+                    </div>
+                ))}
+            </div>
+        </Screen>
+    );
+}
+
+/* ── Step 26: talking to customers ──────────────────────────────────────── */
+
+function ChatMock() {
+    return (
+        <Screen title="Customer Chats" subtitle="Booking BK-2026-4412" bar="bg-blue-700" badge="On the record">
+            <div className="space-y-2 p-4">
+                <div className="max-w-[80%] rounded-2xl rounded-tl-md bg-slate-100 px-3 py-2">
+                    <p className="text-[11px] text-slate-600">Can I pick up at 8am instead of 10?</p>
+                    <p className="mt-0.5 text-[9px] text-slate-400">Anil · 9:14 am</p>
+                </div>
+                <div className="ml-auto max-w-[80%] rounded-2xl rounded-tr-md bg-blue-600 px-3 py-2">
+                    <p className="text-[11px] text-white">Yes, 8am works. Car will be ready.</p>
+                    <p className="mt-0.5 text-[9px] text-blue-100">You · 9:16 am</p>
+                </div>
+            </div>
+            <PinLegend items={['Stays attached to the booking instead of scattering across phones']} color="blue" />
+        </Screen>
+    );
+}
+
+function NotificationsMock() {
+    return (
+        <Screen title="Notifications" subtitle="What you want to hear about" bar="bg-blue-700">
+            <Rows
+                rows={[
+                    { name: 'New quote request', sub: 'Push + email', chip: 'ON', chipStyle: OK },
+                    { name: 'Booking confirmed', sub: 'Push + email', chip: 'ON', chipStyle: OK },
+                    { name: 'Document expiring', sub: 'Email only', chip: 'ON', chipStyle: OK },
+                    { name: 'Marketing updates', sub: 'Email', chip: 'OFF', chipStyle: MUTED, pin: 1, pinColor: 'blue' },
+                ]}
+            />
+            <PinLegend items={['Turn off what you do not want — the settings page is yours']} color="blue" />
+        </Screen>
+    );
+}
+
+/* ── Step 27: where everything is right now ─────────────────────────────── */
+
+function TrackingMock() {
+    return (
+        <Screen title="Live Tracking" subtitle="Ahmedabad" bar="bg-sky-700" badge="4 sharing">
+            <div className="relative h-36 bg-slate-100">
+                <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
+                {[
+                    { top: '22%', left: '28%', label: 'Rakesh' },
+                    { top: '58%', left: '62%', label: 'Imran' },
+                    { top: '38%', left: '78%', label: 'Suresh' },
+                ].map((m) => (
+                    <div key={m.label} className="absolute flex items-center gap-1" style={{ top: m.top, left: m.left }}>
+                        <span className="h-3 w-3 rounded-full border-2 border-white bg-sky-600 shadow" />
+                        <span className="rounded bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 shadow-sm">{m.label}</span>
+                    </div>
+                ))}
+            </div>
+            <Rows
+                rows={[
+                    { name: 'Rakesh Yadav', sub: 'On trip · SG Highway', chip: 'MOVING', chipStyle: OK },
+                    { name: 'Imran Shaikh', sub: 'Idle · Maninagar', chip: 'PARKED', chipStyle: MUTED },
+                ]}
+            />
+        </Screen>
+    );
+}
+
+/* ── Step 28: the other vendors ─────────────────────────────────────────── */
+
+function SocialFeedMock() {
+    return (
+        <Screen title="Vendor Community" subtitle="Vendors only" bar="bg-rose-700" badge="Feed">
+            <div className="divide-y divide-slate-100">
+                <div className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-[10px] font-black text-rose-700">KT</span>
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-700">Krishna Tours · Surat</p>
+                            <p className="text-[9px] text-slate-400">2 hours ago</p>
+                        </div>
+                        <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full border ${BAD}`}>SOS</span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-600">
+                        Need a 17-seater in Ahmedabad this Sunday — my driver is down. Anyone free?
+                    </p>
+                    <div className="mt-2 flex gap-3 text-[10px] text-slate-400">
+                        <span>💬 7 replies</span>
+                        <span>👍 12</span>
+                    </div>
+                </div>
+                <div className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-[10px] font-black text-blue-700">MT</span>
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-700">Maruti Travels · Vadodara</p>
+                            <p className="text-[9px] text-slate-400">Yesterday</p>
+                        </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-600">
+                        Tip: log fuel the same day. Month-end guessing cost me ₹9k last quarter.
+                    </p>
+                </div>
+            </div>
+        </Screen>
+    );
+}
+
+/* ── Step 29: the same business, from a phone ───────────────────────────── */
+
+function MobileAppMock() {
+    return (
+        <div className="mx-auto w-[210px] rounded-[2rem] border-4 border-slate-800 bg-slate-800 shadow-xl">
+            <div className="overflow-hidden rounded-[1.6rem] bg-white">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 pb-4 pt-5">
+                    <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[10px] font-black text-white">ST</span>
+                        <div>
+                            <p className="text-[11px] font-bold text-white">Sharma Travels</p>
+                            <p className="inline-flex items-center gap-1 text-[8px] font-bold text-blue-100">
+                                ✓ Verified vendor
+                            </p>
+                        </div>
+                    </div>
+                    <p className="mt-3 text-[9px] font-semibold uppercase tracking-wider text-blue-100">This month</p>
+                    <p className="text-xl font-black text-white">₹2,48,000</p>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 p-3">
+                    {[
+                        ['📋', 'Bookings'],
+                        ['🚗', 'Fleet'],
+                        ['💬', 'Chats'],
+                        ['💰', 'Earnings'],
+                    ].map(([icon, label]) => (
+                        <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-3 text-center">
+                            <p className="text-sm leading-none">{icon}</p>
+                            <p className="mt-1 text-[9px] font-bold text-slate-600">{label}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex justify-around border-t border-slate-100 py-2">
+                    {['🏠', '📋', '🚗', '👤'].map((i, n) => (
+                        <span key={n} className={`text-[11px] ${n === 0 ? '' : 'opacity-35'}`}>{i}</span>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 const steps = [
     {
         id: 1,
-        title: 'Registration',
+        title: 'Register & Log In',
         icon: <UserPlus className="w-6 h-6" />,
-        description: 'Provide your business identity and contact info across two simple steps.',
-        url: 'https://transrentals.in/vendor/register',
-        color: 'blue',
+        description: 'Two short forms and you are inside. Registration takes your business identity and your first service location; after that you sign in with the email — or the VN-xxxx vendor ID — you registered with.',
+        url: '/vendor/register',
+        color: 'blue' as string,
         tips: [
             'Step 1: Business Name, Owner, Email, Phone & Password — no GST/PAN needed here',
             'Step 2: Address + at least 1 Service Location (this IS your first location request)',
             'You\'re auto logged in straight to your dashboard — no separate verification email',
+            'Later, sign in with your registered email OR your VN-xxxx vendor ID',
         ],
         slides: [
             { label: 'Step 1 – Basic Info', mockup: <RegStep1Mock /> },
             { label: 'Step 2 – Business Details', mockup: <RegStep2Mock /> },
             { label: 'Welcome Modal (on Dashboard)', mockup: <RegSuccessMock /> },
-        ],
-    },
-    {
-        id: 2,
-        title: 'Login',
-        icon: <LogIn className="w-6 h-6" />,
-        description: 'Access your secure vendor dashboard using your registered email (or vendor ID) and password.',
-        url: 'https://transrentals.in/vendor/login',
-        color: 'indigo',
-        tips: [
-            'Enter your registered email OR your VN-xxxx vendor ID',
-            'Use the password set during registration',
-            'SSL Encrypted & Secure',
-        ],
-        slides: [
             { label: 'Login Screen', mockup: <LoginScreenMock /> },
             { label: 'Dashboard Welcome', mockup: <DashboardWelcomeMock /> },
         ],
     },
     {
-        id: 3,
-        title: 'Document Upload (KYC)',
+        id: 2,
+        title: 'Documents & Approval',
         icon: <FileCheck className="w-6 h-6" />,
-        description: 'Submit your business proofs for verification. Only Address Proof & PAN Card are required — GST is optional.',
+        description: 'Submit your business proofs for verification. Only Address Proof & PAN Card are required — the rest are optional and can wait. Uploading the two required ones puts you Under Review.',
         url: '/vendor/documents',
-        color: 'purple',
+        color: 'purple' as string,
         tips: [
             'Required: Address Proof, PAN Card',
             'Optional: GST Certificate, Business Registration, Cancelled Cheque, Owner\'s Aadhaar',
             'Format: PDF / JPG / PNG (Max 5 MB)',
+            'Each document carries its own status — pending, approved, rejected, or resubmit required',
+            'Most of the dashboard stays locked until a person approves you — that review is manual',
         ],
         slides: [
             { label: 'Document List', mockup: <DocListMock /> },
@@ -1756,16 +2384,34 @@ const steps = [
         ],
     },
     {
+        id: 3,
+        title: 'Bank Details & Partnership Agreement',
+        icon: <IndianRupee className="w-6 h-6" />,
+        description: 'The last two things in setup. Add the account your earnings are paid into, then read and accept the terms of partnership. Both have to be done before you can go live.',
+        url: '/vendor/bank-details',
+        color: 'emerald' as string,
+        tips: [
+            'The account holder name should match the name on your PAN',
+            'A cancelled cheque is optional, but it speeds verification up',
+            'The partnership agreement is read and accepted digitally — once',
+            'A Get Started checklist in your dashboard tracks everything still pending',
+        ],
+        slides: [
+            { label: 'Bank details', mockup: <BankDetailsMock /> },
+            { label: 'Partnership agreement', mockup: <AgreementMock /> },
+        ],
+    },
+    {
         id: 4,
-        title: 'Service & Location Requests',
+        title: 'Services & Cities',
         icon: <MapPin className="w-6 h-6" />,
         description: 'Your first city is already submitted at registration. Use this to request more cities, and to request the services you offer (always required, since registration never asks for these).',
         url: '/vendor/locations/request',
-        color: 'teal',
+        color: 'teal' as string,
         tips: [
             'Request more cities anytime from "Request Locations"',
             'Request services from "Manage Services" — required at least once, registration doesn\'t collect these',
-            'Admin reviews and approves within 24–48 hrs',
+            'Our team reviews each request and approves or rejects it',
         ],
         slides: [
             { label: 'Request Locations', mockup: <LocationSelectMock /> },
@@ -1775,154 +2421,70 @@ const steps = [
     },
     {
         id: 5,
-        title: 'Select Service & Vehicle Model',
-        icon: <Layers className="w-6 h-6" />,
-        description: 'Choose which service this vehicle is for, then pick the exact make & model from our catalogue. Car Rental uses a category + brand path instead.',
+        title: 'Add a Vehicle',
+        icon: <Car className="w-6 h-6" />,
+        description: 'One wizard, start to finish: pick the service and model, enter the details and photos, choose the cities it runs in, and set your rates. How many stages you see depends on the service — pricing only appears where you actually set the price.',
         url: '/vendor/fleet/add',
-        color: 'violet' as string,
+        color: 'indigo' as string,
         tips: [
-            'Pick service: Bike, Self-Drive, Car Rental, Bus, Luxury, Truck…',
-            'For Bike / Self-Drive / Bus / Luxury: search & select model',
-            'For Car Rental (with driver): select category + brand (no model)',
+            'Pick service, then search & select the model — Car Rental uses category + brand instead',
+            'Registration number auto-converts to UPPERCASE; add up to 5 photos (front, back, sides, interior)',
+            'Only your admin-approved cities appear in the locations stage',
+            'Pricing stage: Bike Rental, Self-Drive and Bus only — Truck, Equipment, Luxury and Car Rental are quote-based or admin-managed',
+            'City-wise overrides: Bike Rental and Self-Drive only; leave blank to use the base rate',
         ],
         slides: [
             { label: 'Fleet List → Add Vehicle', mockup: <FleetListMock /> },
             { label: 'Select Service', mockup: <ServiceSelectionMock /> },
             { label: 'Search & Select Model (Bike / Self-Drive / Bus)', mockup: <ModelSelectionMock /> },
             { label: 'Car Rental: Category + Brand path', mockup: <CarCategoryBrandMock /> },
-        ],
-    },
-    {
-        id: 6,
-        title: 'Vehicle Details & Images',
-        icon: <Car className="w-6 h-6" />,
-        description: 'Enter the registration number, year, and color. Then upload photos from 5 angles — vehicles with images receive significantly more bookings.',
-        url: '/vendor/fleet/add',
-        color: 'violet' as string,
-        tips: [
-            'Registration number auto-converts to UPPERCASE',
-            'Upload up to 5 images: Front, Back, Left, Right, Interior',
-            'Images are optional but strongly recommended (more bookings)',
-        ],
-        slides: [
             { label: 'Basic Details (Reg No / Year / Color)', mockup: <VehicleDetailsMock /> },
             { label: 'Upload 5-angle vehicle photos', mockup: <VehicleImagesMock /> },
-        ],
-    },
-    {
-        id: 7,
-        title: 'Choose Operating Locations',
-        icon: <MapPin className="w-6 h-6" />,
-        description: 'Select which of your approved cities this vehicle will be listed in. Only cities approved in Step 4 appear here.',
-        url: '/vendor/fleet/add',
-        color: 'teal' as string,
-        tips: [
-            'Only your admin-approved cities are shown',
-            'Use "Select All" to enable all cities at once',
-            'Vehicle will appear in listings for each selected city',
-        ],
-        slides: [
             { label: 'Select cities for this vehicle', mockup: <OperatingLocationsMock /> },
-        ],
-    },
-    {
-        id: 8,
-        title: 'Set General Pricing',
-        icon: <Tag className="w-6 h-6" />,
-        description: 'Define your base rental rates. This step applies to Bike Rental, Self-Drive, and Bus Rental only — Truck, Equipment, Luxury & Car Rental use quote-based or admin-managed pricing.',
-        url: '/vendor/fleet/add',
-        color: 'blue' as string,
-        tips: [
-            'Per Day Rate is required and must be greater than ₹0',
-            'Km Limit defaults to 100 km/day if left blank',
-            'Security Deposit is refundable — collected at pickup',
-        ],
-        slides: [
             { label: 'Set Per Day Rate, Km Limit & Deposit', mockup: <GeneralPricingMock /> },
             { label: 'Pricing Summary before proceeding', mockup: <PricingSummaryMock /> },
-        ],
-    },
-    {
-        id: 9,
-        title: 'City-wise Pricing',
-        icon: <MapPin className="w-6 h-6" />,
-        description: 'Optionally override the base price per city. Applies to Bike Rental and Self-Drive only. Leave blank to use the base rate everywhere.',
-        url: '/vendor/fleet/add',
-        color: 'indigo' as string,
-        tips: [
-            'Only for Bike Rental and Self-Drive services',
-            'Leave any field blank → base price is used for that city',
-            'Useful when your Mumbai rate differs from Nashik rate',
-        ],
-        slides: [
             { label: 'Per-city pricing overrides', mockup: <CityPricingMock /> },
             { label: 'Vehicle added successfully', mockup: <VehicleAddedSuccessMock /> },
         ],
     },
     {
-        id: 10,
-        title: 'Incoming Bookings (Bike / Car / Bus / Truck)',
-        icon: <FileCheck className="w-6 h-6" />,
-        description: 'For Bike Rental, Car Rental, Bus, Truck and most other services, the customer already paid a fixed price at checkout — the booking lands directly in your dashboard for you to Accept or Decline. There is no vendor pricing step for these.',
-        url: '/vendor/bike-rentals/bookings',
+        id: 6,
+        title: 'Bookings & Quotes',
+        icon: <Tag className="w-6 h-6" />,
+        description: 'Two ways a job reaches you. Car Rental arrives already priced — the customer paid at checkout and you simply Accept or Decline. Every other service sends you a request: you pick the vehicle, set your price, and an accepted quote becomes a booking on its own.',
+        url: '/vendor/self-drive/requests',
         color: 'sky' as string,
         tips: [
-            'Booking arrives with status PENDING_VENDOR / BROADCASTED',
-            'Accept or Decline — price, deposit & total are already fixed',
-            'Accepted bookings move into Trip Control (Step 13) once payment clears',
+            'Pre-priced bookings arrive as PENDING_VENDOR / BROADCASTED — Accept or Decline, nothing to price',
+            'Bike, Self-Drive, Bus, Truck, Transporter, Equipment, Packers and Luxury each have their own Requests and Quotes pages',
+            'Select vehicle from fleet → auto-fills name, brand, reg. no., transmission & fuel; Daily Rate × days = Total',
+            'Quote status: SENT → VIEWED → ACCEPTED (or WITHDRAWN); accepted quotes become bookings automatically',
+            'Save a quote template and reuse it instead of retyping the same terms',
+            'Cancelled bookings are kept in their own list so the active one stays clean',
         ],
         slides: [
             { label: 'Incoming bookings list', mockup: <RequestsListMock /> },
             { label: 'Booking detail — Accept / Decline', mockup: <RequestDetailMock /> },
-        ],
-    },
-    {
-        id: 11,
-        title: 'Send a Quote (Self-Drive Car Rental only)',
-        icon: <Tag className="w-6 h-6" />,
-        description: 'Self-Drive is the one service where you set your own price. The customer sends a request, you pick a car from your fleet, set your price, and send it back as a quote.',
-        url: '/vendor/self-drive/requests',
-        color: 'emerald' as string,
-        tips: [
-            'Select vehicle from fleet → auto-fills car name, brand, reg. no., transmission & fuel',
-            'Daily Rate × days = Total Amount',
-            'Add delivery / pickup charges if the customer requested them',
-        ],
-        slides: [
             { label: 'Select vehicle from fleet', mockup: <QuoteVehicleSelectMock /> },
             { label: 'Set daily rate, deposit, KM limit & advance', mockup: <QuotePricingMock /> },
             { label: 'Customise inclusions, exclusions & terms', mockup: <QuoteInclusionsMock /> },
             { label: 'Add notes & submit quote', mockup: <QuoteSubmitMock /> },
-        ],
-    },
-    {
-        id: 12,
-        title: 'Manage Your Quotes (Self-Drive)',
-        icon: <CheckCircle2 className="w-6 h-6" />,
-        description: 'Track every quote you have sent — see if it was Viewed, Accepted, or Withdrawn. Accepted quotes turn into a booking automatically.',
-        url: '/vendor/self-drive/quotes',
-        color: 'purple' as string,
-        tips: [
-            'Status: SENT → VIEWED → ACCEPTED (or WITHDRAWN)',
-            'Accepted quotes automatically become bookings',
-            'You can Withdraw any Sent or Viewed quote',
-        ],
-        slides: [
             { label: 'Quotes list with status & stats', mockup: <QuotesListMock /> },
             { label: 'Accepted quote detail & booking link', mockup: <QuoteDetailMock /> },
         ],
     },
     {
-        id: 13,
-        title: 'OTP Verification & Trip Lifecycle',
+        id: 7,
+        title: 'Running the Trip',
         icon: <ShieldCheck className="w-6 h-6" />,
-        description: 'Every trip starts with a secure 6-digit OTP. You send it, customer receives it on their phone, you verify it to start the trip — and complete it with a single button at return.',
+        description: 'Every trip starts with a secure 6-digit OTP. You send it, the customer receives it on their phone, you verify it to start the trip — and complete it with a single button at return.',
         url: '/vendor/bike-rentals/bookings',
         color: 'purple' as string,
         tips: [
             'Click "Send OTP to Customer" on an accepted booking → customer gets it by push notification',
             'Ask customer for their OTP → enter all 6 digits, then "Verify & Start Trip"',
             'On return: "End Trip & Complete" — no odometer or damage form today, amount was fixed at booking',
+            'Luxury Cars also has an Active Trips view, so you can see which bookings are on the road right now',
         ],
         slides: [
             { label: 'Booking accepted — Send OTP button', mockup: <BookingAcceptedMock /> },
@@ -1934,21 +2496,160 @@ const steps = [
         ],
     },
     {
-        id: 14,
-        title: 'Dashboard & Earnings',
-        icon: <Zap className="w-6 h-6" />,
-        description: 'Grow your business with real-time stats, bookings, and service performance.',
-        url: '/vendor/dashboard',
-        color: 'orange',
+        id: 8,
+        title: 'Fleet Management',
+        icon: <Truck className="w-6 h-6" />,
+        description: 'Not a listing page — the kind of fleet system a much bigger operator pays for separately. Paperwork with expiry tracking, service history, incidents and their insurance claims, fuel cost per vehicle, and how the whole fleet is performing.',
+        url: '/vendor/fleet',
+        color: 'blue' as string,
         tips: [
-            'Track monthly revenue at a glance',
-            'Service-wise performance breakdown',
-            'Instant booking notifications',
+            'Per vehicle: RC, insurance and permits — expiry is tracked, so you are warned before it lapses',
+            'Log the service and the reading; the next due date works itself out',
+            'Accidents are recorded against the vehicle, with the insurance claim attached to the incident',
+            'Fuel is logged per vehicle, not as one lump for the month',
+            'Analytics shows utilisation and which vehicles earn the most — an idle one shows up here first',
+        ],
+        slides: [
+            { label: 'Documents & expiry', mockup: <FleetDocsMock /> },
+            { label: 'Service history', mockup: <ServiceLogMock /> },
+            { label: 'Incident & insurance claim', mockup: <IncidentMock /> },
+            { label: 'Fuel log', mockup: <FuelLogMock /> },
+            { label: 'Fleet analytics', mockup: <FleetAnalyticsMock /> },
+        ],
+    },
+    {
+        id: 9,
+        title: 'Staff, Attendance & Payroll',
+        icon: <Users className="w-6 h-6" />,
+        description: 'Add your drivers and staff, mark who showed up each day, and let payroll calculate itself off that attendance instead of doing the maths by hand at month-end.',
+        url: '/vendor/staff',
+        color: 'violet' as string,
+        tips: [
+            'A directory of your employees, with the form to add a new one',
+            'Attendance is marked daily — present, absent or holiday',
+            'Payroll reads straight off attendance; no month-end arithmetic',
+            'If you employ even two or three people, this saves real hours',
+        ],
+        slides: [
+            { label: 'All staff', mockup: <StaffListMock /> },
+            { label: 'Attendance', mockup: <AttendanceMock /> },
+            { label: 'Payroll', mockup: <PayrollMock /> },
+        ],
+    },
+    {
+        id: 10,
+        title: 'Selling Directly',
+        icon: <QrCode className="w-6 h-6" />,
+        description: 'You are not limited to what TransRentals sends you. Book a customer who called you straight into the dashboard, share your own booking page with a QR code, or set up a bulk job for a wedding or an event.',
+        url: '/vendor/direct-bookings',
+        color: 'orange' as string,
+        tips: [
+            'Direct booking: create it yourself, no quote cycle needed',
+            'Booking link: your own page plus a QR code — put it on WhatsApp or your shop signage',
+            'Every booking through it still lands in this system, beside ours',
+            'Bulk / Event: several vehicles and dates held together as one job',
+            'Short a vehicle for a big job? Pull one in through P2P rather than refuse it',
+        ],
+        slides: [
+            { label: 'Create a direct booking', mockup: <DirectBookingMock /> },
+            { label: 'Your booking link & QR', mockup: <BookingLinkMock /> },
+            { label: 'A wedding booking', mockup: <BulkBookingMock /> },
+        ],
+    },
+    {
+        id: 11,
+        title: 'B2B / Corporate Work',
+        icon: <Building2 className="w-6 h-6" />,
+        description: 'Companies booking transport regularly, and event organisers needing a fleet for a day, usually go to whoever has the relationship or the bigger name. Through the B2B pipeline those requests reach you directly.',
+        url: '/vendor/b2b-bookings',
+        color: 'indigo' as string,
+        tips: [
+            'Open Requests — corporate jobs you can pick up',
+            'My Assignments — the ones you have taken on, and their status',
+            'Access to a category of business normally closed to smaller vendors',
+        ],
+        slides: [
+            { label: 'Open requests', mockup: <B2BRequestsMock /> },
+            { label: 'My assignments', mockup: <B2BAssignmentsMock /> },
+        ],
+    },
+    {
+        id: 12,
+        title: 'P2P Marketplace',
+        icon: <Repeat className="w-6 h-6" />,
+        description: 'A vehicle with no booking today earns nothing. Lend it to another vendor for the day — and when you have more demand than vehicles, borrow instead of turning the customer away. It runs both ways.',
+        url: '/vendor/p2p',
+        color: 'teal' as string,
+        tips: [
+            'Post Vehicle — offer an idle vehicle to other vendors',
+            'Available Vehicles — browse what others are offering and rent one in',
+            'Share Booking — pass on a job you cannot cover yourself',
+            'Available Bookings — pick up what other vendors are sharing',
+            'My Activity / My Postings — everything you have posted or taken',
+        ],
+        slides: [
+            { label: 'Post an idle vehicle', mockup: <P2PPostMock /> },
+            { label: 'Rent in from another vendor', mockup: <P2PBrowseMock /> },
+        ],
+    },
+    {
+        id: 13,
+        title: 'Wander Tours',
+        icon: <Compass className="w-6 h-6" />,
+        description: 'Wander is our separate travel-package marketplace. If you sell holidays and not only vehicles, list tour packages here, answer the requests they bring in, and see what each listing is doing.',
+        url: '/vendor/wander/listings',
+        color: 'purple' as string,
+        tips: [
+            'Create listings with destination, itinerary and pricing',
+            'Receive and respond to quote requests for those tours',
+            'Analytics — how many viewed a listing, and how many booked',
+            'Reviews left by travellers who actually took the tour',
+        ],
+        slides: [
+            { label: 'My tour listings', mockup: <WanderListingMock /> },
+            { label: 'Listing analytics & reviews', mockup: <WanderAnalyticsMock /> },
+        ],
+    },
+    {
+        id: 14,
+        title: 'Dashboard & Financials',
+        icon: <TrendingUp className="w-6 h-6" />,
+        description: 'Real-time stats on the dashboard, and behind it one combined view across every service and every source — our bookings, your direct ones, P2P and B2B — so you always know what is confirmed, pending and already paid out.',
+        url: '/vendor/dashboard',
+        color: 'green' as string,
+        tips: [
+            'Track monthly revenue at a glance, with a service-wise performance breakdown',
+            'Every service also has its own earnings page, broken down booking by booking',
+            'Financials pulls all of them together — overall profit and loss',
+            'See how much is still pending to be paid out to you',
         ],
         slides: [
             { label: 'Dashboard Overview', mockup: <DashboardOverviewMock /> },
             { label: 'Monthly Earnings', mockup: <EarningsCardMock /> },
             { label: 'Service Performance', mockup: <ServicePerfMock /> },
+            { label: 'Combined financials', mockup: <FinancialsMock /> },
+        ],
+    },
+    {
+        id: 15,
+        title: 'Chats, Tracking, Community & App',
+        icon: <Smartphone className="w-6 h-6" />,
+        description: 'The rest of what comes with the platform: messaging that stays attached to the booking, a live map of your drivers, a feed of other vendors who do what you do, and an app so none of it needs a desktop.',
+        url: '/vendor/chat',
+        color: 'emerald' as string,
+        tips: [
+            'Chat sits with the booking instead of scattering across phones',
+            'Alerts for new requests and confirmations, with a settings page to switch off what you do not want',
+            'Live GPS — every driver sharing their location, on one map',
+            'A vendors-only feed: ask questions, share what works, answer an SOS when someone needs a job covered',
+            'The mobile app covers fleet, bookings and chat, and carries your verified-vendor badge',
+        ],
+        slides: [
+            { label: 'Customer chat', mockup: <ChatMock /> },
+            { label: 'Notification settings', mockup: <NotificationsMock /> },
+            { label: 'Live map', mockup: <TrackingMock /> },
+            { label: 'Community feed', mockup: <SocialFeedMock /> },
+            { label: 'Vendor app', mockup: <MobileAppMock /> },
         ],
     },
 ];
@@ -2033,133 +2734,648 @@ function MockupSlider({ slides, color }: { slides: Slide[]; color: string }) {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   GUIDE CONTENT
+   Everything below is what a vendor can actually do on the
+   platform today. Nothing here is a projection or a number
+   nobody measured.
+   ───────────────────────────────────────────────────────────── */
+
+/**
+ * Tailwind only ships classes it can see written out, so a colour picked at
+ * runtime has to map to whole class strings rather than be spliced into one.
+ */
+const STEP_COLORS: Record<string, { chip: string; tick: string; heading: string }> = {
+    blue: { chip: 'bg-blue-50 text-blue-600', tick: 'text-blue-500', heading: 'group-hover:text-blue-600' },
+    indigo: { chip: 'bg-indigo-50 text-indigo-600', tick: 'text-indigo-500', heading: 'group-hover:text-indigo-600' },
+    purple: { chip: 'bg-purple-50 text-purple-600', tick: 'text-purple-500', heading: 'group-hover:text-purple-600' },
+    teal: { chip: 'bg-teal-50 text-teal-600', tick: 'text-teal-500', heading: 'group-hover:text-teal-600' },
+    orange: { chip: 'bg-orange-50 text-orange-600', tick: 'text-orange-500', heading: 'group-hover:text-orange-600' },
+    violet: { chip: 'bg-violet-50 text-violet-600', tick: 'text-violet-500', heading: 'group-hover:text-violet-600' },
+    green: { chip: 'bg-green-50 text-green-600', tick: 'text-green-500', heading: 'group-hover:text-green-600' },
+    sky: { chip: 'bg-sky-50 text-sky-600', tick: 'text-sky-500', heading: 'group-hover:text-sky-600' },
+    emerald: { chip: 'bg-emerald-50 text-emerald-600', tick: 'text-emerald-500', heading: 'group-hover:text-emerald-600' },
+};
+const stepColor = (c: string) => STEP_COLORS[c] ?? STEP_COLORS.blue;
+
+/** The sections a reader can jump between. */
+const SECTIONS = [
+    { id: 'why', label: 'Why join' },
+    { id: 'start', label: 'Getting started' },
+    { id: 'walkthrough', label: 'Step by step' },
+    { id: 'services', label: 'Services' },
+    { id: 'cost', label: 'What it costs' },
+];
+
+/** The case for joining, in the vendor's own terms. */
+const WHY = [
+    {
+        icon: <Layers className="w-5 h-5" />,
+        chip: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+        bar: 'bg-emerald-500',
+        ghost: 'text-emerald-50',
+        edge: 'hover:border-emerald-200',
+        title: 'Your leads and your own, in one place',
+        body: 'TransRentals sends you quote requests from customers searching in your cities — you see the request, you set your price, you win the job. But you are not limited to what we send. A customer who calls you directly, a walk-in, a referral: book them straight into the same dashboard. One view of everything you have running, instead of your leads living in your head and ours living somewhere else.',
+    },
+    {
+        icon: <Wrench className="w-5 h-5" />,
+        chip: 'bg-blue-50 text-blue-600 ring-blue-100',
+        bar: 'bg-blue-500',
+        ghost: 'text-blue-50',
+        edge: 'hover:border-blue-200',
+        title: 'Your vehicles, actually managed',
+        body: 'Registration and insurance with expiry tracking so nothing lapses unnoticed, service and maintenance logs, fuel cost per vehicle, and incident and claim records when something goes wrong. Not a listing page — the kind of fleet system a much bigger operator pays for separately.',
+    },
+    {
+        icon: <Users className="w-5 h-5" />,
+        chip: 'bg-violet-50 text-violet-600 ring-violet-100',
+        bar: 'bg-violet-500',
+        ghost: 'text-violet-50',
+        edge: 'hover:border-violet-200',
+        title: 'Your team, on the same platform',
+        body: 'Add your drivers and staff, mark daily attendance, and let payroll calculate itself off that attendance instead of doing the maths by hand at month-end. If you employ even two or three people, this alone saves real hours every month.',
+    },
+    {
+        icon: <Repeat className="w-5 h-5" />,
+        chip: 'bg-amber-50 text-amber-600 ring-amber-100',
+        bar: 'bg-amber-500',
+        ghost: 'text-amber-50',
+        edge: 'hover:border-amber-200',
+        title: 'Idle vehicles start earning',
+        body: 'Every operator has a vehicle with no booking today, earning nothing. Lend it to another vendor for the day. It runs both ways: when you have more demand than vehicles — a big wedding, a sudden rush — pull in capacity instead of turning the customer away.',
+    },
+    {
+        icon: <Building2 className="w-5 h-5" />,
+        chip: 'bg-sky-50 text-sky-600 ring-sky-100',
+        bar: 'bg-sky-500',
+        ghost: 'text-sky-50',
+        edge: 'hover:border-sky-200',
+        title: 'Corporate work you would not win alone',
+        body: 'Companies booking transport regularly and event organisers needing a fleet for a day usually go to whoever has the existing relationship or the bigger name. Through the B2B pipeline those requests come to you directly, and you pick up what fits your fleet.',
+    },
+    {
+        icon: <Network className="w-5 h-5" />,
+        chip: 'bg-rose-50 text-rose-600 ring-rose-100',
+        bar: 'bg-rose-500',
+        ghost: 'text-rose-50',
+        edge: 'hover:border-rose-200',
+        title: 'A network of vendors, not just customers',
+        body: 'Post updates, ask questions, share what is working, answer a fellow vendor’s SOS when they need a job covered. Other people running the same business in other cities have usually already solved whatever you are stuck on.',
+    },
+];
+
+/** Registering to live, in the order it actually happens. */
+const GO_LIVE_STAGES = [
+    ['Register', 'Business details and your first city.'],
+    ['Upload two documents', 'Address Proof and PAN Card.'],
+    ['Under Review', 'Our team checks each document.'],
+    ['Approved', 'A person signs it off — not a script.'],
+    ['Live', 'Full dashboard. Leads start arriving.'],
+];
+
+/** The states a single document can be in while it is being checked. */
+const DOC_STATUSES = [
+    ['Pending', 'bg-slate-100 text-slate-500'],
+    ['Approved', 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'],
+    ['Rejected', 'bg-rose-50 text-rose-700 ring-1 ring-rose-100'],
+    ['Resubmit required', 'bg-amber-50 text-amber-700 ring-1 ring-amber-100'],
+];
+
+/** What is actually checked before a vendor goes live. */
+const REQUIRED_DOCS = ['Address Proof', 'PAN Card'];
+const OPTIONAL_DOCS = [
+    'Business Registration',
+    'Cancelled Cheque',
+    'Owner\u2019s Aadhaar',
+    'GST Certificate',
+];
+
+/** The rest of setup, none of which blocks you from uploading documents. */
+const SETUP_ITEMS = [
+    ['Business profile', 'Business name, owner details, contact info and your logo.'],
+    ['Bank details', 'The account your earnings are paid into.'],
+    ['Partnership agreement', 'Read and accept the terms before going live.'],
+    ['Services and cities', 'What you offer and where. More of either can be requested later, and our team approves the request.'],
+    ['Get Started checklist', 'A step-by-step list in your dashboard so none of the above gets missed.'],
+];
+
+/** The eight categories, all of which follow the same booking flow. */
+const SERVICE_CATEGORIES = [
+    'Bike Rentals',
+    'Self-Drive Cars',
+    'Car Rental (with driver)',
+    'Luxury Cars',
+    'Bus & Tempo Traveller',
+    'Packers & Movers',
+    'Transporter (trucks & heavy vehicles)',
+    'Equipment Rental',
+];
+
+/** How a booking travels, the same way in every category. */
+const BOOKING_FLOW = [
+    'A customer submits a request — say, a bike for three days in Goa.',
+    'You see it as a new quote request and reply with your price and terms.',
+    'If the customer accepts, it becomes a confirmed booking on its own. Nothing extra for you to do.',
+    'You track every booking for that service, with cancelled ones kept in a separate list so the active one stays clean.',
+    'You see exactly what you earned from that service, booking by booking.',
+];
+
+/** A heading that is the same shape everywhere on the page. */
+function SectionHeading({
+    eyebrow,
+    title,
+    lead,
+}: {
+    eyebrow: string;
+    title: string;
+    lead?: string;
+}) {
+    return (
+        <div className="max-w-3xl">
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-600">
+                {eyebrow}
+            </span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+                {title}
+            </h2>
+            {lead && <p className="mt-4 text-lg leading-relaxed text-slate-600">{lead}</p>}
+        </div>
+    );
+}
+
+/* ─────────────────────────────────────────────────────────────
    MAIN PAGE
    ───────────────────────────────────────────────────────────── */
 
 export default function VendorGuidePage() {
     return (
         <div className="min-h-screen bg-[#f8fafc]">
-            {/* Hero */}
-            <div className="relative bg-[#0f172a] py-24 px-6 overflow-hidden">
+            {/* ── Hero ── */}
+            <div className="relative bg-[#0f172a] px-6 pt-24 pb-28 overflow-hidden">
                 <div className="absolute inset-0 opacity-20 pointer-events-none">
                     <div className="absolute top-0 -left-10 w-72 h-72 bg-blue-500 rounded-full blur-[100px]" />
                     <div className="absolute bottom-0 -right-10 w-72 h-72 bg-indigo-500 rounded-full blur-[100px]" />
                 </div>
-                <div className="max-w-5xl mx-auto relative z-10 text-center">
+                <div className="max-w-4xl mx-auto relative z-10 text-center">
                     <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-6">
                         <ShieldCheck className="w-4 h-4" /> Official Vendor Guide
                     </span>
-                    <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight">
-                        Grow Your Business with{' '}
+                    <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight leading-[1.08]">
+                        Run your whole transport business{' '}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
-                            TransRentals
+                            in one place
                         </span>
                     </h1>
-                    <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                        Follow our simple 14-step process to become a verified partner and start serving
-                        thousands of customers across India.
+                    <p className="text-gray-400 text-lg md:text-xl leading-relaxed">
+                        Yes, we send you real customer leads. The bigger thing you get is one system for
+                        those leads and your own, your vehicles, your staff, your payments, your spare
+                        capacity and your network of fellow operators — instead of a notebook, three
+                        WhatsApp chats and a spreadsheet.
                     </p>
+
+                    <div className="mt-10 flex flex-wrap justify-center gap-2">
+                        {SECTIONS.map((s) => (
+                            <a
+                                key={s.id}
+                                href={`#${s.id}`}
+                                className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+                            >
+                                {s.label}
+                            </a>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            {/* Steps */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-12 pb-24">
-                <div className="grid gap-10">
-                    {steps.map((step) => (
-                        <div
-                            key={step.id}
-                            className="group bg-white rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-2xl hover:border-blue-200 transition-all duration-500 overflow-hidden"
-                        >
-                            <div className="grid grid-cols-1 lg:grid-cols-2">
-                                {/* LEFT: Instructions */}
-                                <div className="p-10 flex flex-col justify-center gap-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-14 h-14 rounded-2xl bg-${step.color}-50 text-${step.color}-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 flex-shrink-0`}>
-                                            {step.icon}
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                                Phase {step.id < 10 ? `0${step.id}` : step.id}
-                                            </span>
-                                            <h2 className="text-2xl font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors leading-tight">
-                                                {step.title}
-                                            </h2>
-                                        </div>
-                                    </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6">
+                {/* ── Why join ── */}
+                <section id="why" className="scroll-mt-8 pt-20">
+                    <SectionHeading
+                        eyebrow="Why vendors join"
+                        title="It is rarely the bookings that eat your week"
+                        lead="Ask any operator what actually takes their time and it is seldom “not enough bookings.” It is the fifty small things around each one — where the paperwork for this vehicle is, who is driving tomorrow, whether last week’s customer ever paid, whether that truck is sitting idle again. This is built to hold all of it, not just to pass you leads."
+                    />
 
-                                    <p className="text-slate-600 text-base leading-relaxed">{step.description}</p>
+                    {/* The pitch's own line, made visible: what this replaces. */}
+                    <div className="mt-8 flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                        <span className="mr-1 text-[11px] font-black uppercase tracking-widest text-slate-400">
+                            Instead of
+                        </span>
+                        {['A notebook', 'Three WhatsApp chats', 'A spreadsheet'].map((t) => (
+                            <span
+                                key={t}
+                                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-400 line-through decoration-slate-300"
+                            >
+                                {t}
+                            </span>
+                        ))}
+                        <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            One dashboard
+                        </span>
+                    </div>
 
-                                    <div>
-                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
-                                            What you&apos;ll do
-                                        </p>
-                                        <div className="grid gap-2">
-                                            {step.tips.map((tip, i) => (
-                                                <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group-hover:border-blue-100 transition-all">
-                                                    <CheckCircle2 className={`w-4 h-4 mt-0.5 text-${step.color}-500 flex-shrink-0`} />
-                                                    <span className="text-slate-600 text-sm font-medium">{tip}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                    <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                        {WHY.map((w, i) => (
+                            <article
+                                key={w.title}
+                                className={`group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${w.edge}`}
+                            >
+                                {/* A rule that draws itself across the top on hover. */}
+                                <span
+                                    aria-hidden
+                                    className={`absolute inset-x-0 top-0 h-1 origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100 ${w.bar}`}
+                                />
+                                <span
+                                    aria-hidden
+                                    className={`pointer-events-none absolute right-5 top-2 select-none text-7xl font-black leading-none ${w.ghost}`}
+                                >
+                                    {i + 1}
+                                </span>
 
-                                    <Link
-                                        href={step.url}
-                                        className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-700 transition-all text-sm shadow-md shadow-slate-900/10 group/btn w-fit"
+                                <div className={`relative flex h-12 w-12 items-center justify-center rounded-2xl ring-1 ${w.chip}`}>
+                                    {w.icon}
+                                </div>
+                                <h3 className="relative mt-5 text-lg font-extrabold leading-snug text-slate-900">
+                                    {w.title}
+                                </h3>
+                                <p className="relative mt-2.5 text-sm leading-relaxed text-slate-600">{w.body}</p>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+
+                {/* ── Getting started ── */}
+                <section id="start" className="scroll-mt-8 pt-24">
+                    <SectionHeading
+                        eyebrow="Getting started"
+                        title="What is checked before you go live"
+                        lead="Registering takes a few minutes. Everything after it is a review, so it is worth knowing exactly what gets looked at and what can wait."
+                    />
+
+                    {/* The answer is a sequence, so it leads with the sequence. */}
+                    <ol className="mt-10 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                        {GO_LIVE_STAGES.map(([label, note], i) => {
+                            const last = i === GO_LIVE_STAGES.length - 1;
+                            return (
+                                <li
+                                    key={label}
+                                    className={`rounded-2xl border p-4 ${
+                                        last
+                                            ? 'border-emerald-200 bg-emerald-50'
+                                            : 'border-slate-200 bg-white'
+                                    }`}
+                                >
+                                    <span
+                                        className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
+                                            last ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white'
+                                        }`}
                                     >
-                                        Go to {step.title}
-                                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </Link>
+                                        {i + 1}
+                                    </span>
+                                    <p className={`mt-3 text-sm font-extrabold ${last ? 'text-emerald-900' : 'text-slate-900'}`}>
+                                        {label}
+                                    </p>
+                                    <p className={`mt-1 text-xs leading-relaxed ${last ? 'text-emerald-800/70' : 'text-slate-500'}`}>
+                                        {note}
+                                    </p>
+                                </li>
+                            );
+                        })}
+                    </ol>
+
+                    <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+                        <div className="space-y-5">
+                            <div className="rounded-3xl border border-slate-200 bg-white p-7">
+                                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                        Documents
+                                    </p>
+                                    <p className="text-xs text-slate-400">
+                                        2 required · 4 optional
+                                    </p>
                                 </div>
 
-                                {/* RIGHT: UI Mockup Slider */}
-                                <div className="bg-slate-50 lg:border-l border-slate-100 p-8 flex flex-col justify-center">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div>
-                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">UI Preview</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">Exact screens you will see</p>
-                                        </div>
-                                        <span className="text-[10px] px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-400 font-semibold">
-                                            {step.slides.length} screen{step.slides.length > 1 ? 's' : ''}
-                                        </span>
+                                <div className="mt-5 grid gap-6 sm:grid-cols-2">
+                                    <div>
+                                        <p className="flex items-center gap-2 text-sm font-bold text-emerald-700">
+                                            <ShieldCheck className="h-4 w-4" />
+                                            Required to go live
+                                        </p>
+                                        <ul className="mt-3 space-y-2">
+                                            {REQUIRED_DOCS.map((d) => (
+                                                <li
+                                                    key={d}
+                                                    className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm font-bold text-emerald-900"
+                                                >
+                                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                                                    {d}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     </div>
-                                    <MockupSlider slides={step.slides} color={step.color} />
+                                    <div>
+                                        <p className="flex items-center gap-2 text-sm font-bold text-slate-500">
+                                            <Plus className="h-4 w-4" />
+                                            Optional — any time later
+                                        </p>
+                                        <ul className="mt-3 space-y-2">
+                                            {OPTIONAL_DOCS.map((d) => (
+                                                <li
+                                                    key={d}
+                                                    className="rounded-xl border border-dashed border-slate-200 px-3.5 py-2 text-sm text-slate-500"
+                                                >
+                                                    {d}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 border-t border-slate-100 pt-5">
+                                    <p className="text-sm leading-relaxed text-slate-600">
+                                        Uploading the two required ones moves you to{' '}
+                                        <b className="text-slate-800">Under Review</b>. Each document then carries
+                                        its own status, so you can see which one is holding things up:
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        {DOC_STATUSES.map(([label, style]) => (
+                                            <span
+                                                key={label}
+                                                className={`rounded-full px-3 py-1 text-[11px] font-bold ${style}`}
+                                            >
+                                                {label}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
 
-                {/* Support Section */}
-                <div className="mt-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-12 text-white shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-                        <Zap className="w-48 h-48" />
+                            <div className="rounded-3xl border border-slate-200 bg-white p-7">
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                    The rest of setup
+                                </p>
+                                <p className="mt-1.5 text-xs text-slate-400">
+                                    None of it blocks the document review — it just has to be done before you go live.
+                                </p>
+                                <dl className="mt-5 divide-y divide-slate-100">
+                                    {SETUP_ITEMS.map(([name, desc], i) => (
+                                        <div key={name} className="flex gap-3.5 py-3 first:pt-0 last:pb-0">
+                                            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[11px] font-black text-blue-600">
+                                                {i + 1}
+                                            </span>
+                                            <div>
+                                                <dt className="text-sm font-bold text-slate-800">{name}</dt>
+                                                <dd className="text-sm leading-relaxed text-slate-600">{desc}</dd>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </div>
+                        </div>
+
+                        {/* The one thing worth saying plainly before somebody signs up. */}
+                        <aside className="h-fit overflow-hidden rounded-3xl border border-amber-200 bg-amber-50">
+                            <div className="border-b border-amber-200/70 bg-amber-100/50 px-7 py-5">
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white">
+                                        <AlertTriangle className="h-5 w-5" />
+                                    </span>
+                                    <h3 className="text-lg font-extrabold text-amber-900">
+                                        The honest caveat
+                                    </h3>
+                                </div>
+                            </div>
+                            <div className="px-7 py-6">
+                                <p className="text-sm leading-relaxed text-amber-900/80">
+                                    Approval is not instant or automatic. A real person reviews your documents and
+                                    the final sign-off is a manual decision. It is usually the only wait in the
+                                    whole process.
+                                </p>
+                                <p className="mt-3 text-sm leading-relaxed text-amber-900/80">
+                                    That is not red tape for its own sake. It is the same review that makes the
+                                    verified-vendor badge mean something to the customers you will be pitching to,
+                                    and the same trust that makes another vendor willing to hand you their
+                                    overflow booking.
+                                </p>
+                                <p className="mt-5 rounded-xl bg-amber-100/70 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-900">
+                                    Until you are approved you will see a limited dashboard — most features stay
+                                    locked while your details are being checked.
+                                </p>
+                            </div>
+                        </aside>
                     </div>
-                    <div className="relative z-10 max-w-2xl">
-                        <h3 className="text-3xl font-bold mb-4">Still have questions?</h3>
-                        <p className="text-blue-50 text-lg mb-8 opacity-90">
-                            Our dedicated Vendor Support team is available 24/7 to help you with onboarding
-                            or any technical issues.
+                </section>
+
+                {/* ── Step-by-step walkthrough (the existing screens) ── */}
+                <section id="walkthrough" className="scroll-mt-8 pt-24">
+                    <SectionHeading
+                        eyebrow="Step by step"
+                        title="The actual screens, in order"
+                        lead="From registering to your first completed trip and the earnings that follow. Each step shows the screen you will be looking at."
+                    />
+
+                    <div className="mt-10 grid gap-10">
+                        {steps.map((step) => {
+                            const c = stepColor(step.color);
+                            return (
+                                <div
+                                    key={step.id}
+                                    className="group bg-white rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-2xl hover:border-blue-200 transition-all duration-500 overflow-hidden"
+                                >
+                                    <div className="grid grid-cols-1 lg:grid-cols-2">
+                                        {/* LEFT: Instructions */}
+                                        <div className="p-10 flex flex-col justify-center gap-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`w-14 h-14 rounded-2xl ${c.chip} flex items-center justify-center group-hover:scale-110 transition-transform duration-500 flex-shrink-0`}>
+                                                    {step.icon}
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                                        Step {step.id < 10 ? `0${step.id}` : step.id} of {steps.length}
+                                                    </span>
+                                                    <h3 className={`text-2xl font-extrabold text-slate-900 ${c.heading} transition-colors leading-tight`}>
+                                                        {step.title}
+                                                    </h3>
+                                                </div>
+                                            </div>
+
+                                            <p className="text-slate-600 text-base leading-relaxed">{step.description}</p>
+
+                                            <div>
+                                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
+                                                    What you&apos;ll do
+                                                </p>
+                                                <div className="grid gap-2">
+                                                    {step.tips.map((tip, i) => (
+                                                        <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group-hover:border-blue-100 transition-all">
+                                                            <CheckCircle2 className={`w-4 h-4 mt-0.5 ${c.tick} flex-shrink-0`} />
+                                                            <span className="text-slate-600 text-sm font-medium">{tip}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <Link
+                                                href={step.url}
+                                                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-700 transition-all text-sm shadow-md shadow-slate-900/10 group/btn w-fit"
+                                            >
+                                                Go to {step.title}
+                                                <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                            </Link>
+                                        </div>
+
+                                        {/* RIGHT: UI Mockup Slider */}
+                                        <div className="bg-slate-50 lg:border-l border-slate-100 p-8 flex flex-col justify-center">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div>
+                                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">UI Preview</p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">Exact screens you will see</p>
+                                                </div>
+                                                <span className="text-[10px] px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-400 font-semibold">
+                                                    {step.slides.length} screen{step.slides.length > 1 ? 's' : ''}
+                                                </span>
+                                            </div>
+                                            <MockupSlider slides={step.slides} color={step.color} />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+
+                {/* ── Services ── */}
+                <section id="services" className="scroll-mt-8 pt-24">
+                    <SectionHeading
+                        eyebrow="Services"
+                        title="Eight categories, one way of working"
+                        lead="Whichever of these you offer, a booking travels the same road — so learning one means you have learned them all."
+                    />
+
+                    <div className="mt-10 grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-7">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                What you can list
+                            </p>
+                            <ul className="mt-4 space-y-2.5">
+                                {SERVICE_CATEGORIES.map((s) => (
+                                    <li key={s} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                                        <Tag className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                                        {s}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div className="rounded-3xl border border-slate-200 bg-white p-7">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                                How a booking travels
+                            </p>
+                            <ol className="mt-4 space-y-3">
+                                {BOOKING_FLOW.map((line, i) => (
+                                    <li key={i} className="flex gap-3.5">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[11px] font-black text-blue-600">
+                                            {i + 1}
+                                        </span>
+                                        <span className="text-sm leading-relaxed text-slate-600">{line}</span>
+                                    </li>
+                                ))}
+                            </ol>
+
+                            <div className="mt-6 space-y-2.5 rounded-2xl bg-slate-50 p-5">
+                                <p className="flex gap-3 text-sm leading-relaxed text-slate-600">
+                                    <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                                    <span>
+                                        <b className="text-slate-800">Quote templates.</b> Most services let you
+                                        save pricing and terms you have written before, instead of typing the
+                                        same reply over and over.
+                                    </span>
+                                </p>
+                                <p className="flex gap-3 text-sm leading-relaxed text-slate-600">
+                                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                                    <span>
+                                        <b className="text-slate-800">Active Trips.</b> Luxury Cars also tracks
+                                        which of your bookings are on the road right now.
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── What it costs ── */}
+                <section id="cost" className="scroll-mt-8 pt-24">
+                    <div className="overflow-hidden rounded-[2rem] bg-slate-900 p-10 sm:p-14">
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-400">
+                            What it costs
+                        </span>
+                        <h2 className="mt-3 max-w-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                            We earn when you earn. Not before.
+                        </h2>
+                        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
+                            Signing up, listing your services and using every tool on this page is free.
+                            TransRentals takes a standard commission on completed bookings.
                         </p>
-                        <div className="flex flex-wrap gap-4 items-center">
+
+                        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                            {[
+                                'No upfront fee',
+                                'No listing charges',
+                                'No separate price for the fleet or staff tools',
+                            ].map((t) => (
+                                <div
+                                    key={t}
+                                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4"
+                                >
+                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-400" />
+                                    <span className="text-sm font-semibold text-slate-200">{t}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-10 flex flex-wrap gap-4">
+                            <Link
+                                href="/vendor/register"
+                                className="inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 font-bold text-slate-900 transition-colors hover:bg-slate-100"
+                            >
+                                Register your business
+                                <ArrowRight className="h-4 w-4" />
+                            </Link>
+                            <Link
+                                href="/vendor"
+                                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-8 py-4 font-bold text-white transition-colors hover:bg-white/5"
+                            >
+                                More about partnering
+                            </Link>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ── Support ── */}
+                <section className="pt-10 pb-24">
+                    <div className="rounded-[2rem] border border-slate-200 bg-white p-10 sm:p-12">
+                        <div className="flex flex-wrap items-center justify-between gap-6">
+                            <div className="max-w-xl">
+                                <h3 className="text-2xl font-extrabold text-slate-900">
+                                    Stuck somewhere in this?
+                                </h3>
+                                <p className="mt-3 leading-relaxed text-slate-600">
+                                    Our vendor support team can walk you through onboarding, documents, or
+                                    anything on the platform that is not behaving.
+                                </p>
+                            </div>
                             <Link
                                 href="/vendor/support"
-                                className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-bold hover:bg-blue-50 transition-colors"
+                                className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 font-bold text-white transition-colors hover:bg-slate-700"
                             >
                                 Contact Support
+                                <ArrowRight className="h-4 w-4" />
                             </Link>
-                            <div className="flex items-center gap-3 text-blue-100">
-                                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                                    <Clock className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-xs uppercase font-bold tracking-wider opacity-60">Avg. Response Time</p>
-                                    <p className="font-semibold text-white">Less than 2 hours</p>
-                                </div>
-                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
 
             {/* Footer */}

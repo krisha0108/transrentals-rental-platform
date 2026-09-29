@@ -12,15 +12,12 @@ import {
   Bell,
   CheckCircle2,
   ArrowRight,
-  Star,
   Sparkles,
   ShieldCheck,
   Headphones,
-  MapPin,
   BookOpen,
   ChevronRight,
   Car,
-  Calendar,
   Rocket,
   UserPlus,
   Clock,
@@ -40,13 +37,6 @@ export const metadata: Metadata = {
     'vehicle rental partner',
   ],
 };
-
-const STATS = [
-  { number: '10,000+', label: 'Active Vendors', icon: Users },
-  { number: '1,50,000+', label: 'Bookings / Month', icon: Calendar },
-  { number: '150+', label: 'Cities Covered', icon: MapPin },
-  { number: '4.8/5', label: 'Average Rating', icon: Star },
-];
 
 const BENEFITS = [
   {
@@ -204,10 +194,7 @@ export default async function VendorLandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-center">
             {/* Copy */}
             <div className="lg:col-span-3 text-center lg:text-left">
-              <span className="inline-flex items-center gap-1.5 text-primary-700 text-xs font-extrabold uppercase tracking-widest">
-                <Star className="w-3.5 h-3.5 fill-primary-500 text-primary-500" /> Trusted by 10,000+ vendors across India
-              </span>
-              <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-gray-900">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-gray-900">
                 Grow your vehicle rental <br className="hidden sm:block" />
                 business with{' '}
                 <span className="text-primary-600">TransRentals</span>
@@ -258,23 +245,6 @@ export default async function VendorLandingPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stats strip ── */}
-      <section className="container-custom -mt-2 relative z-10">
-        <div className="bg-white rounded-2xl shadow-xl shadow-gray-900/5 border border-gray-100 px-4 py-6 max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            {STATS.map((s) => (
-              <div key={s.label} className="text-center">
-                <s.icon className="w-5 h-5 mx-auto text-primary-600 mb-2" />
-                <p className="text-lg sm:text-xl font-extrabold text-gray-900">
-                  {s.number}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

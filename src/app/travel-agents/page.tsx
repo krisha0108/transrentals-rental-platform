@@ -30,7 +30,7 @@ import {
 export const metadata: Metadata = {
   title: 'For Travel Agents | Grow your travel agency with TransRentals',
   description:
-    'Join 1000+ travel agents on TransRentals. Get a free public profile, list tours, stays and vehicles, capture leads, and turn them into bookings — all from one dashboard.',
+    'List your agency on TransRentals. Get a free public profile, list tours, stays and vehicles, capture leads, and turn them into bookings — all from one dashboard.',
 };
 
 const BENEFITS = [
@@ -85,13 +85,6 @@ const STEPS = [
     desc: 'Send your profile link to customers, capture leads, close trips.',
     icon: TrendingUp,
   },
-];
-
-const STATS = [
-  { value: '1000+', label: 'Travel agents onboarded' },
-  { value: '150+', label: 'Cities across India' },
-  { value: '0%', label: 'Listing fee — always free' },
-  { value: '24/7', label: 'Customer support' },
 ];
 
 const FAQS = [
@@ -150,7 +143,7 @@ export default function TravelAgentsLandingPage() {
                 agency the smart way.
               </h1>
               <p className="text-lg text-emerald-50 mt-5 max-w-xl leading-relaxed">
-                Join 1000+ travel agents already using TransRentals. Get a free public profile,
+                Join the travel agents already using TransRentals. Get a free public profile,
                 list your tours and vehicles, capture leads, and turn them into bookings — all
                 from one dashboard.
               </p>
@@ -251,22 +244,6 @@ export default function TravelAgentsLandingPage() {
             d="M0,120 L0,95 L100,70 L220,90 L340,55 L460,85 L580,50 L700,90 L820,60 L940,95 L1060,55 L1180,85 L1300,65 L1440,95 L1440,120 Z"
           />
         </svg>
-      </section>
-
-      {/* ── Stats strip ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 -mt-2 relative z-10">
-        <div className="bg-white rounded-2xl shadow-xl shadow-emerald-900/5 border border-emerald-100 px-4 py-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {STATS.map((s) => (
-              <div key={s.label} className="text-center">
-                <p className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  {s.value}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* ── Benefits ── */}
@@ -546,7 +523,7 @@ export default function TravelAgentsLandingPage() {
             {[
               { icon: ShieldCheck, title: 'Verified Partners', desc: 'KYC-checked agents' },
               { icon: Award, title: 'Hand-picked Trips', desc: 'Quality controlled' },
-              { icon: Headphones, title: '24/7 Support', desc: 'Real humans, no bots' },
+              { icon: Headphones, title: 'Customer Support', desc: 'Real humans, no bots' },
               { icon: IndianRupee, title: 'Free Forever', desc: 'No listing fee' },
             ].map((t) => (
               <div
