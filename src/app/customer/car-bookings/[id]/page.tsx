@@ -42,6 +42,7 @@ import InlineBookingChat from '@/components/customer/InlineBookingChat';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
 import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
+import RefundStatusCard from '@/components/customer/RefundStatusCard';
 
 // Car booking status type
 type CarBookingStatus =
@@ -120,6 +121,9 @@ export default function CarBookingDetailPage() {
   const [booking, setBooking] = useState(MOCK_BOOKING);
   const [copied, setCopied] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [showRateModal, setShowRateModal] = useState(false);
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(true);
   const [rating, setRating] = useState(0);
@@ -410,11 +414,37 @@ export default function CarBookingDetailPage() {
     return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  const handleCancelBooking = () => {
-    // API call to cancel
-    console.log('Cancelling booking:', booking.id);
-    setShowCancelModal(false);
-    alert('Booking cancellation requested. Refund will be processed within 5-7 business days.');
+  // car_bookings is the table the self-drive route cancels, so this reuses it
+  // rather than growing a second copy of the same logic.
+  const handleCancelBooking = async () => {
+    if (isCancelling) return;
+    setIsCancelling(true);
+    setCancelError(null);
+
+    try {
+      const res = await fetch(`/api/self-drive-bookings/${booking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'cancel',
+          reason: cancelReason.trim() || 'Cancelled by customer',
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setCancelError(data.error || data.message || 'Could not cancel this booking.');
+        return;
+      }
+
+      setBooking((b) => ({ ...b, status: 'CANCELLED' }));
+      setShowCancelModal(false);
+      setCancelReason('');
+    } catch {
+      setCancelError('Could not reach the server. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleSubmitRating = () => {
@@ -828,6 +858,8 @@ export default function CarBookingDetailPage() {
           </div>
         )}
 
+        {/* Renders itself away when there is no refund to talk about. */}
+        <RefundStatusCard source="car_bookings" bookingId={booking.id} />
         {booking.vendorName && <BookingPaymentSafetyNotice />}
 
         {/* Payment Summary */}
@@ -952,28 +984,50 @@ export default function CarBookingDetailPage() {
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <h2 className="quote-serif text-[26px] font-medium text-gray-900 mb-2">Cancel Booking?</h2>
             <p className="text-gray-600 mb-4">
-              Are you sure you want to cancel this booking? Cancellation charges may apply based on
-              our cancellation policy.
+              Are you sure you want to cancel this booking? This cannot be undone.
             </p>
+
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Reason <span className="font-normal text-gray-400">(optional)</span>
+            </label>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              placeholder="Plans changed, found another vehicle…"
+              className="mb-4 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+            />
+
+            {/* What the code actually does: the amount already paid is recorded
+                for refund and our team processes it. No percentage slab here. */}
             <div className="bg-amber-50 rounded-lg p-4 mb-4">
               <p className="text-sm text-amber-700">
-                <strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before pickup.
-                50% refund for cancellations within 24 hours.
+                <strong>Refund:</strong> whatever you have already paid is recorded for refund and
+                processed by our team. The vendor is notified straight away.
               </p>
             </div>
+
+            {cancelError && (
+              <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
+                {cancelError}
+              </p>
+            )}
+
             <div className="flex gap-3">
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => setShowCancelModal(false)}
+                disabled={isCancelling}
+                onClick={() => { setShowCancelModal(false); setCancelError(null); }}
               >
                 Keep Booking
               </Button>
               <Button
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+                disabled={isCancelling}
                 onClick={handleCancelBooking}
               >
-                Cancel Booking
+                {isCancelling ? 'Cancelling…' : 'Cancel Booking'}
               </Button>
             </div>
           </div>

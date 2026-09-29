@@ -67,6 +67,7 @@ import {
   Share2,
   Radar,
   MessageSquareQuote,
+  IndianRupee,
   PhoneCall,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -478,6 +479,7 @@ const websiteItems: NavItem[] = [
   { name: 'General Blog', href: '/admin/blog', icon: FileEdit },
   { name: 'Web Stories', href: '/admin/web-stories', icon: Film },
   { name: 'Customer Reviews', href: '/admin/reviews', icon: MessageSquareQuote },
+  { name: 'Refunds', href: '/admin/refunds', icon: IndianRupee },
   { name: 'Media Library', href: '/admin/media', icon: Image },
   { name: 'Navigation', href: '/admin/website/navigation', icon: List },
   { name: 'Footer', href: '/admin/website/footer', icon: FileCheck },

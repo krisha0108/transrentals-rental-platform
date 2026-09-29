@@ -39,6 +39,7 @@ import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
 import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
+import RefundStatusCard from '@/components/customer/RefundStatusCard';
 
 interface BankAccount {
   id: string;
@@ -1037,7 +1038,6 @@ export default function CustomerSelfDriveBookingPage() {
               </div>
             )}
 
-            {booking.vendor && <BookingPaymentSafetyNotice />}
 
             {/* Customer Notes */}
             {booking.customerNotes && (
@@ -1111,6 +1111,16 @@ export default function CustomerSelfDriveBookingPage() {
               </div>
             </div>
           </aside>
+        </div>
+
+        {/* Below both columns, at full content width — the same notice, but its
+            rules read as short lines instead of a tall wall in the 372px rail. */}
+        <div className="mt-4 space-y-5 lg:mt-5">
+          {/* Renders itself away when there is no refund to talk about. A refund
+              is owed whether or not a vendor was ever assigned, so it does not
+              sit behind the notice's vendor guard. */}
+          <RefundStatusCard source="car_bookings" bookingId={booking.id} />
+          {booking.vendor && <BookingPaymentSafetyNotice />}
         </div>
       </div>
 

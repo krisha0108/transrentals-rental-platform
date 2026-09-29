@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
 import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Luxury Booking details (supports new quote-based flow)
@@ -294,6 +296,34 @@ export async function PATCH(
             refundAmount,
           },
         });
+
+        // Non-blocking: the vendor has a slot held for this job.
+        const cancelledVendorId = booking.assignedVendorId || booking.acceptedVendorId;
+        if (cancelledVendorId) {
+          sendVendorDirectNotification({
+            vendorId: cancelledVendorId,
+            title: 'Booking cancelled by customer',
+            body: `Booking #${booking.bookingNumber} was cancelled. Reason: ${reason || 'not given'}.`,
+            type: 'booking_cancelled',
+            serviceType: 'luxury',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber,
+          }).catch((err: unknown) => console.error('[Cancel] vendor notification failed:', err));
+        }
+
+        // Money owed goes on the refunds queue and the desk is told. Never
+        // blocks the cancellation.
+        openRefundFollowup({
+          source: 'luxury_bookings',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceType: 'Luxury Cars',
+          customerId: booking.customerId,
+          customerName: booking.customerName,
+          amount: refundAmount,
+          reason,
+          paidAmount: booking.advancePaid || 0,
+        }).catch(() => {});
 
         return NextResponse.json({
           success: true,

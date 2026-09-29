@@ -7541,6 +7541,7 @@ model manager_notifications {
 }
 
 enum manager_notification_type {
+  REFUND_PENDING
   NEW_LOCATION_REQUEST
   NEW_SERVICE_REQUEST
   NEW_CONTACT_INQUIRY
@@ -7725,4 +7726,35 @@ model booking_review_moderation {
 
   @@unique([source, bookingId])
   @@index([status])
+}
+
+/// One row per cancelled booking that owes the customer money. The booking
+/// tables each hold their own refundAmount, but nobody can work a queue that
+/// is spread across eight of them — this is the single list the refunds desk
+/// works from, and the only place the refund state lives.
+model refund_followups {
+  id              String    @id @default(cuid())
+  /// Booking table the refund belongs to, e.g. bike_bookings.
+  source          String    @db.VarChar(40)
+  bookingId       String    @db.VarChar(191)
+  bookingNumber   String    @db.VarChar(64)
+  serviceType     String    @db.VarChar(40)
+  customerId      String?   @db.VarChar(191)
+  customerName    String?   @db.VarChar(191)
+  /// What the cancel handler worked out was owed, snapshotted at cancel time.
+  amount          Float
+  /// PENDING | PROCESSING | COMPLETED | FAILED | NOT_REQUIRED
+  status          String    @default("PENDING") @db.VarChar(20)
+  /// Razorpay refund id, when it went through the gateway.
+  gatewayRefundId String?   @db.VarChar(191)
+  /// Why it failed, or how it was settled off-gateway.
+  notes           String?   @db.Text
+  handledBy       String?   @db.VarChar(191)
+  handledAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([source, bookingId])
+  @@index([status])
+  @@index([createdAt])
 }

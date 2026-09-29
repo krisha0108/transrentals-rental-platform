@@ -786,6 +786,10 @@ function VehicleCard({ index, displayName, images, vehicle: v, driver: d, isSelf
   Art?: any;
 }) {
   const [imgIdx, setImgIdx] = useState(0);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const hasImages = images.length > 0;
   const hasMultiple = images.length > 1;
 
@@ -866,6 +870,70 @@ function VehicleCard({ index, displayName, images, vehicle: v, driver: d, isSelf
           </div>
         )}
       </div>
+
+      {/* ── Cancel booking ── */}
+      {booking && ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED', 'SUPER_QUOTE_SENT', 'CONFIRMED', 'TRIPS_CREATED', 'IN_PROGRESS'].includes(booking.status) && (
+        <div className="mx-auto max-w-7xl px-4 pb-6 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-red-100 bg-white p-4">
+            <h3 className="mb-1 text-[17px] font-medium text-gray-400">Cancel Booking</h3>
+            <p className="mb-3 text-sm text-gray-500">Any trips still pending are cancelled with the booking. Our team will confirm what is owed.</p>
+            <button
+              onClick={() => { setShowCancelModal(true); setCancelError(null); setCancelReason(''); }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-100"
+            >
+              <XCircle className="h-4 w-4" />
+              Cancel This Booking
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 p-4 sm:items-center">
+          <div className="w-full max-w-[480px] overflow-hidden rounded-[20px] bg-white shadow-2xl">
+            <div className="bg-[linear-gradient(150deg,#7F1D1D,#B91C1C_70%)] px-5 pb-[18px] pt-5 text-white">
+              <h3 className="text-[17px] font-extrabold">Cancel this booking?</h3>
+              <p className="mt-1 text-[13px] text-red-100">This cannot be undone.</p>
+            </div>
+            <div className="p-5">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                Reason <span className="font-normal text-gray-400">(optional)</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+                placeholder="Plans changed, no longer needed…"
+                className="mb-4 w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+              />
+
+              {cancelError && (
+                <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700">
+                  {cancelError}
+                </p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowCancelModal(false); setCancelError(null); }}
+                  disabled={isCancelling}
+                  className="flex-1 rounded-xl border border-gray-200 py-3 text-[13.5px] font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  onClick={handleCancelBooking}
+                  disabled={isCancelling}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-[13.5px] font-bold text-white transition hover:bg-red-700 disabled:opacity-60"
+                >
+                  {isCancelling && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isCancelling ? 'Cancelling…' : 'Yes, Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1034,6 +1102,38 @@ export default function CustomerB2BBookingDetailPage() {
     return `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
   };
 
+
+  // Both the button and the modal go through here. The API decides whether
+  // the booking is still in a cancellable state and what the refund is.
+  const handleCancelBooking = async () => {
+    if (!booking || isCancelling) return;
+    setIsCancelling(true);
+    setCancelError(null);
+
+    const reasonText = cancelReason.trim() || 'Cancelled by customer';
+
+    try {
+      const res = await fetch(`/api/b2b/bookings/${booking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', reason: reasonText, cancelledBy: 'customer' }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setCancelError(data.error || 'Could not cancel this booking.');
+        return;
+      }
+
+      setShowCancelModal(false);
+      setCancelReason('');
+      window.location.reload();
+    } catch {
+      setCancelError('Could not reach the server. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
   if (loading) return (
     <div className={`${quoteDisplay.variable} min-h-screen bg-white flex justify-center items-center pt-24`}>
       <div className="flex flex-col items-center gap-3">

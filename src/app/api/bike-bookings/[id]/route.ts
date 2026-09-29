@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
 import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
 
 // GET - Get single booking details
@@ -233,6 +235,17 @@ export async function PATCH(
         );
       }
 
+      // Bike was the one service that never worked out what it owed back, so a
+      // paid-then-cancelled booking left the customer with nothing recorded.
+      // Same shape as the others: the closer to pickup, the less comes back.
+      let refundAmount = 0;
+      if (booking.paidAmount > 0) {
+        const hoursUntilPickup =
+          (new Date(booking.pickupDate).getTime() - Date.now()) / (1000 * 60 * 60);
+        if (hoursUntilPickup > 24) refundAmount = booking.paidAmount * 0.9;
+        else if (hoursUntilPickup > 6) refundAmount = booking.paidAmount * 0.5;
+      }
+
       const updatedBooking = await prisma.bike_bookings.update({
         where: { id },
         data: {
@@ -240,8 +253,37 @@ export async function PATCH(
           cancelledAt: new Date(),
           cancelledBy: 'CUSTOMER',
           cancellationReason: reason || 'Cancelled by customer',
+          refundAmount,
         },
       });
+
+      // Non-blocking: the vendor has a slot held for this job.
+      const cancelledVendorId = booking.assignedVendorId || booking.acceptedVendorId;
+      if (cancelledVendorId) {
+        sendVendorDirectNotification({
+          vendorId: cancelledVendorId,
+          title: 'Booking cancelled by customer',
+          body: `Booking #${booking.bookingNumber} was cancelled. Reason: ${reason || 'not given'}.`,
+          type: 'booking_cancelled',
+          serviceType: 'bike',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+        }).catch((err: unknown) => console.error('[Cancel] vendor notification failed:', err));
+      }
+
+      // Money owed goes on the refunds queue and the desk is told. Never
+      // blocks the cancellation.
+      openRefundFollowup({
+        source: 'bike_bookings',
+        bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
+        serviceType: 'Bike Rental',
+        customerId: booking.customerId,
+        customerName: booking.customerName,
+        amount: refundAmount,
+        reason,
+        paidAmount: booking.paidAmount || 0,
+      }).catch(() => {});
 
       return NextResponse.json({
         success: true,
