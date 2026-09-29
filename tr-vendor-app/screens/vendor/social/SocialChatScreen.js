@@ -344,7 +344,7 @@ export default function SocialChatScreen({ route, navigation }) {
         )}
 
         {/* Input bar */}
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, rs(10)) }]}>
           <TextInput
             style={styles.textInput}
             placeholder="Type a message..."

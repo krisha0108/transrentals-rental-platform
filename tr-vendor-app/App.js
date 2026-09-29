@@ -139,6 +139,8 @@ import StaffPayrollScreen from './screens/vendor/staff/StaffPayrollScreen';
 import BankDetailsScreen from './screens/vendor/profile/BankDetailsScreen';
 import BusinessProfileScreen from './screens/vendor/profile/BusinessProfileScreen';
 import HelpSupportScreen from './screens/vendor/profile/HelpSupportScreen';
+import VendorHelpAssistantScreen from './screens/vendor/support/HelpAssistantScreen';
+import VendorHelpFab from './components/VendorHelpFab';
 import AboutUsScreen from './screens/vendor/profile/AboutUsScreen';
 import GetStartedScreen from './screens/vendor/get-started/GetStartedScreen';
 
@@ -752,9 +754,62 @@ function navigateByData(data) {
   console.log('[Nav] Unknown screen for navigation:', screen, data);
 }
 
+// Screens the floating Help Assistant button (VendorHelpFab) must not show
+// on: pre-login splash/onboarding, the assistant screen itself (no point
+// floating over its own chat), the unrelated travel-agent flow (which has
+// its own separate Help & Support entry, not this vendor-scoped bot), and
+// every vendor screen with its own fixed bottom action bar (Send Quote,
+// Accept/Decline, Call/WhatsApp/Chat, Save, or a message composer) — a
+// bottom-right FAB would sit on top of and block that bar's rightmost
+// button otherwise. Audited screen-by-screen against every file under
+// screens/vendor/**; re-check this list if a new fixed-footer screen is added.
+const HELP_FAB_HIDDEN_ROUTES = new Set([
+  'Splash', 'Onboarding', 'VendorHelpAssistant',
+  'TravelAgentRegisterScreen', 'TravelAgentForgotPasswordScreen',
+  'TravelAgentDashboard', 'TravelAgentDocuments', 'TravelAgentGetStarted',
+
+  // Send Quote screens (fixed "Send Quote" footer)
+  'BikeSendQuote', 'BusSendQuote', 'EquipmentSendQuote', 'LuxurySendQuote',
+  'PackersSendQuote', 'SelfDriveSendQuote', 'TruckSendQuote',
+
+  // Quote Request Detail screens (fixed "Send Quote to Customer" / Accept-Decline footer)
+  'BikeQuoteRequestDetail', 'BusQuoteRequestDetail', 'EquipmentQuoteRequestDetail',
+  'LuxuryQuoteRequestDetail', 'PackersQuoteRequestDetail', 'SelfDriveQuoteRequestDetail',
+  'TruckQuoteRequestDetail',
+
+  // Quote Detail screens (fixed "View Booking Details" / status footer)
+  'BikeQuoteDetail', 'BusQuoteDetail', 'EquipmentQuoteDetail', 'LuxuryQuoteDetail',
+  'PackersQuoteDetail', 'SelfDriveQuoteDetail', 'TruckQuoteDetail',
+
+  // Booking Detail screens (fixed Call/WhatsApp/Chat footer)
+  'BikeBookingDetail', 'BusBookingDetail', 'CarRentalBookingDetail',
+  'EquipmentBookingDetail', 'LuxuryBookingDetail', 'PackersBookingDetail',
+  'SelfDriveBookingDetail', 'TruckBookingDetail', 'DirectBookingDetail',
+
+  // Chat / message-composer screens (fixed input bar)
+  'ChatScreen', 'SocialChatScreen',
+
+  // Create/Edit Template form screens (fixed Save/Create footer)
+  'BikeCreateTemplate', 'BikeEditTemplate', 'BusCreateTemplate', 'BusEditTemplate',
+  'EquipmentCreateTemplate', 'EquipmentEditTemplate', 'LuxuryCreateTemplate',
+  'LuxuryEditTemplate', 'PackersCreateTemplate', 'PackersEditTemplate',
+  'SelfDriveCreateTemplate', 'SelfDriveEditTemplate', 'TruckCreateTemplate',
+  'TruckEditTemplate',
+
+  // Other fixed-footer screens
+  'CustomizeBookingLink', 'BookingLinkQR',
+]);
+
+// The 5 tabs inside VendorBottomNavigation's CustomTabBar — getCurrentRoute()
+// resolves to these exact names while one of them is active, so the FAB
+// knows to sit above that floating pill tab bar instead of the plain
+// safe-area gap it uses on every other (non-tab) screen.
+const VENDOR_TAB_SCREEN_NAMES = new Set(['Dashboard', 'Bookings', 'B2B', 'Chats', 'Profile']);
+
 export default function App() {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentRouteName, setCurrentRouteName] = useState(null);
 
   const refreshBadge = React.useCallback(async () => {
     try {
@@ -921,12 +976,14 @@ export default function App() {
         ref={navigationRef}
         onReady={() => {
           isNavigationReadyRef.current = true;
+          setCurrentRouteName(navigationRef.current?.getCurrentRoute?.()?.name);
           if (pendingNavigateDataRef.current) {
             const d = pendingNavigateDataRef.current;
             pendingNavigateDataRef.current = null;
             navigateByData(d);
           }
         }}
+        onStateChange={() => setCurrentRouteName(navigationRef.current?.getCurrentRoute?.()?.name)}
       >
         <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
           {/* Auth Flow */}
@@ -1001,6 +1058,7 @@ export default function App() {
             <Stack.Screen name="BankDetailsScreen" component={BankDetailsScreen} />
             <Stack.Screen name="BusinessProfileScreen" component={BusinessProfileScreen} />
             <Stack.Screen name="HelpSupportScreen" component={HelpSupportScreen} />
+            <Stack.Screen name="VendorHelpAssistant" component={VendorHelpAssistantScreen} />
             <Stack.Screen name="AboutUsScreen" component={AboutUsScreen} />
             <Stack.Screen name="GetStartedScreen" component={GetStartedScreen} />
 
@@ -1211,6 +1269,13 @@ export default function App() {
           </Stack.Group>
         </Stack.Navigator>
       </NavigationContainer>
+      {!HELP_FAB_HIDDEN_ROUTES.has(currentRouteName) &&
+        !(currentRouteName?.startsWith('TA')) && (
+        <VendorHelpFab
+          onPress={() => navigationRef.current?.navigate('VendorHelpAssistant')}
+          aboveTabBar={VENDOR_TAB_SCREEN_NAMES.has(currentRouteName)}
+        />
+      )}
       <OfflineBanner />
       <GlobalAlert />
     </VendorActivityTracker>

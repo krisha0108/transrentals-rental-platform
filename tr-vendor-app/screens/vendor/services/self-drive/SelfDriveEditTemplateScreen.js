@@ -69,7 +69,8 @@ export default function SelfDriveEditTemplateScreen({ navigation, route }) {
 
   const loadTemplate = async () => {
     try {
-      const t = await getTemplateById('self-drive', templateId);
+      const data = await getTemplateById('self-drive', templateId);
+      const t = data.template || data;
       setTemplateName(t.name);
       setName(t.name);
       setCategory(t.category);

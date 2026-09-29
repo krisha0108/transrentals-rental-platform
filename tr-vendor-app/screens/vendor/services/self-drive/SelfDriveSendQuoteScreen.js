@@ -257,6 +257,10 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
       showError('Please enter valid total price');
       return;
     }
+    if (!unlimitedKm && (!kmLimitPerDay || parseInt(kmLimitPerDay) <= 0)) {
+      showError('Please enter a valid KM limit per day, or select Unlimited');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -271,9 +275,9 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         dailyRate: calculatedDailyRate,
         totalPrice: parseFloat(totalPrice),
         securityDeposit: parseFloat(securityDeposit) || 0,
-        kmLimitPerDay: unlimitedKm ? 0 : (parseInt(kmLimitPerDay) || null),
+        kmLimitPerDay: unlimitedKm ? 0 : parseInt(kmLimitPerDay),
         unlimitedKm: unlimitedKm,
-        extraKmCharge: unlimitedKm ? null : (parseFloat(extraKmRate) || null),
+        extraKmRate: unlimitedKm ? null : (parseFloat(extraKmRate) || null),
         advancePercent: advanceMode === 'percent' ? (parseInt(advancePercent) || 30) : 0,
         customAdvanceAmount: advanceMode === 'manual' ? (parseFloat(customAdvanceAmount) || 0) : undefined,
         inclusions,

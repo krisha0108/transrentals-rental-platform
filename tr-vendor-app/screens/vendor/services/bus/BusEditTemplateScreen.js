@@ -65,7 +65,8 @@ export default function BusEditTemplateScreen({ navigation, route }) {
 
   const loadTemplate = useCallback(async () => {
     try {
-      const t = await getTemplateById('bus', templateId);
+      const data = await getTemplateById('bus', templateId);
+      const t = data.template || data;
       setTemplateName(t.name);
       setName(t.name);
       setCategory(t.category);

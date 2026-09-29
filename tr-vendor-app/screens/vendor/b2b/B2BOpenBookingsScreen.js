@@ -241,7 +241,7 @@ export default function B2BOpenBookingsScreen({ navigation }) {
   const isServiceFiltered = serviceFilter !== 'all';
 
   const ListHeader = (
-    <View style={s.stickyHeaderWrap}>
+    <View style={s.stickyHeaderWrap} renderToHardwareTextureAndroid>
       {/* Header gradient */}
       <LinearGradient colors={G.hero} style={s.headerGrad}>
         <CornerGrid style={s.headerDots} corner="top-right" lineColor="rgba(255,255,255,0.35)" cellSize={16} />
