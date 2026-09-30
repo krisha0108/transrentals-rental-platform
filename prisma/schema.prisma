@@ -7773,7 +7773,7 @@ model refund_followups {
   customerName    String?   @db.VarChar(191)
   /// What the cancel handler worked out was owed, snapshotted at cancel time.
   amount          Float
-  /// PENDING | PROCESSING | COMPLETED | FAILED | NOT_REQUIRED
+  /// PENDING | MANAGER_REVIEWED | PROCESSING | COMPLETED | FAILED | NOT_REQUIRED
   status          String    @default("PENDING") @db.VarChar(20)
   /// Razorpay refund id, when it went through the gateway.
   gatewayRefundId String?   @db.VarChar(191)
@@ -7781,6 +7781,21 @@ model refund_followups {
   notes           String?   @db.Text
   handledBy       String?   @db.VarChar(191)
   handledAt       DateTime?
+  /// The manager's call on whether a refund is owed at all — set together
+  /// with the rest of the review fields when the manager sends this to the
+  /// admin desk. Null until reviewed.
+  customerRefundApproved Boolean?
+  /// What the manager approved paying back, which may differ from `amount`
+  /// (e.g. a partial goodwill amount). Admin refunds this figure, not `amount`,
+  /// once a review exists.
+  approvedAmount         Float?
+  /// The manager's call on whether the vendor keeps their share of this
+  /// booking — recorded for whoever runs vendor payouts to act on; this app
+  /// has no automated vendor payout ledger to deduct from directly.
+  vendorPayoutApproved   Boolean?
+  managerNotes           String?   @db.Text
+  reviewedBy             String?   @db.VarChar(191)
+  reviewedAt             DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

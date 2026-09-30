@@ -27,6 +27,7 @@ export const REFUND_SOURCES: RefundSource[] = [
 
 export const REFUND_STATUSES = [
   'PENDING',
+  'MANAGER_REVIEWED',
   'PROCESSING',
   'COMPLETED',
   'FAILED',

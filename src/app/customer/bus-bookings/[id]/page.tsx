@@ -22,6 +22,7 @@ import {
   Send,
   X,
   XCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
@@ -572,6 +573,23 @@ export default function CustomerBusBookingDetailPage() {
               </div>
             </div>
           </section>
+        )}
+
+        {/* Cancelled — headline notice */}
+        {booking.status === 'CANCELLED' && (
+          <div className="bg-red-50 rounded-xl p-6 border border-red-200">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <RotateCcw className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="quote-serif font-medium text-red-800 mb-1 text-[21px]">Your booking has been cancelled</h3>
+                <p className="text-sm text-red-700">
+                  If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Payment Submitted - Under Review */}

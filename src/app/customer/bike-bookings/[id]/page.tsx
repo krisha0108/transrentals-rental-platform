@@ -23,6 +23,7 @@ import {
   KeyRound,
   Play,
   X,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -815,6 +816,24 @@ export default function BikeBookingDetailPage() {
             <div>
               <p className="font-bold text-emerald-800 text-sm">Trip In Progress 🏍️</p>
               <p className="text-xs text-emerald-700 mt-0.5">Enjoy your ride! Return by {formatDate(booking.dropDate)} at {formatTime(booking.dropTime)}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Cancelled — the headline notice. Full refund detail (amount, stage,
+            or the no-refund explanation) lives in RefundStatusCard further
+            down; this banner's only job is to be the first thing a customer
+            sees so a cancelled booking never reads as an untouched one. */}
+        {booking.status === 'CANCELLED' && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <RotateCcw className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="font-bold text-red-800 text-sm">Your booking has been cancelled</p>
+              <p className="text-xs text-red-700 mt-0.5">
+                If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+              </p>
             </div>
           </div>
         )}

@@ -27,6 +27,9 @@ export async function GET(request: NextRequest) {
     if (!user || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
+    // Drives which actions the queue shows — managers review and hand off,
+    // only admins actually move money. See PATCH .../[id] for the same rule.
+    const viewerRole = user.role as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER';
 
     const { searchParams } = new URL(request.url);
     const status = (searchParams.get('status') || 'pending').toUpperCase();
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     const countWhere = search ? { OR: where.OR } : {};
 
-    const [rows, total, pending, processing, completed, failed, notRequired] = await Promise.all([
+    const [rows, total, pending, managerReviewed, processing, completed, failed, notRequired] = await Promise.all([
       prisma.refund_followups.findMany({
         where,
         orderBy: [{ createdAt: 'desc' }],
@@ -55,19 +58,23 @@ export async function GET(request: NextRequest) {
       }),
       prisma.refund_followups.count({ where }),
       prisma.refund_followups.count({ where: { ...countWhere, status: 'PENDING' } }),
+      prisma.refund_followups.count({ where: { ...countWhere, status: 'MANAGER_REVIEWED' } }),
       prisma.refund_followups.count({ where: { ...countWhere, status: 'PROCESSING' } }),
       prisma.refund_followups.count({ where: { ...countWhere, status: 'COMPLETED' } }),
       prisma.refund_followups.count({ where: { ...countWhere, status: 'FAILED' } }),
       prisma.refund_followups.count({ where: { ...countWhere, status: 'NOT_REQUIRED' } }),
     ]);
 
-    // Money still owed, so the desk can see the exposure at a glance.
-    const owed = await prisma.refund_followups.aggregate({
-      where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } },
-      _sum: { amount: true },
+    // Money still owed, so the desk can see the exposure at a glance. A
+    // manager-approved amount supersedes the original snapshot once one exists.
+    const owedRows = await prisma.refund_followups.findMany({
+      where: { status: { in: ['PENDING', 'MANAGER_REVIEWED', 'PROCESSING', 'FAILED'] } },
+      select: { amount: true, approvedAmount: true },
     });
+    const outstandingAmount = owedRows.reduce((sum, r) => sum + (r.approvedAmount ?? r.amount), 0);
 
     return NextResponse.json({
+      viewerRole,
       refunds: rows.map((r) => ({
         ...r,
         // Whether this service can be refunded through the gateway from here.
@@ -75,11 +82,12 @@ export async function GET(request: NextRequest) {
       })),
       counts: {
         pending,
+        managerReviewed,
         processing,
         completed,
         failed,
         notRequired,
-        outstandingAmount: owed._sum.amount || 0,
+        outstandingAmount,
       },
       pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
     });

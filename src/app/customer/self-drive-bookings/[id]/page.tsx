@@ -32,6 +32,7 @@ import {
   Check,
   Upload,
   MessageCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CustomerBookingChat from '@/components/customer/CustomerBookingChat';
@@ -607,6 +608,23 @@ export default function CustomerSelfDriveBookingPage() {
                   </div>
                 </div>
               </section>
+            )}
+
+            {/* Cancelled — headline notice. Full refund detail is further
+                down in "Refund Information" / RefundStatusCard; this banner's
+                only job is to be the first thing a customer sees. */}
+            {booking.status === 'CANCELLED' && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <RotateCcw className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-red-800 text-sm">Your booking has been cancelled</p>
+                  <p className="text-xs text-red-700 mt-0.5">
+                    If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Vehicle Details */}

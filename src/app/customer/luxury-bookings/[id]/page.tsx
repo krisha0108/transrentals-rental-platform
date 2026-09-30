@@ -30,6 +30,7 @@ import {
   Send,
   X,
   Loader2,
+  RotateCcw,
 } from 'lucide-react';
 // Chat will be inline - no external component needed
 import { BookingPayment } from '@/components/payment/BookingPayment';
@@ -535,6 +536,22 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_372px]">
           {/* ══ Main column ══ */}
           <div className="flex min-w-0 flex-col gap-5">
+            {/* Cancelled — headline notice */}
+            {booking.status === 'CANCELLED' && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <RotateCcw className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h2 className="quote-serif font-medium text-red-800 text-[23px] mb-1">Your booking has been cancelled</h2>
+                    <p className="text-red-700">
+                      If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* OTP Card - Driver will ask for this */}
             {booking.status === 'DRIVER_ASSIGNED' && (
               booking.tripStartOtp ? (

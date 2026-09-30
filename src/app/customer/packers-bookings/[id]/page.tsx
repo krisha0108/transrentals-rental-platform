@@ -45,6 +45,7 @@ import {
   Sparkles,
   StickyNote,
   IndianRupee,
+  RotateCcw,
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
@@ -941,6 +942,20 @@ export default function CustomerPackersBookingDetailPage() {
                 />
               </div>
             </section>
+          )}
+
+          {/* Cancelled — headline notice */}
+          {booking.status === 'CANCELLED' && (
+            <Card title="Booking Cancelled" tone="danger">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-red-100">
+                  <RotateCcw className="h-5 w-5 text-red-700" />
+                </div>
+                <p className="text-[13px] leading-relaxed text-gray-600">
+                  Your booking has been cancelled. If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+                </p>
+              </div>
+            </Card>
           )}
 
           {/* Payment Submitted - Under Review */}

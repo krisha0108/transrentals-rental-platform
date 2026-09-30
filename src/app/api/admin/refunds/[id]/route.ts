@@ -32,13 +32,17 @@ async function requireDesk() {
 /**
  * PATCH /api/admin/refunds/[id]
  *
- * Two ways to settle a refund:
- *
- *   { action: 'process' }            send it through Razorpay now
- *   { action: 'mark', status, notes} record what was done by hand
+ *   { action: 'review', customerRefundApproved, approvedAmount?, vendorPayoutApproved, managerNotes }
+ *                                     manager's decision, handed to the admin desk
+ *   { action: 'process' }            send it through Razorpay now (admin only)
+ *   { action: 'mark', status, notes} record what was done by hand (admin only)
  *
  * Services that do not store the gateway payment id can only be marked — the
  * money moves in someone's banking app and this records that it did.
+ *
+ * Managers no longer move money directly: their job is `review` — deciding
+ * whether a refund is owed, how much, and whether the vendor keeps their
+ * share — which hands the request to an admin to actually execute.
  */
 export async function PATCH(
   request: NextRequest,
@@ -55,9 +59,89 @@ export async function PATCH(
     const refund = await prisma.refund_followups.findUnique({ where: { id } });
     if (!refund) return NextResponse.json({ error: 'Refund not found' }, { status: 404 });
 
-    if (['COMPLETED', 'NOT_REQUIRED'].includes(refund.status)) {
+    // NOT_REQUIRED still allows a `review` — the customer owes nothing, but a
+    // manager reviewing it can still weigh in on the vendor's payout. Every
+    // other action is closed once a refund is COMPLETED or NOT_REQUIRED.
+    if (action !== 'review' && ['COMPLETED', 'NOT_REQUIRED'].includes(refund.status)) {
       return NextResponse.json(
         { error: `This refund is already ${refund.status.toLowerCase()}.` },
+        { status: 400 }
+      );
+    }
+
+    // ── manager's decision, sent to the admin desk ─────────────────────────
+    if (action === 'review') {
+      if (!['PENDING', 'FAILED', 'NOT_REQUIRED'].includes(refund.status)) {
+        return NextResponse.json(
+          { error: 'This refund has already been reviewed or is being processed.' },
+          { status: 400 }
+        );
+      }
+      const customerRefundApproved = body.customerRefundApproved === true;
+      const vendorPayoutApproved = body.vendorPayoutApproved === true;
+      const managerNotes = typeof body.managerNotes === 'string' ? body.managerNotes.trim().slice(0, 2000) : '';
+      if (!managerNotes) {
+        return NextResponse.json(
+          { error: 'Add a note explaining the decision — it travels with the request to admin.' },
+          { status: 400 }
+        );
+      }
+      let approvedAmount: number | null = null;
+      if (customerRefundApproved) {
+        approvedAmount = Number(body.approvedAmount);
+        if (!Number.isFinite(approvedAmount) || approvedAmount <= 0) {
+          return NextResponse.json(
+            { error: 'Enter a valid approved amount greater than zero.' },
+            { status: 400 }
+          );
+        }
+        if (approvedAmount > refund.amount) {
+          return NextResponse.json(
+            { error: `Approved amount can't exceed the ₹${Math.round(refund.amount).toLocaleString('en-IN')} owed.` },
+            { status: 400 }
+          );
+        }
+      }
+
+      const updated = await prisma.refund_followups.update({
+        where: { id },
+        data: {
+          status: 'MANAGER_REVIEWED',
+          customerRefundApproved,
+          approvedAmount,
+          vendorPayoutApproved,
+          managerNotes,
+          reviewedBy: auth.user.id,
+          reviewedAt: new Date(),
+        },
+      });
+
+      logger.info('Refund reviewed by manager', {
+        refundId: id,
+        customerRefundApproved,
+        approvedAmount,
+        vendorPayoutApproved,
+        actorId: auth.user.id,
+        actorEmail: auth.user.email,
+      });
+      return NextResponse.json({ success: true, refund: updated });
+    }
+
+    // Only admins move money — a manager's job ends at `review` above.
+    if ((action === 'mark' || action === 'process') && auth.user.role === 'MANAGER') {
+      return NextResponse.json(
+        { error: 'Managers review and hand off — an admin needs to action this one.' },
+        { status: 403 }
+      );
+    }
+    // A plain admin still needs a manager's decision on record before moving
+    // money — super admins can override for the rare case no manager is
+    // available. `reviewedAt` sticks even through a later FAILED retry, so a
+    // gateway hiccup on an already-reviewed refund doesn't bounce it back to
+    // needing a fresh review.
+    if ((action === 'mark' || action === 'process') && auth.user.role === 'ADMIN' && !refund.reviewedAt) {
+      return NextResponse.json(
+        { error: 'Waiting on a manager to review this before it can be processed.' },
         { status: 400 }
       );
     }
@@ -65,7 +149,7 @@ export async function PATCH(
     // ── recorded by hand ──────────────────────────────────────────────────
     if (action === 'mark') {
       const status = String(body.status || '').toUpperCase();
-      if (!REFUND_STATUSES.includes(status as any) || status === 'PENDING') {
+      if (!REFUND_STATUSES.includes(status as any) || !['PROCESSING', 'COMPLETED', 'FAILED', 'NOT_REQUIRED'].includes(status)) {
         return NextResponse.json(
           { error: 'status must be PROCESSING, COMPLETED, FAILED or NOT_REQUIRED' },
           { status: 400 }
@@ -100,6 +184,16 @@ export async function PATCH(
 
     // ── sent through the gateway ──────────────────────────────────────────
     if (action === 'process') {
+      // A manager who reviewed this and said no refund is owed closes it via
+      // `mark` → NOT_REQUIRED instead — processing a gateway refund would
+      // directly contradict that decision.
+      if (refund.status === 'MANAGER_REVIEWED' && refund.customerRefundApproved === false) {
+        return NextResponse.json(
+          { error: 'The manager marked this as no refund owed — close it instead of processing a payment.' },
+          { status: 400 }
+        );
+      }
+
       const src = sourceFor(refund.source);
       const gw = GATEWAY_TABLES[refund.source];
       if (!src?.gateway || !gw) {
@@ -123,14 +217,17 @@ export async function PATCH(
         );
       }
 
-      const paise = Math.round(refund.amount * 100);
+      // A manager-approved amount overrides the original snapshot — e.g. a
+      // partial goodwill refund instead of the full amount owed.
+      const refundAmount = refund.approvedAmount ?? refund.amount;
+      const paise = Math.round(refundAmount * 100);
       if (paise <= 0) {
         return NextResponse.json({ error: 'Nothing to refund on this booking.' }, { status: 400 });
       }
 
       // Claim it first, so two people on the queue cannot both fire a refund.
       const claimed = await prisma.refund_followups.updateMany({
-        where: { id, status: { in: ['PENDING', 'FAILED'] } },
+        where: { id, status: { in: ['PENDING', 'MANAGER_REVIEWED', 'FAILED'] } },
         data: { status: 'PROCESSING', handledBy: auth.user.id, handledAt: new Date() },
       });
       if (claimed.count === 0) {
@@ -165,7 +262,7 @@ export async function PATCH(
           .update({
             where: { id: refund.bookingId },
             data: {
-              refundAmount: refund.amount,
+              refundAmount,
               paymentStatus: 'REFUNDED',
               ...(gw.hasRefundColumn ? { refundTransactionId: gatewayRefund.id } : {}),
             },
@@ -179,7 +276,7 @@ export async function PATCH(
               data: {
                 customerId: refund.customerId,
                 title: 'Refund on the way',
-                body: `Your refund of ₹${Math.round(refund.amount).toLocaleString(
+                body: `Your refund of ₹${Math.round(refundAmount).toLocaleString(
                   'en-IN'
                 )} for booking #${refund.bookingNumber} has been sent to your bank. It usually lands in 5–7 working days.`,
                 type: 'REFUND_PROCESSED',
@@ -193,13 +290,13 @@ export async function PATCH(
         logger.info('Refund processed through gateway', {
           refundId: id,
           gatewayRefundId: gatewayRefund.id,
-          amount: refund.amount,
+          amount: refundAmount,
           actorId: auth.user.id,
         });
 
         return NextResponse.json({
           success: true,
-          message: `₹${Math.round(refund.amount).toLocaleString('en-IN')} sent back to the customer.`,
+          message: `₹${Math.round(refundAmount).toLocaleString('en-IN')} sent back to the customer.`,
           gatewayRefundId: gatewayRefund.id,
         });
       } catch (err: any) {

@@ -89,20 +89,26 @@ export async function openRefundFollowup(input: OpenRefundFollowupInput): Promis
       },
     });
 
-    // Nothing owed, nothing for the desk to do — the row is only there so
-    // the customer can see why.
-    if (owesNothing) return;
-
-    const money = `₹${Math.round(amount).toLocaleString('en-IN')}`;
+    // Every cancellation reaches the desk, even a zero-refund one — the
+    // manager still has to weigh in on whether the vendor keeps their share
+    // of this booking, which is a real decision regardless of what (if
+    // anything) goes back to the customer.
     const [managerIds, adminIds] = await Promise.all([
       getAllActiveManagers(),
       getAllActiveAdmins(),
     ]);
 
-    const title = `Refund pending — ${money}`;
-    const body = `${serviceType} booking #${bookingNumber} was cancelled${
-      customerName ? ` by ${customerName}` : ''
-    }. ${money} is owed back and is waiting in the refunds queue.`;
+    const money = `₹${Math.round(amount).toLocaleString('en-IN')}`;
+    const title = owesNothing
+      ? `Booking cancelled — no refund owed`
+      : `Refund pending — ${money}`;
+    const body = owesNothing
+      ? `${serviceType} booking #${bookingNumber} was cancelled${
+          customerName ? ` by ${customerName}` : ''
+        }. No refund is owed under the policy, but review it to confirm the vendor's payout.`
+      : `${serviceType} booking #${bookingNumber} was cancelled${
+          customerName ? ` by ${customerName}` : ''
+        }. ${money} is owed back and is waiting in the refunds queue.`;
     const shared = {
       type: 'REFUND_PENDING' as const,
       title,

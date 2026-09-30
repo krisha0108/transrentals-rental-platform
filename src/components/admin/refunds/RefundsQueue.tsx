@@ -11,6 +11,9 @@ import {
   XCircle,
   Ban,
   Send,
+  ClipboardCheck,
+  UserCheck,
+  ArrowRight,
 } from 'lucide-react';
 
 interface Refund {
@@ -22,7 +25,7 @@ interface Refund {
   customerId: string | null;
   customerName: string | null;
   amount: number;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'NOT_REQUIRED';
+  status: 'PENDING' | 'MANAGER_REVIEWED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'NOT_REQUIRED';
   gatewayRefundId: string | null;
   notes: string | null;
   handledBy: string | null;
@@ -30,12 +33,21 @@ interface Refund {
   createdAt: string;
   /** Whether this service stores a gateway payment id we can refund against. */
   gateway: boolean;
+  /** The manager's call — null until reviewed. */
+  customerRefundApproved: boolean | null;
+  approvedAmount: number | null;
+  vendorPayoutApproved: boolean | null;
+  managerNotes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
 }
 
-type Tab = 'pending' | 'processing' | 'failed' | 'completed' | 'not_required' | 'all';
+type Tab = 'pending' | 'manager_reviewed' | 'processing' | 'failed' | 'completed' | 'not_required' | 'all';
+type ViewerRole = 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER';
 
 const EMPTY = {
   pending: 0,
+  managerReviewed: 0,
   processing: 0,
   completed: 0,
   failed: 0,
@@ -45,6 +57,7 @@ const EMPTY = {
 
 const STATUS_STYLE: Record<Refund['status'], { pill: string; accent: string; label: string }> = {
   PENDING: { pill: 'bg-amber-50 text-amber-700 ring-amber-100', accent: 'bg-amber-400', label: 'Pending' },
+  MANAGER_REVIEWED: { pill: 'bg-indigo-50 text-indigo-700 ring-indigo-100', accent: 'bg-indigo-400', label: 'Sent to admin' },
   PROCESSING: { pill: 'bg-blue-50 text-blue-700 ring-blue-100', accent: 'bg-blue-400', label: 'Processing' },
   COMPLETED: { pill: 'bg-emerald-50 text-emerald-700 ring-emerald-100', accent: 'bg-emerald-500', label: 'Completed' },
   FAILED: { pill: 'bg-rose-50 text-rose-700 ring-rose-100', accent: 'bg-rose-500', label: 'Failed' },
@@ -63,6 +76,7 @@ const shortDate = (iso: string) => {
 export default function RefundsQueue() {
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [counts, setCounts] = useState(EMPTY);
+  const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null);
   const [tab, setTab] = useState<Tab>('pending');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -70,6 +84,14 @@ export default function RefundsQueue() {
   const [error, setError] = useState<string | null>(null);
   const [noteFor, setNoteFor] = useState<string | null>(null);
   const [note, setNote] = useState('');
+
+  // Manager's decision form — one open at a time, same as the "record by
+  // hand" note box below.
+  const [reviewFor, setReviewFor] = useState<string | null>(null);
+  const [reviewApprove, setReviewApprove] = useState<boolean | null>(null);
+  const [reviewAmount, setReviewAmount] = useState('');
+  const [reviewVendorPayout, setReviewVendorPayout] = useState<boolean | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
 
   const fetchRefunds = useCallback(async () => {
     setLoading(true);
@@ -81,6 +103,7 @@ export default function RefundsQueue() {
         const data = await res.json();
         setRefunds(data.refunds || []);
         setCounts(data.counts || EMPTY);
+        if (data.viewerRole) setViewerRole(data.viewerRole);
       }
     } finally {
       setLoading(false);
@@ -108,6 +131,11 @@ export default function RefundsQueue() {
       }
       setNoteFor(null);
       setNote('');
+      setReviewFor(null);
+      setReviewApprove(null);
+      setReviewAmount('');
+      setReviewVendorPayout(null);
+      setReviewNotes('');
       fetchRefunds();
     } catch {
       setError('Could not reach the server.');
@@ -116,8 +144,39 @@ export default function RefundsQueue() {
     }
   };
 
+  const openReview = (r: Refund) => {
+    setReviewFor(r.id);
+    setReviewApprove(null);
+    setReviewAmount(String(Math.round(r.amount)));
+    setReviewVendorPayout(null);
+    setReviewNotes('');
+    setError(null);
+  };
+
+  const submitReview = (id: string) => {
+    if (reviewApprove === null || reviewVendorPayout === null) {
+      setError('Answer both questions before sending this to admin.');
+      return;
+    }
+    if (!reviewNotes.trim()) {
+      setError('Add a note explaining the decision.');
+      return;
+    }
+    act(id, {
+      action: 'review',
+      customerRefundApproved: reviewApprove,
+      approvedAmount: reviewApprove ? Number(reviewAmount) : undefined,
+      vendorPayoutApproved: reviewVendorPayout,
+      managerNotes: reviewNotes.trim(),
+    });
+  };
+
+  const isManager = viewerRole === 'MANAGER';
+  const isSuperAdmin = viewerRole === 'SUPER_ADMIN';
+
   const TABS: { key: Tab; label: string; count: number | null }[] = [
     { key: 'pending', label: 'Pending', count: counts.pending },
+    { key: 'manager_reviewed', label: 'Sent to admin', count: counts.managerReviewed },
     { key: 'processing', label: 'Processing', count: counts.processing },
     { key: 'failed', label: 'Failed', count: counts.failed },
     { key: 'completed', label: 'Completed', count: counts.completed },
@@ -137,8 +196,9 @@ export default function RefundsQueue() {
             Refunds
           </h1>
           <p className="mt-1.5 max-w-xl text-sm text-gray-500">
-            Every cancelled booking that owes a customer money, across all services. A refund
-            leaves this queue only when someone says what happened to it.
+            {isManager
+              ? 'Every cancelled booking that may owe a customer money. Decide what happens and hand it to admin.'
+              : 'Every cancelled booking that owes a customer money, across all services. A refund leaves this queue only when someone says what happened to it.'}
           </p>
         </div>
 
@@ -208,7 +268,21 @@ export default function RefundsQueue() {
         <div className="space-y-3">
           {refunds.map((r) => {
             const s = STATUS_STYLE[r.status] ?? STATUS_STYLE.PENDING;
-            const open = ['PENDING', 'PROCESSING', 'FAILED'].includes(r.status);
+            const displayAmount = r.approvedAmount ?? r.amount;
+
+            // A manager can review anything that has never been reviewed —
+            // even a FAILED one from before this flow existed. Once reviewed,
+            // a later FAILED retry is admin's job, not a fresh review.
+            // NOT_REQUIRED is reviewable too — the customer owes nothing, but
+            // the manager still needs to weigh in on the vendor's payout.
+            const canReview = isManager && !r.reviewedAt && ['PENDING', 'FAILED', 'NOT_REQUIRED'].includes(r.status);
+            // A plain admin needs that review on record first; super admins
+            // can act on anything open, review or not.
+            const canExecute =
+              !isManager &&
+              ['PENDING', 'MANAGER_REVIEWED', 'PROCESSING', 'FAILED'].includes(r.status) &&
+              (isSuperAdmin || !!r.reviewedAt);
+            const declinedByManager = r.status === 'MANAGER_REVIEWED' && r.customerRefundApproved === false;
 
             return (
               <article
@@ -247,7 +321,7 @@ export default function RefundsQueue() {
 
                       <div className="flex items-center gap-3">
                         <span className="text-[20px] font-extrabold tabular-nums text-gray-900">
-                          {money(r.amount)}
+                          {money(displayAmount)}
                         </span>
                         <span
                           className={`rounded-md px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 ${s.pill}`}
@@ -270,7 +344,145 @@ export default function RefundsQueue() {
                       </p>
                     )}
 
-                    {noteFor === r.id ? (
+                    {/* ── manager's decision, once one exists ── */}
+                    {r.reviewedAt && (
+                      <div className="mt-3.5 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3.5">
+                        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-indigo-700">
+                          <UserCheck className="h-3.5 w-3.5" />
+                          Manager&apos;s decision · {shortDate(r.reviewedAt)}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-indigo-950">
+                          <span>
+                            Customer refund:{' '}
+                            <strong>{r.customerRefundApproved ? `Yes, ${money(r.approvedAmount ?? 0)}` : 'No'}</strong>
+                          </span>
+                          <span>
+                            Vendor keeps their share:{' '}
+                            <strong>{r.vendorPayoutApproved ? 'Yes' : 'No'}</strong>
+                          </span>
+                        </div>
+                        {r.managerNotes && (
+                          <p className="mt-1.5 text-sm leading-relaxed text-indigo-900">{r.managerNotes}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ── manager's decision form ── */}
+                    {reviewFor === r.id ? (
+                      <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4">
+                        <p className="mb-3 text-sm font-semibold text-gray-800">
+                          Review this refund for admin
+                        </p>
+
+                        <div className="space-y-3">
+                          <div>
+                            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-gray-500">
+                              Does the customer get a refund?
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setReviewApprove(true)}
+                                className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                                  reviewApprove === true
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'border border-gray-200 text-gray-600 hover:bg-white'
+                                }`}
+                              >
+                                Yes, refund owed
+                              </button>
+                              <button
+                                onClick={() => setReviewApprove(false)}
+                                className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                                  reviewApprove === false
+                                    ? 'bg-gray-700 text-white'
+                                    : 'border border-gray-200 text-gray-600 hover:bg-white'
+                                }`}
+                              >
+                                No, nothing owed
+                              </button>
+                            </div>
+                          </div>
+
+                          {reviewApprove === true && (
+                            <div>
+                              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-gray-500">
+                                Approved amount (owed: {money(r.amount)})
+                              </p>
+                              <div className="relative max-w-[160px]">
+                                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">₹</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={Math.round(r.amount)}
+                                  value={reviewAmount}
+                                  onChange={(e) => setReviewAmount(e.target.value)}
+                                  className="w-full rounded-lg border border-gray-200 py-1.5 pl-6 pr-3 text-sm outline-none focus:border-emerald-300"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-gray-500">
+                              Does the vendor keep their share of this booking?
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setReviewVendorPayout(true)}
+                                className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                                  reviewVendorPayout === true
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'border border-gray-200 text-gray-600 hover:bg-white'
+                                }`}
+                              >
+                                Yes, vendor keeps it
+                              </button>
+                              <button
+                                onClick={() => setReviewVendorPayout(false)}
+                                className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                                  reviewVendorPayout === false
+                                    ? 'bg-gray-700 text-white'
+                                    : 'border border-gray-200 text-gray-600 hover:bg-white'
+                                }`}
+                              >
+                                No, hold it back
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-gray-500">
+                              Note for admin
+                            </label>
+                            <textarea
+                              value={reviewNotes}
+                              onChange={(e) => setReviewNotes(e.target.value)}
+                              rows={2}
+                              placeholder="Why, and anything admin should know before paying this out…"
+                              className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-3.5 flex flex-wrap gap-2">
+                          <button
+                            disabled={busy === r.id}
+                            onClick={() => submitReview(r.id)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                          >
+                            {busy === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                            Send to admin
+                          </button>
+                          <button
+                            disabled={busy === r.id}
+                            onClick={() => { setReviewFor(null); setError(null); }}
+                            className="ml-auto rounded-lg px-3 py-2 text-xs font-bold text-gray-400 hover:text-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : noteFor === r.id ? (
                       <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
                         <label className="mb-1.5 block text-sm font-medium text-gray-700">
                           What happened to this refund?
@@ -306,8 +518,35 @@ export default function RefundsQueue() {
                           </button>
                         </div>
                       </div>
-                    ) : (
-                      open && (
+                    ) : canReview ? (
+                      <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3.5">
+                        <button
+                          disabled={busy === r.id}
+                          onClick={() => openReview(r)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          <ClipboardCheck className="h-3.5 w-3.5" /> Review & decide
+                        </button>
+                      </div>
+                    ) : canExecute ? (
+                      declinedByManager ? (
+                        <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3.5">
+                          <button
+                            disabled={busy === r.id}
+                            onClick={() =>
+                              act(r.id, {
+                                action: 'mark',
+                                status: 'NOT_REQUIRED',
+                                notes: r.managerNotes || 'Closed — manager found no refund owed.',
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3.5 py-2 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            {busy === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
+                            Close — no refund owed
+                          </button>
+                        </div>
+                      ) : (
                         <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3.5">
                           {r.gateway && (
                             <button
@@ -320,7 +559,7 @@ export default function RefundsQueue() {
                               ) : (
                                 <Send className="h-3.5 w-3.5" />
                               )}
-                              Refund {money(r.amount)} now
+                              Refund {money(displayAmount)} now
                             </button>
                           )}
                           <button
@@ -341,7 +580,11 @@ export default function RefundsQueue() {
                           )}
                         </div>
                       )
-                    )}
+                    ) : !isManager && ['PENDING', 'FAILED'].includes(r.status) && !r.reviewedAt ? (
+                      <p className="mt-4 flex items-center gap-1.5 border-t border-gray-100 pt-3.5 text-xs font-semibold text-gray-400">
+                        <ArrowRight className="h-3.5 w-3.5" /> Waiting on a manager to review this
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </article>

@@ -22,6 +22,7 @@ import {
   Share2,
   HelpCircle,
   CreditCard,
+  RotateCcw,
 } from 'lucide-react';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 import { DriverBookingChat } from '@/components/driver/DriverBookingChat';
@@ -499,6 +500,23 @@ export default function CarRentalBookingDetailPage() {
                   {booking.transactionId && (
                     <p className="mt-1.5 text-[11.5px] tabular-nums text-amber-700/80">Ref: {booking.transactionId}</p>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Cancelled — headline notice ── */}
+          {booking.status === 'CANCELLED' && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-100">
+                  <RotateCcw className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-extrabold text-red-800">Your booking has been cancelled</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-red-700">
+                    If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+                  </p>
                 </div>
               </div>
             </div>
