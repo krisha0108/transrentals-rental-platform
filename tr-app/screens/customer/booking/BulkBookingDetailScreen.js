@@ -8,8 +8,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
-  RefreshControl, Linking, Pressable, Modal, Image, Dimensions, Share, ToastAndroid, Platform,
+  RefreshControl, Linking, Pressable, Image, Dimensions, Share, ToastAndroid, Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, RefreshControl, Dimensions, Modal, TextInput, Image, FlatList,
+  ActivityIndicator, RefreshControl, Dimensions, TextInput, Image, FlatList,
   Share, Linking, Clipboard, Platform, StatusBar, KeyboardAvoidingView,
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { b2bService } from '../services';

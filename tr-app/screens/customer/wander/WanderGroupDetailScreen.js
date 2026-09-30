@@ -7,10 +7,10 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, RefreshControl,
-  Modal, FlatList, KeyboardAvoidingView, Platform, Linking, Image, Share,
+  TextInput, ActivityIndicator, Alert, RefreshControl, FlatList, KeyboardAvoidingView, Platform, Linking, Image, Share,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import Modal from '../../../components/SafeModal';
+import TripDatePicker from '../../../components/TripDatePicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -206,22 +206,16 @@ function SubmitQuoteModal({ visible, trip, myMemberId, groupCode, onClose, onSuc
             <Text style={styles.fieldLabel}>Travel Date *</Text>
             <TouchableOpacity
               style={[styles.formInput, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
-              onPress={() => setShowPicker(true)}
+              onPress={() => setShowPicker(v => !v)}
               activeOpacity={0.7}
             >
               <Text style={{ color: '#111827', fontSize: 15 }}>{displayDate(travelDate)}</Text>
               <Ionicons name="calendar-outline" size={18} color="#6B7280" />
             </TouchableOpacity>
             {showPicker && (
-              <DateTimePicker
+              <TripDatePicker
                 value={travelDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={new Date()}
-                onChange={(event, selectedDate) => {
-                  setShowPicker(Platform.OS === 'ios');
-                  if (selectedDate) setTravelDate(selectedDate);
-                }}
+                onChange={(date) => { setTravelDate(date); setShowPicker(false); }}
               />
             )}
 
@@ -403,7 +397,7 @@ function DateVoteModal({ visible, trip, myMemberId, groupCode, onClose, onRefres
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
               <TouchableOpacity
                 style={[styles.formInput, { flex: 1, marginBottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
-                onPress={() => setShowAddPicker(true)}
+                onPress={() => setShowAddPicker(v => !v)}
                 activeOpacity={0.7}
               >
                 <Text style={{ color: '#111827', fontSize: 14 }}>
@@ -419,15 +413,9 @@ function DateVoteModal({ visible, trip, myMemberId, groupCode, onClose, onRefres
               </TouchableOpacity>
             </View>
             {showAddPicker && (
-              <DateTimePicker
+              <TripDatePicker
                 value={newDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={new Date()}
-                onChange={(event, selectedDate) => {
-                  setShowAddPicker(Platform.OS === 'ios');
-                  if (selectedDate) setNewDate(selectedDate);
-                }}
+                onChange={(date) => { setNewDate(date); setShowAddPicker(false); }}
               />
             )}
           </ScrollView>

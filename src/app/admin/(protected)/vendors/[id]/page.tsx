@@ -50,8 +50,10 @@ import {
   Plus,
   Upload,
   Activity,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import VendorReviewsTab, { Stars, type VendorReviewSummary } from '@/components/admin/vendors/VendorReviewsTab';
 
 // Presence + activity — same mechanism as the admin/manager vendors lists
 // and the Manager Performance detail page (see /api/vendor/heartbeat,
@@ -272,7 +274,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'services' | 'locations' | 'payouts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'services' | 'locations' | 'payouts' | 'reviews'>('overview');
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   // Set-password modal state
@@ -337,6 +339,18 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   // Search / select state for approved services
   const [svcSearch, setSvcSearch] = useState('');
   const [selectedSvcIds, setSelectedSvcIds] = useState<Set<string>>(new Set());
+
+  // Header rating — computed from the reviews themselves, not vendors.rating
+  const [reviewSummary, setReviewSummary] = useState<VendorReviewSummary | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/admin/vendors/${id}/reviews?limit=1`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) setReviewSummary(json.summary);
+      })
+      .catch(() => {});
+  }, [id]);
 
   // Online presence + day-by-day active/idle time (see /api/vendor/heartbeat)
   const [activity, setActivity] = useState<VendorActivity | null>(null);
@@ -1029,7 +1043,19 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           {hasNoLocationOrServiceActivity && (
             <p className="text-xs text-amber-600 mt-0.5">Locations/Services not requested yet</p>
           )}
-          <p className="text-gray-600">Vendor ID: {vendor.id}</p>
+          <p className="text-gray-600 flex items-center gap-3 flex-wrap">
+            <span>Vendor ID: {vendor.id}</span>
+            {reviewSummary && reviewSummary.total > 0 && (
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className="inline-flex items-center gap-1.5 text-sm hover:underline"
+              >
+                <Stars rating={reviewSummary.average} className="w-3.5 h-3.5" />
+                <span className="font-semibold text-gray-900">{reviewSummary.average.toFixed(1)}</span>
+                <span className="text-gray-500">({reviewSummary.total} review{reviewSummary.total !== 1 ? 's' : ''})</span>
+              </button>
+            )}
+          </p>
         </div>
 
         {/* Quick Actions */}
@@ -1277,6 +1303,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             { id: 'services', label: 'Services', icon: Layers, count: pendingServiceRequests.length },
             { id: 'locations', label: 'Locations', icon: MapPin, count: pendingLocationRequests.length },
             { id: 'payouts', label: 'Payouts', icon: Wallet },
+            { id: 'reviews', label: 'Reviews', icon: Star },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -2801,6 +2828,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           )}
         </div>
       )}
+
+      {activeTab === 'reviews' && <VendorReviewsTab vendorId={id} />}
 
       {/* Booking Detail Modal */}
       {selectedBooking && (

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
-  Modal,
   Platform,
   Dimensions,
   Animated,
@@ -16,6 +15,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -23,7 +23,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { locationService, bookingService } from '../../services';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
 import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
@@ -126,9 +126,9 @@ export default function BusRentalScreen() {
   // Phase 7 — TA Personal/Company toggle (self-gates on linkedTravelAgentId).
   const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
 
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(() => getEarliestPickup());
   const [returnDate, setReturnDate] = useState(
-    new Date(Date.now() + 4 * 60 * 60 * 1000),
+    () => new Date(getEarliestPickup().getTime() + 4 * 60 * 60 * 1000),
   );
 
   const [androidPickerVisible, setAndroidPickerVisible] = useState(false);
@@ -209,13 +209,14 @@ export default function BusRentalScreen() {
 
       // merge selected date with existing time
       if (target === 'start') {
-        const merged = new Date(
+        // Keep the chosen time unless it is now too soon on the new date.
+        const merged = clampPickup(new Date(
           date.getFullYear(),
           date.getMonth(),
           date.getDate(),
           startDate.getHours(),
           startDate.getMinutes(),
-        );
+        ));
         setStartDate(merged);
 
         // make sure return is after start
@@ -235,6 +236,12 @@ export default function BusRentalScreen() {
             final.setMinutes(time.getMinutes());
 
             if (isPickupTooSoon(final)) {
+              // Too close to now for a driver to reach: snap to the earliest slot.
+              const earliest = getEarliestPickup();
+              setStartDate(earliest);
+              if (returnDate < earliest) {
+                setReturnDate(new Date(earliest.getTime() + 2 * 60 * 60 * 1000));
+              }
               setShowBookingAlert(true);
               return;
             }
@@ -290,13 +297,14 @@ export default function BusRentalScreen() {
     if (androidPickerMode === 'date') {
       if (androidPickingTarget === 'start') {
         const newStart = new Date(selected);
-        const merged = new Date(
+        // Keep the chosen time unless it is now too soon on the new date.
+        const merged = clampPickup(new Date(
           newStart.getFullYear(),
           newStart.getMonth(),
           newStart.getDate(),
           startDate.getHours(),
           startDate.getMinutes(),
-        );
+        ));
         setStartDate(merged);
         if (returnDate < merged) {
           setReturnDate(new Date(merged.getTime() + 4 * 60 * 60 * 1000));
@@ -323,6 +331,12 @@ export default function BusRentalScreen() {
         upd.setHours(selected.getHours());
         upd.setMinutes(selected.getMinutes());
         if (isPickupTooSoon(upd)) {
+          // Too close to now for a driver to reach: snap to the earliest slot.
+          const earliest = getEarliestPickup();
+          setStartDate(earliest);
+          if (returnDate < earliest) {
+            setReturnDate(new Date(earliest.getTime() + 4 * 60 * 60 * 1000));
+          }
           setShowBookingAlert(true);
           setAndroidPickerVisible(false);
           return;
@@ -344,6 +358,12 @@ export default function BusRentalScreen() {
   const onStartDateChangeIOS = (event, selectedDate) => {
     if (!selectedDate) return;
     if (isPickupTooSoon(selectedDate)) {
+      // Too close to now for a driver to reach: snap to the earliest slot.
+      const earliest = getEarliestPickup();
+      setStartDate(earliest);
+      if (returnDate < earliest) {
+        setReturnDate(new Date(earliest.getTime() + 4 * 60 * 60 * 1000));
+      }
       setShowBookingAlert(true);
       return;
     }

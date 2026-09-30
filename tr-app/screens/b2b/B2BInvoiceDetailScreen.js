@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, RefreshControl, Dimensions, Platform,
-  NativeModules, Modal,
+  NativeModules,
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import RazorpayCheckout from 'react-native-razorpay';

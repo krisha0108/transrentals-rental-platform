@@ -476,11 +476,11 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Request Location', href: '/vendor/locations/request', icon: MapPin },
     ],
   },
-  // {
-  //   name: 'Reviews',
-  //   href: '/vendor/reviews',
-  //   icon: Star,
-  // },
+  {
+    name: 'Customer Reviews',
+    href: '/vendor/reviews',
+    icon: Star,
+  },
   {
     name: 'Get Started',
     href: '/vendor/get-started',

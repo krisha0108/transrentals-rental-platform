@@ -898,7 +898,10 @@ export default function StoryViewer({ story, backUrl = '/stories', readonly = fa
           {/* ── Story Card ── */}
           <div
             className="relative overflow-hidden rounded-2xl shadow-[0_8px_60px_rgba(0,0,0,0.7)] flex-shrink-0"
-            style={{ height: '92vh', aspectRatio: '9/16' }}
+            // 9:16 card as tall as fits: on tall phones 92vh would make it
+            // wider than the screen and crop both sides, so cap the height
+            // at what the screen width allows.
+            style={{ height: 'min(92vh, calc(100vw * 16 / 9))', aspectRatio: '9/16' }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Modal,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Platform, ActivityIndicator, StatusBar, Alert,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +15,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
-import { getMinBookingDate, isPickupTooSoon } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickup, clampPickup } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import {
   TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD,
@@ -76,7 +77,7 @@ export default function PackerMoverScreen() {
   const [showDestSuggestions, setShowDestSuggestions] = useState(false);
 
   // ── core fields ──
-  const [moveDate, setMoveDate] = useState(new Date());
+  const [moveDate, setMoveDate] = useState(() => getEarliestPickup());
   const [selectedOption, setSelectedOption] = useState(null);
   const [otherDetails, setOtherDetails] = useState('');
   const [isPhoneModal, setIsPhoneModal] = useState(false);
@@ -191,7 +192,8 @@ export default function PackerMoverScreen() {
       value: moveDate, mode: 'date', minimumDate: getMinBookingDate(),
       onChange: (event, date) => {
         if (event.type === 'dismissed' || !date) return;
-        const merged = new Date(date.getFullYear(), date.getMonth(), date.getDate(), moveDate.getHours(), moveDate.getMinutes());
+        // Keep the chosen time unless it is now too soon on the new date.
+        const merged = clampPickup(new Date(date.getFullYear(), date.getMonth(), date.getDate(), moveDate.getHours(), moveDate.getMinutes()));
         setMoveDate(merged);
         DateTimePickerAndroid.open({
           value: merged, mode: 'time', is24Hour: false,
@@ -199,7 +201,12 @@ export default function PackerMoverScreen() {
             if (event2.type === 'dismissed' || !time) return;
             const final = new Date(merged);
             final.setHours(time.getHours()); final.setMinutes(time.getMinutes());
-            if (isPickupTooSoon(final)) { setShowBookingAlert(true); return; }
+            if (isPickupTooSoon(final)) {
+              // Too close to now for a crew to reach: snap to the earliest slot.
+              setMoveDate(getEarliestPickup());
+              setShowBookingAlert(true);
+              return;
+            }
             setMoveDate(final);
           },
         });

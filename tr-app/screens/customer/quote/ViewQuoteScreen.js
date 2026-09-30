@@ -9,13 +9,14 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
-  Modal,
   Pressable,
   Linking,
   Alert,
   Animated,
   ScrollView,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -104,6 +105,24 @@ const TABS = [
     lightColor: '#F0F7FF'
   },
 ];
+
+const TAB_KEYS = TABS.map((tab) => tab.key);
+
+// Comma-separated list from the quote, or [] when there is no real text
+// (blank, "[]", or only separators).
+const splitList = (value) => {
+  const clean = (items) => items.map((item) => (item == null ? '' : String(item)).trim()).filter(Boolean);
+  if (Array.isArray(value)) return clean(value);
+  if (typeof value !== 'string') return [];
+  const text = value.trim();
+  if (text.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return clean(parsed);
+    } catch (e) {}
+  }
+  return clean(text.split(','));
+};
 
 // Tab Content Components with Dynamic Height
 // const HighlightsContent = ({ quote }) => {
@@ -277,19 +296,18 @@ const TabSection = ({ quote }) => {
       </View>
 
       {/* Tab Content Card - Separate card for each tab */}
-      <View style={styles.tabContentCard}>
+      <SwipeTabsView style={styles.tabContentCard} tabs={TAB_KEYS} activeTab={activeTab} onChange={setActiveTab}>
         {renderTabContent()}
-      </View>
+      </SwipeTabsView>
     </View>
   );
 };
 
 // Tab Content Components - Each returns only the content without card wrapper
 const HighlightsContent = ({ quote }) => {
-  if (!quote?.highlight) return <Text style={styles.emptyTabText}>No highlights available</Text>;
-  
-  const highlights = (quote.highlight || '').split(',').filter(Boolean);
-  
+  const highlights = splitList(quote?.highlight);
+  if (highlights.length === 0) return <Text style={styles.emptyTabText}>No highlights available</Text>;
+
   return (
     <View style={styles.tabContent}>
       <View style={[styles.tabHeader, { backgroundColor: TABS[0].lightColor }]}>
@@ -314,10 +332,9 @@ const HighlightsContent = ({ quote }) => {
 };
 
 const InclusionsContent = ({ quote }) => {
-  if (!quote?.included) return <Text style={styles.emptyTabText}>No inclusions available</Text>;
-  
-  const inclusions = (quote.included || '').split(',').filter(Boolean);
-  
+  const inclusions = splitList(quote?.included);
+  if (inclusions.length === 0) return <Text style={styles.emptyTabText}>No inclusions available</Text>;
+
   return (
     <View style={styles.tabContent}>
       <View style={[styles.tabHeader, { backgroundColor: TABS[1].lightColor }]}>
@@ -342,10 +359,9 @@ const InclusionsContent = ({ quote }) => {
 };
 
 const ExclusionsContent = ({ quote }) => {
-  if (!quote?.not_included) return <Text style={styles.emptyTabText}>No exclusions available</Text>;
-  
-  const exclusions = (quote.not_included || '').split(',').filter(Boolean);
-  
+  const exclusions = splitList(quote?.not_included);
+  if (exclusions.length === 0) return <Text style={styles.emptyTabText}>No exclusions available</Text>;
+
   return (
     <View style={styles.tabContent}>
       <View style={[styles.tabHeader, { backgroundColor: TABS[2].lightColor }]}>
@@ -370,10 +386,9 @@ const ExclusionsContent = ({ quote }) => {
 };
 
 const TermsContent = ({ quote }) => {
-  if (!quote?.terms) return <Text style={styles.emptyTabText}>No terms & conditions available</Text>;
-  
-  const terms = (quote?.terms || '').split(',').filter(term => term.trim() !== '');
-  
+  const terms = splitList(quote?.terms);
+  if (terms.length === 0) return <Text style={styles.emptyTabText}>No terms & conditions available</Text>;
+
   return (
     <View style={styles.tabContent}>
       <View style={[styles.tabHeader, { backgroundColor: TABS[3].lightColor }]}>

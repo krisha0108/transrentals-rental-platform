@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
-  Modal,
   TextInput,
   ActivityIndicator,
   Platform,
@@ -16,6 +15,7 @@ import {
   Alert,
   Animated,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -26,7 +26,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
 import { locationService, bookingService, fleetService } from '../../services';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
 import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
@@ -106,7 +106,7 @@ export default function EquipmentScreen() {
 
   const [selectedEquipment, setSelectedEquipment] = useState(null); // object from API
   const [selectedDuration, setSelectedDuration] = useState(null);
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(() => getEarliestPickup());
   const [showDatePicker, setShowDatePicker] = useState(false); // iOS only
   const [equipmentCount, setEquipmentCount] = useState('');
   const [siteAddress, setSiteAddress] = useState('');
@@ -231,7 +231,17 @@ export default function EquipmentScreen() {
       minimumDate: getMinBookingDate(),
       onChange: (event, date) => {
         if (event.type === 'dismissed') return;
-        const pickedDate = date || startDate;
+        // Keep the chosen time unless it is now too soon on the new date.
+        const pickedDate = date
+          ? clampPickup(new Date(
+            date.getFullYear(),
+            date.getMonth(),
+            date.getDate(),
+            startDate.getHours(),
+            startDate.getMinutes(),
+          ))
+          : startDate;
+        setStartDate(pickedDate);
         // now open time
         DateTimePickerAndroid.open({
           value: pickedDate,
@@ -247,6 +257,8 @@ export default function EquipmentScreen() {
               final.setHours(time.getHours());
               final.setMinutes(time.getMinutes());
               if (isPickupTooSoon(final)) {
+                // Too close to now for a driver to reach: snap to the earliest slot.
+                setStartDate(getEarliestPickup());
                 setShowBookingAlert(true);
                 return;
               }
@@ -621,6 +633,8 @@ export default function EquipmentScreen() {
                 }
                 if (selected) {
                   if (isPickupTooSoon(selected)) {
+                    // Too close to now for a driver to reach: snap to the earliest slot.
+                    setStartDate(getEarliestPickup());
                     setShowBookingAlert(true);
                     setShowDatePicker(false);
                     return;

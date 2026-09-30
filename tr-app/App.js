@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import SplashScreen from './screens/SplashScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -27,6 +28,9 @@ import CustomBookingScreen from './screens/customer/booking/CustomBookingScreen'
 import BulkBookingDetailScreen from './screens/customer/booking/BulkBookingDetailScreen';
 import DriverChatListScreen from './screens/customer/booking/DriverChatListScreen';
 import DriverChatScreen from './screens/customer/booking/DriverChatScreen';
+import HelpAssistantScreen from './screens/customer/support/HelpAssistantScreen';
+import WebStoriesScreen from './screens/customer/stories/WebStoriesScreen';
+import WebStoryViewerScreen from './screens/customer/stories/WebStoryViewerScreen';
 import MyBikeBookingsScreen from './screens/customer/booking/MyBikeBookingsScreen';
 import BikeQuoteRequestDetailScreen from './screens/customer/booking/BikeQuoteRequestDetailScreen';
 import PaymentScreen from './screens/customer/booking/PaymentScreen';
@@ -83,7 +87,7 @@ import { LogBox } from 'react-native';
 import BackrTokensScreen from './screens/customer/BackrTokensScreen';
 import TokenHistoryScreen from './screens/customer/TokenHistoryScreen';
 import EarnBackrTasksScreen from './screens/customer/EarnBackrTasksScreen';
-import messaging from '@react-native-firebase/messaging';
+import messaging, { getMessaging, getInitialNotification, getToken, onMessage, onNotificationOpenedApp, requestPermission, setBackgroundMessageHandler } from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
 import { NotificationProvider, useInAppNotification } from './contexts/NotificationContext';
 import { AppState } from 'react-native';
@@ -158,7 +162,7 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
 });
 
 // Background notification handler (must be outside component)
-messaging().setBackgroundMessageHandler(async remoteMessage => {
+setBackgroundMessageHandler(getMessaging(), async remoteMessage => {
   console.log('Background message received:', remoteMessage);
 
   const image = remoteMessage?.data?.image || remoteMessage?.notification?.android?.imageUrl || null;
@@ -317,7 +321,7 @@ function AppContent() {
           return;
         }
       } else {
-        const authStatus = await messaging().requestPermission();
+        const authStatus = await requestPermission(getMessaging());
         console.log('iOS permission status:', authStatus);
         if (
           authStatus !== messaging.AuthorizationStatus.AUTHORIZED &&
@@ -365,7 +369,7 @@ function AppContent() {
         sound: customSound, // Same sound
       });
 
-      const fcmToken = await messaging().getToken();
+      const fcmToken = await getToken(getMessaging());
 
       // ⭐ Save FCM token to backend
       try {
@@ -390,7 +394,7 @@ function AppContent() {
       }
 
       // ⭐ Foreground message handler - Show IN-APP and ANDROID notification
-      const unsubscribe = messaging().onMessage(async remoteMessage => {
+      const unsubscribe = onMessage(getMessaging(), async remoteMessage => {
         console.log('📱 Foreground message received:', remoteMessage);
         badgeCount += 1;
         await notifee.setBadgeCount(badgeCount);
@@ -593,7 +597,7 @@ function AppContent() {
       onNotificationPressCallback = navigateFromNotification;
 
       // Handle notification opened app from background state (FCM)
-      messaging().onNotificationOpenedApp(async remoteMessage => {
+      onNotificationOpenedApp(getMessaging(), async remoteMessage => {
         console.log('Notification opened app from background:', remoteMessage);
         const data = {
           ...remoteMessage.data,
@@ -604,7 +608,7 @@ function AppContent() {
       });
 
       // Check if app was opened from a notification (killed state - FCM)
-      messaging().getInitialNotification().then(async remoteMessage => {
+      getInitialNotification(getMessaging()).then(async remoteMessage => {
         if (remoteMessage) {
           console.log('Notification opened app from killed state:', remoteMessage);
           const data = {
@@ -690,6 +694,9 @@ function AppContent() {
         <Stack.Screen name="BulkBookingDetail" component={BulkBookingDetailScreen} />
         <Stack.Screen name="DriverChatList" component={DriverChatListScreen} />
         <Stack.Screen name="DriverChat" component={DriverChatScreen} />
+        <Stack.Screen name="HelpAssistant" component={HelpAssistantScreen} />
+        <Stack.Screen name="WebStories" component={WebStoriesScreen} />
+        <Stack.Screen name="WebStoryViewer" component={WebStoryViewerScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="MyBikeBookings" component={MyBikeBookingsScreen} />
         <Stack.Screen name="BikeQuoteRequestDetail" component={BikeQuoteRequestDetailScreen} />
         <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
@@ -783,9 +790,11 @@ const linking = {
 // Main App wrapper
 export default function App() {
   return (
-    <NavigationContainer linking={linking}>
-      <AppWithNotifications />
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer linking={linking}>
+        <AppWithNotifications />
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 

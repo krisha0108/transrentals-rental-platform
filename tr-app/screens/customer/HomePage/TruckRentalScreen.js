@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Modal, Platform, Dimensions, Animated, ActivityIndicator, Pressable, StatusBar,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Platform, Dimensions, Animated, ActivityIndicator, Pressable, StatusBar,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -12,7 +12,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
-import { getMinBookingDate, isPickupTooSoon } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickup, clampPickup } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
 import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
@@ -116,7 +116,7 @@ export default function TruckRentalScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '' });
 
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(() => getEarliestPickup());
   const [androidPickerVisible, setAndroidPickerVisible] = useState(false);
   const [androidPickerMode, setAndroidPickerMode] = useState('date');
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -172,18 +172,30 @@ export default function TruckRentalScreen() {
     if (event.type === 'dismissed') { setAndroidPickerVisible(false); return; }
     if (!selected) { setAndroidPickerVisible(false); return; }
     if (androidPickerMode === 'date') {
-      const merged = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), startDate.getHours(), startDate.getMinutes());
+      // Keep the chosen time unless it is now too soon on the new date.
+      const merged = clampPickup(new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), startDate.getHours(), startDate.getMinutes()));
       setStartDate(merged); setAndroidPickerMode('time'); setAndroidPickerVisible(true); return;
     }
     if (androidPickerMode === 'time') {
       const upd = new Date(startDate); upd.setHours(selected.getHours()); upd.setMinutes(selected.getMinutes());
-      if (isPickupTooSoon(upd)) { setShowBookingAlert(true); setAndroidPickerVisible(false); return; }
+      if (isPickupTooSoon(upd)) {
+        // Too close to now for a driver to reach: snap to the earliest slot.
+        setStartDate(getEarliestPickup());
+        setShowBookingAlert(true);
+        setAndroidPickerVisible(false);
+        return;
+      }
       setStartDate(upd); setAndroidPickerVisible(false);
     }
   };
   const onStartDateChangeIOS = (event, selectedDate) => {
     if (!selectedDate) return;
-    if (isPickupTooSoon(selectedDate)) { setShowBookingAlert(true); return; }
+    if (isPickupTooSoon(selectedDate)) {
+      // Too close to now for a driver to reach: snap to the earliest slot.
+      setStartDate(getEarliestPickup());
+      setShowBookingAlert(true);
+      return;
+    }
     setStartDate(selectedDate);
   };
 

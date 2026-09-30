@@ -9,10 +9,14 @@ import {
   Alert,
   Linking,
   RefreshControl,
-  Modal,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import BookingStatusHero from '../../../components/BookingStatusHero';
+import RefundStatusCard from '../../../components/RefundStatusCard';
+import CancelBookingAction, { formatCancelDate } from '../../../components/CancelBookingAction';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -96,6 +100,8 @@ const TRIP_TYPE_LABELS = {
   outstation: 'Outstation',
   airport: 'Airport Transfer',
 };
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 export default function LuxuryBookingDetailScreen() {
   const navigation = useNavigation();
@@ -310,17 +316,7 @@ export default function LuxuryBookingDetailScreen() {
 
         {/* Glass summary card */}
         <View style={styles.glassCard}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.glassLabel}>STATUS</Text>
-              <Text style={styles.glassValue}>{statusConfig.label}</Text>
-            </View>
-            <View style={[styles.statusPill, { backgroundColor: statusConfig.color }]}>
-              <Ionicons name={statusConfig.icon} size={14} color="#FFF" />
-              <Text style={styles.statusPillText}>{statusConfig.label}</Text>
-            </View>
-          </View>
-          <View style={styles.metaRow}>
+          <View style={[styles.metaRow, { marginTop: 0 }]}>
             <View style={styles.metaChip}>
               <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.8)" />
               <Text style={styles.metaChipText}>{formatDate(booking.pickupDate)}</Text>
@@ -342,18 +338,20 @@ export default function LuxuryBookingDetailScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
-        {/* Status Card */}
-        <View style={styles.statusMsgCard}>
-          <View style={[styles.statusIconCircle, { backgroundColor: statusConfig.color + '15' }]}>
-            <Ionicons name={statusConfig.icon} size={wp('6%')} color={statusConfig.color} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-            <Text style={styles.statusDescription}>{statusConfig.description}</Text>
-          </View>
-        </View>
+        {/* Status, progress and payment summary */}
+        <BookingStatusHero
+          statusConfig={statusConfig}
+          status={booking.status}
+          message={statusConfig.description}
+          totalAmount={booking.grandTotal}
+          advanceAmount={booking.advanceAmount}
+          advancePaid={booking.advancePaid}
+          paymentStatus={booking.paymentStatus}
+        />
+        {/* Refund progress for a cancelled booking (renders nothing otherwise) */}
+        {['CANCELLED', 'REFUNDED'].includes(String(booking.status).toUpperCase()) && (
+          <RefundStatusCard source="luxury_bookings" bookingId={booking.id} />
+        )}
 
         {/* Payment Pending - Show Pay Now Button */}
         {booking.status === 'PENDING_PAYMENT' && (
@@ -590,10 +588,10 @@ export default function LuxuryBookingDetailScreen() {
               <Text style={styles.quoteValue}>#{booking.quote.quoteNumber}</Text>
             </View>
 
-            {booking.quote.inclusions && booking.quote.inclusions.length > 0 && (
+            {parseListData(booking.quote.inclusions).length > 0 && (
               <View style={styles.inclusionsBox}>
                 <Text style={styles.inclusionsTitle}>Inclusions:</Text>
-                {booking.quote.inclusions.map((item, index) => (
+                {parseListData(booking.quote.inclusions).map((item, index) => (
                   <View key={index} style={styles.inclusionRow}>
                     <Ionicons name="checkmark-circle" size={16} color={TEAL} />
                     <Text style={styles.inclusionText}>{item}</Text>
@@ -602,10 +600,10 @@ export default function LuxuryBookingDetailScreen() {
               </View>
             )}
 
-            {booking.quote.exclusions && booking.quote.exclusions.length > 0 && (
+            {parseListData(booking.quote.exclusions).length > 0 && (
               <View style={styles.exclusionsBox}>
                 <Text style={styles.exclusionsTitle}>Exclusions:</Text>
-                {booking.quote.exclusions.map((item, index) => (
+                {parseListData(booking.quote.exclusions).map((item, index) => (
                   <View key={index} style={styles.exclusionRow}>
                     <Ionicons name="close-circle" size={16} color="#EF4444" />
                     <Text style={styles.exclusionText}>{item}</Text>
@@ -777,6 +775,20 @@ export default function LuxuryBookingDetailScreen() {
           )
         )}
 
+        {/* Customer can cancel until the job starts (same statuses the API accepts) */}
+        {["PENDING_PAYMENT","PAYMENT_SUBMITTED","ADVANCE_PAID","CONFIRMED"].includes(booking.status) && (
+          <CancelBookingAction
+            path={`/luxury-bookings/${booking.id}`}
+            booking={{
+              title: booking.vehicleName || 'Luxury car booking',
+              number: booking.bookingNumber,
+              when: formatCancelDate(booking.pickupDate),
+              paid: booking.advancePaid || 0,
+            }}
+            onDone={() => fetchBookingDetails()}
+          />
+        )}
+
         <View style={{ height: hp('5%') }} />
       </ScrollView>
 
@@ -843,7 +855,7 @@ export default function LuxuryBookingDetailScreen() {
 
             <ScrollView style={styles.quoteModalContent} showsVerticalScrollIndicator={false}>
               {/* Tab Content */}
-              <View style={styles.quoteTabContent}>
+              <SwipeTabsView style={styles.quoteTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -1090,11 +1102,11 @@ export default function LuxuryBookingDetailScreen() {
                       }
 
                       // If single item or plain text, show as paragraph
-                      if (terms.length === 1 || booking.quote.termsConditions) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.quoteTermsCard}>
                             <Text style={styles.quoteTermsText}>
-                              {terms.length === 1 ? terms[0] : booking.quote.termsConditions}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1110,7 +1122,7 @@ export default function LuxuryBookingDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               <View style={{ height: hp('5%') }} />
             </ScrollView>
@@ -1942,11 +1954,15 @@ const styles = StyleSheet.create({
     borderRadius: wp('4%'),
     alignItems: 'center',
     ...SHADOW_SM,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   quoteEmptyText: {
     fontSize: wp('3.2%'),
     color: TEXT_MUTED,
     marginTop: hp('1.2%'),
+    textAlign: 'center',
   },
   rateBtn: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), overflow: 'hidden' },
   rateBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('2%'), paddingHorizontal: wp('4%'), gap: wp('2%') },

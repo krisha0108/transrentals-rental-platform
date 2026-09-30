@@ -15,7 +15,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { locationService } from '../../services';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -55,8 +55,8 @@ export default function SelfDriveScreen() {
   const [pickupLocationId, setPickupLocationId] = useState(null);
 
   // Dates
-  const [pickupDate, setPickupDate] = useState(new Date());
-  const [dropDate, setDropDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000)); // +1 day
+  const [pickupDate, setPickupDate] = useState(() => getEarliestPickup());
+  const [dropDate, setDropDate] = useState(() => new Date(getEarliestPickup().getTime() + 24 * 60 * 60 * 1000)); // +1 day
 
   // Android date picker
   const [androidPickerVisible, setAndroidPickerVisible] = useState(false);
@@ -151,13 +151,14 @@ export default function SelfDriveScreen() {
     if (androidPickerMode === 'date') {
       if (androidPickingTarget === 'pickup') {
         const newDate = new Date(selected);
-        const merged = new Date(
+        // Keep the chosen time unless it is now too soon on the new date.
+        const merged = clampPickup(new Date(
           newDate.getFullYear(),
           newDate.getMonth(),
           newDate.getDate(),
           pickupDate.getHours(),
           pickupDate.getMinutes()
-        );
+        ));
         setPickupDate(merged);
         if (dropDate <= merged) {
           setDropDate(new Date(merged.getTime() + 24 * 60 * 60 * 1000));
@@ -184,6 +185,12 @@ export default function SelfDriveScreen() {
         upd.setHours(selected.getHours());
         upd.setMinutes(selected.getMinutes());
         if (isPickupTooSoon(upd)) {
+          // Too close to now for a driver to reach: snap to the earliest slot.
+          const earliest = getEarliestPickup();
+          setPickupDate(earliest);
+          if (dropDate <= earliest) {
+            setDropDate(new Date(earliest.getTime() + 24 * 60 * 60 * 1000));
+          }
           setShowBookingAlert(true);
           setAndroidPickerVisible(false);
           return;
@@ -430,6 +437,12 @@ export default function SelfDriveScreen() {
                 onChange={(e, d) => {
                   if (!d) return;
                   if (isPickupTooSoon(d)) {
+                    // Too close to now for a driver to reach: snap to the earliest slot.
+                    const earliest = getEarliestPickup();
+                    setPickupDate(earliest);
+                    if (dropDate <= earliest) {
+                      setDropDate(new Date(earliest.getTime() + 24 * 60 * 60 * 1000));
+                    }
                     setShowBookingAlert(true);
                     return;
                   }

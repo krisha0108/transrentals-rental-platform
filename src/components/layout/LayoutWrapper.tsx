@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { SmartShivi } from '@/components/chatbot/SmartShivi';
+import { CustomerHelpBotWidget } from '@/components/customer/CustomerHelpBotWidget';
 import { StickyCallBar } from '@/components/common/StickyCallBar';
 import { PaymentSafetyFloatingAlert } from '@/components/common/PaymentSafetyFloatingAlert';
 import { useCustomerWebNotifications } from '@/hooks/useCustomerWebNotifications';
@@ -47,13 +48,14 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   if (hideDefaultLayout && !isAgentPropertyPage) {
     // Customer/admin pages - no default header/footer, no bottom nav
-    // SmartShivi shown on customer pages only (not admin/vendor/manager)
-    const showShivi = pathname?.startsWith('/customer/');
+    // Customer pages get the AI help assistant (not admin/vendor/manager);
+    // it takes the bottom-right slot SmartShivi has on the public site.
+    const isCustomerPage = pathname?.startsWith('/customer/');
     return (
       <div className="flex flex-col min-h-screen">
         <main className="flex-1">{children}</main>
-        {showShivi && <SmartShivi />}
-        {showShivi && <PaymentSafetyFloatingAlert />}
+        {isCustomerPage && <CustomerHelpBotWidget />}
+        {isCustomerPage && <PaymentSafetyFloatingAlert />}
       </div>
     );
   }

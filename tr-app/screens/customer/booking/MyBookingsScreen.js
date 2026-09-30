@@ -11,9 +11,9 @@ import {
   ActivityIndicator,
   StatusBar,
   Platform,
-  Modal,
   Image,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -54,20 +54,40 @@ const STATUSES = [
   { key: 'dropped', label: 'Dropped', color: '#e74c3c' },
 ];
 
+// Multi-select filters keep an array of keys; an empty array means "All".
+const toFilterList = (value) => (value && value !== 'all' ? [value] : []);
+
+const toggleFilterKey = (list, key) => {
+  if (key === 'all') return [];
+  return list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
+};
+
+// Services whose completed trips can be rated from here (see ReviewScreen).
+const RATEABLE_SERVICES = ['bike', 'self-drive', 'car', 'luxury', 'bus', 'truck', 'packers', 'equipment'];
+
+const STATUS_GROUPS = {
+  pending: ['PENDING', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'BROADCASTED', 'PENDING_VENDOR'],
+  confirmed: ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP'],
+  in_progress: ['IN_PROGRESS'],
+  completed: ['COMPLETED'],
+  cancelled: ['CANCELLED', 'REJECTED', 'EXPIRED', 'REFUNDED'],
+  dropped: ['DROPPED'],
+};
+
 const MyBookingsScreen = ({route}) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [allBookings, setAllBookings] = useState(null);
-  const [selectedService, setSelectedService] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState(route?.params?.filter || 'all');
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedStatuses, setSelectedStatuses] = useState(() => toFilterList(route?.params?.filter));
   const [customerId, setCustomerId] = useState(null);
   const [customerEmail, setCustomerEmail] = useState(null);
   const [customerPhone, setCustomerPhone] = useState(null);
   const [stats, setStats] = useState({ total: 0, active: 0, completed: 0 });
   const [filterVisible, setFilterVisible] = useState(false);
-  const [tempService, setTempService] = useState('all');
-  const [tempStatus, setTempStatus] = useState('all');
+  const [tempServices, setTempServices] = useState([]);
+  const [tempStatuses, setTempStatuses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
@@ -81,36 +101,36 @@ const MyBookingsScreen = ({route}) => {
   // Update filter when navigating with new params
   useEffect(() => {
     if (route?.params?.filter) {
-      setSelectedStatus(route.params.filter);
-      setTempStatus(route.params.filter);
+      setSelectedStatuses(toFilterList(route.params.filter));
+      setTempStatuses(toFilterList(route.params.filter));
     }
   }, [route?.params?.filter, route?.params?.timestamp]);
 
-  const activeFilterCount = (selectedService !== 'all' ? 1 : 0) + (selectedStatus !== 'all' ? 1 : 0) + (showExpiredQuotesOnly ? 1 : 0);
+  const activeFilterCount = selectedServices.length + selectedStatuses.length + (showExpiredQuotesOnly ? 1 : 0);
 
   const openFilter = () => {
-    setTempService(selectedService);
-    setTempStatus(selectedStatus);
+    setTempServices(selectedServices);
+    setTempStatuses(selectedStatuses);
     setTempExpiredOnly(showExpiredQuotesOnly);
     setFilterVisible(true);
   };
 
   const applyFilters = () => {
-    setSelectedService(tempService);
-    setSelectedStatus(tempStatus);
+    setSelectedServices(tempServices);
+    setSelectedStatuses(tempStatuses);
     setShowExpiredQuotesOnly(tempExpiredOnly);
     setFilterVisible(false);
   };
 
   const resetFilters = () => {
-    setTempService('all');
-    setTempStatus('all');
+    setTempServices([]);
+    setTempStatuses([]);
     setTempExpiredOnly(false);
   };
 
   const clearAllFilters = () => {
-    setSelectedService('all');
-    setSelectedStatus('all');
+    setSelectedServices([]);
+    setSelectedStatuses([]);
     setShowExpiredQuotesOnly(false);
   };
 
@@ -286,21 +306,13 @@ const MyBookingsScreen = ({route}) => {
     let filtered = [...allBookings];
 
     // Filter by service
-    if (selectedService !== 'all') {
-      filtered = filtered.filter(b => b.serviceType === selectedService);
+    if (selectedServices.length > 0) {
+      filtered = filtered.filter(b => selectedServices.includes(b.serviceType));
     }
 
     // Filter by status
-    if (selectedStatus !== 'all') {
-      const statusMap = {
-        pending: ['PENDING', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'BROADCASTED', 'PENDING_VENDOR'],
-        confirmed: ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP'],
-        in_progress: ['IN_PROGRESS'],
-        completed: ['COMPLETED'],
-        cancelled: ['CANCELLED', 'REJECTED', 'EXPIRED', 'REFUNDED'],
-        dropped: ['DROPPED'],
-      };
-      const targetStatuses = statusMap[selectedStatus] || [];
+    if (selectedStatuses.length > 0) {
+      const targetStatuses = selectedStatuses.flatMap(key => STATUS_GROUPS[key] || []);
       filtered = filtered.filter(b => targetStatuses.includes(b.status?.toUpperCase()));
     }
 
@@ -322,7 +334,7 @@ const MyBookingsScreen = ({route}) => {
     }
 
     return filtered;
-  }, [allBookings, selectedService, selectedStatus, showExpiredQuotesOnly, searchQuery]);
+  }, [allBookings, selectedServices, selectedStatuses, showExpiredQuotesOnly, searchQuery]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -435,6 +447,9 @@ const MyBookingsScreen = ({route}) => {
 
   const renderBookingCard = (booking, index) => {
     const statusStyle = getStatusStyle(booking.status);
+    const canRate = !booking.is_quote_request
+      && booking.status?.toUpperCase() === 'COMPLETED'
+      && RATEABLE_SERVICES.includes(booking.serviceType);
 
     return (
       <TouchableOpacity
@@ -545,6 +560,27 @@ const MyBookingsScreen = ({route}) => {
             </View>
           )}
         </View>
+
+        {/* Rate a completed trip, or show the rating already given */}
+        {canRate && (booking.rating > 0 ? (
+          <View style={styles.ratedRow}>
+            <Text style={styles.ratedLabel}>You rated</Text>
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Ionicons key={star} name={star <= Math.round(booking.rating) ? 'star' : 'star-outline'} size={14} color="#F59E0B" />
+            ))}
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.rateBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('ReviewScreen', { booking, bookingType: booking.serviceType })}
+          >
+            <Ionicons name="star" size={15} color="#F59E0B" />
+            <Text style={styles.rateBtnText}>Rate your trip</Text>
+            <Text style={styles.rateBtnHint}>Help others choose</Text>
+            <Ionicons name="chevron-forward" size={16} color="#B45309" />
+          </TouchableOpacity>
+        ))}
       </TouchableOpacity>
     );
   };
@@ -560,7 +596,7 @@ const MyBookingsScreen = ({route}) => {
       <Text style={styles.emptySubtitle}>
         {searchQuery.trim()
           ? `No bookings match "${searchQuery.trim()}"`
-          : selectedService !== 'all' || selectedStatus !== 'all'
+          : selectedServices.length > 0 || selectedStatuses.length > 0
           ? 'Try changing the filters to see more bookings'
           : 'Your rental bookings will appear here'}
       </Text>
@@ -676,8 +712,14 @@ const MyBookingsScreen = ({route}) => {
             autoFocus
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={wp('4.5%')} color={TEXT_MUTED} />
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={{ padding: 6 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <Ionicons name="close-circle" size={wp('5%')} color={TEXT_MUTED} />
             </TouchableOpacity>
           )}
         </View>
@@ -686,40 +728,71 @@ const MyBookingsScreen = ({route}) => {
       {/* Active Filter Chips */}
       {!loading && activeFilterCount > 0 && (
         <View style={styles.activeFiltersRow}>
-          {selectedService !== 'all' && (() => {
-            const svc = SERVICES.find(s => s.key === selectedService);
+          {selectedServices.map((serviceKey) => {
+            const svc = SERVICES.find(s => s.key === serviceKey);
             return (
-              <View style={[styles.activeChip, { borderColor: `${svc?.color}40` }]}>
+              <TouchableOpacity
+                style={[styles.activeChip, { borderColor: `${svc?.color}40` }]}
+                key={`svc-${serviceKey}`}
+                onPress={() => setSelectedServices(list => list.filter(k => k !== serviceKey))}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${svc?.label} filter`}
+              >
                 {renderServiceIcon(svc?.icon, svc?.iconLib, svc?.color, wp('3.2%'))}
                 <Text style={[styles.activeChipText, { color: svc?.color }]}>{svc?.label}</Text>
-                <TouchableOpacity onPress={() => setSelectedService('all')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={wp('3.8%')} color={TEXT_MUTED} />
-                </TouchableOpacity>
-              </View>
+                <View style={styles.activeChipClose}>
+                  <Ionicons name="close" size={wp('3.6%')} color={TEXT_MUTED} />
+                </View>
+              </TouchableOpacity>
             );
-          })()}
-          {selectedStatus !== 'all' && (() => {
-            const sts = STATUSES.find(s => s.key === selectedStatus);
+          })}
+          {selectedStatuses.map((statusKey) => {
+            const sts = STATUSES.find(s => s.key === statusKey);
             return (
-              <View style={[styles.activeChip, { borderColor: `${sts?.color}40` }]}>
+              <TouchableOpacity
+                style={[styles.activeChip, { borderColor: `${sts?.color}40` }]}
+                key={`sts-${statusKey}`}
+                onPress={() => setSelectedStatuses(list => list.filter(k => k !== statusKey))}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${sts?.label} filter`}
+              >
                 <View style={[styles.activeChipDot, { backgroundColor: sts?.color }]} />
                 <Text style={[styles.activeChipText, { color: sts?.color }]}>{sts?.label}</Text>
-                <TouchableOpacity onPress={() => setSelectedStatus('all')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={wp('3.8%')} color={TEXT_MUTED} />
-                </TouchableOpacity>
-              </View>
-            );
-          })()}
-          {showExpiredQuotesOnly && (
-            <View style={[styles.activeChip, { borderColor: '#FECACA' }]}>
-              <Ionicons name="close-circle-outline" size={wp('3.2%')} color="#EF4444" />
-              <Text style={[styles.activeChipText, { color: '#EF4444' }]}>Expired Quotes</Text>
-              <TouchableOpacity onPress={() => setShowExpiredQuotesOnly(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={wp('3.8%')} color={TEXT_MUTED} />
+                <View style={styles.activeChipClose}>
+                  <Ionicons name="close" size={wp('3.6%')} color={TEXT_MUTED} />
+                </View>
               </TouchableOpacity>
-            </View>
+            );
+          })}
+          {showExpiredQuotesOnly && (
+            <TouchableOpacity
+              style={[styles.activeChip, { borderColor: '#FECACA' }]}
+              onPress={() => setShowExpiredQuotesOnly(false)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+              accessibilityRole="button"
+              accessibilityLabel="Remove Expired Quotes filter"
+            >
+              <Ionicons name="time-outline" size={wp('3.2%')} color="#EF4444" />
+              <Text style={[styles.activeChipText, { color: '#EF4444' }]}>Expired Quotes</Text>
+              <View style={styles.activeChipClose}>
+                <Ionicons name="close" size={wp('3.6%')} color={TEXT_MUTED} />
+              </View>
+            </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={clearAllFilters} style={styles.clearBtn}>
+          <TouchableOpacity
+            onPress={clearAllFilters}
+            style={styles.clearBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Clear all filters"
+          >
+            <Ionicons name="refresh" size={wp('3.4%')} color="#EF4444" />
             <Text style={styles.clearBtnText}>Clear</Text>
           </TouchableOpacity>
         </View>
@@ -815,7 +888,9 @@ const MyBookingsScreen = ({route}) => {
               <Text style={styles.sectionTitle}>Service Type</Text>
               <View style={styles.serviceGrid}>
                 {SERVICES.map((service) => {
-                  const isActive = tempService === service.key;
+                  const isActive = service.key === 'all'
+                    ? tempServices.length === 0
+                    : tempServices.includes(service.key);
                   return (
                     <TouchableOpacity
                       key={service.key}
@@ -823,7 +898,7 @@ const MyBookingsScreen = ({route}) => {
                         styles.serviceGridItem,
                         isActive && { borderColor: service.color, backgroundColor: `${service.color}08` },
                       ]}
-                      onPress={() => setTempService(service.key)}
+                      onPress={() => setTempServices(list => toggleFilterKey(list, service.key))}
                       activeOpacity={0.7}
                     >
                       <View style={[
@@ -852,7 +927,9 @@ const MyBookingsScreen = ({route}) => {
               <Text style={styles.sectionTitle}>Status</Text>
               <View style={styles.statusGrid}>
                 {STATUSES.map((status) => {
-                  const isActive = tempStatus === status.key;
+                  const isActive = status.key === 'all'
+                    ? tempStatuses.length === 0
+                    : tempStatuses.includes(status.key);
                   return (
                     <TouchableOpacity
                       key={status.key}
@@ -860,7 +937,7 @@ const MyBookingsScreen = ({route}) => {
                         styles.statusGridItem,
                         isActive && { backgroundColor: status.color, borderColor: status.color },
                       ]}
-                      onPress={() => setTempStatus(status.key)}
+                      onPress={() => setTempStatuses(list => toggleFilterKey(list, status.key))}
                       activeOpacity={0.7}
                     >
                       {isActive ? (
@@ -1046,7 +1123,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: CARD,
-    paddingHorizontal: wp('2.5%'),
+    minHeight: 36,
+    paddingLeft: wp('3%'),
+    paddingRight: wp('1%'),
     paddingVertical: hp('0.5%'),
     borderRadius: wp('5%'),
     borderWidth: 1.5,
@@ -1062,10 +1141,25 @@ const styles = StyleSheet.create({
     fontSize: wp('2.8%'),
     fontWeight: '600',
   },
+  activeChipClose: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   clearBtn: {
     marginLeft: 'auto',
-    paddingHorizontal: wp('2.5%'),
-    paddingVertical: hp('0.5%'),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 36,
+    paddingHorizontal: wp('3.5%'),
+    borderRadius: 18,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   clearBtnText: {
     fontSize: wp('2.8%'),
@@ -1445,6 +1539,19 @@ const styles = StyleSheet.create({
   },
 
   // Card Strip
+  rateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FFFBEB', borderTopWidth: 1, borderTopColor: '#FEF3C7',
+    paddingHorizontal: wp('4%'), paddingVertical: hp('1.3%'),
+  },
+  rateBtnText: { fontSize: wp('3.5%'), fontWeight: '700', color: '#92400E' },
+  rateBtnHint: { flex: 1, fontSize: wp('3%'), color: '#B45309', textAlign: 'right' },
+  ratedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    paddingHorizontal: wp('4%'), paddingVertical: hp('1%'),
+  },
+  ratedLabel: { fontSize: wp('3.1%'), color: '#64748B', marginRight: 4 },
   cardStrip: {
     flexDirection: 'row',
     backgroundColor: '#F8FAFC',

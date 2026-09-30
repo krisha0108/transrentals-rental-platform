@@ -10,13 +10,13 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
-  Modal,
   RefreshControl,
   StatusBar,
   Platform,
   Alert,
   KeyboardAvoidingView,
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -26,7 +26,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import fleetService from '../services/fleetService';
 import locationService from '../services/locationService';
 import api, { BASE_URL } from '../api';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toTimeString, combineDateAndTime, toLocalDateString } from '../utils/dateValidation';
 import BookingAlertModal from '../utils/AdvanceBookingAlert';
 // Phase 7 — TA Personal/Company toggle.
 import TravelAgentBookingToggle from '../../components/TravelAgentBookingToggle';
@@ -95,19 +95,21 @@ const BikeFleetScreen = () => {
   // State for dates - Use passed dates if available, otherwise default
   const [pickupDate, setPickupDate] = useState(() => {
     if (passedPickupDate) {
-      return new Date(passedPickupDate);
+      return clampPickup(new Date(passedPickupDate));
     }
-    return new Date();
+    return getEarliestPickup();
   });
   const [dropDate, setDropDate] = useState(() => {
     if (passedDropDate) {
       return new Date(passedDropDate);
     }
-    const tomorrow = new Date();
+    const tomorrow = getEarliestPickup();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow;
   });
-  const [pickupTime, setPickupTime] = useState('10:00');
+  const [pickupTime, setPickupTime] = useState(() =>
+    toTimeString(passedPickupDate ? clampPickup(new Date(passedPickupDate)) : getEarliestPickup())
+  );
   const [dropTime, setDropTime] = useState('10:00');
 
   // State for bikes
@@ -211,9 +213,18 @@ const BikeFleetScreen = () => {
       minimumDate: getMinBookingDate(),
       onChange: (event, date) => {
         if (event.type === 'set' && date) {
+          // Keep the chosen time unless it is now too soon on the new date.
+          const pickup = clampPickup(combineDateAndTime(date, pickupTime));
+          setPickupDate(pickup);
+          setPickupTime(toTimeString(pickup));
+          if (dropDate <= pickup) {
+            const newDrop = new Date(pickup);
+            newDrop.setDate(newDrop.getDate() + 1);
+            setDropDate(newDrop);
+          }
           // Open time picker
           DateTimePickerAndroid.open({
-            value: new Date(),
+            value: pickup,
             mode: 'time',
             is24Hour: true,
             onChange: (evt, time) => {
@@ -224,6 +235,9 @@ const BikeFleetScreen = () => {
                 finalDateTime.setHours(parseInt(hours, 10));
                 finalDateTime.setMinutes(parseInt(mins, 10));
                 if (isPickupTooSoon(finalDateTime)) {
+                  const earliest = getEarliestPickup();
+                  setPickupDate(earliest);
+                  setPickupTime(toTimeString(earliest));
                   setShowBookingAlert(true);
                   return;
                 }
@@ -374,9 +388,9 @@ const BikeFleetScreen = () => {
         vehicleCategoryName: selectedBike.categoryName || '',
         locationId: selectedLocation.id,
         locationName: selectedLocation.name,
-        pickupDate: pickupDate.toISOString().split('T')[0],
+        pickupDate: toLocalDateString(pickupDate),
         pickupTime: pickupTime,
-        dropDate: dropDate.toISOString().split('T')[0],
+        dropDate: toLocalDateString(dropDate),
         dropTime: dropTime,
         helmetsRequired: 1,
         budgetMin: selectedBike.lowestPrice || null,

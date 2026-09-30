@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
-import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { updateVendorRating, parseStarRating } from '@/lib/utils/update-vendor-rating';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
@@ -265,23 +265,35 @@ export async function PATCH(
         );
       }
 
-      const updatedBooking = await prisma.car_bookings.update({
-        where: { id },
+      if (booking.rating) {
+        return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+      }
+      const stars = parseStarRating(rating);
+      if (!stars) {
+        return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
+      }
+
+      // Only an unrated row is written, so a double submit cannot count twice.
+      const { count } = await prisma.car_bookings.updateMany({
+        where: { id, rating: null },
         data: {
-          rating,
-          review,
+          rating: stars,
+          review: review || null,
         },
       });
+      if (!count) {
+        return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+      }
 
-      updateVendorRating(booking.acceptedVendorId, rating).catch(() => {});
+      updateVendorRating(booking.acceptedVendorId, stars).catch(() => {});
 
       return NextResponse.json({
         success: true,
         message: 'Rating submitted successfully',
         booking: {
-          id: updatedBooking.id,
-          rating: updatedBooking.rating,
-          review: updatedBooking.review,
+          id: booking.id,
+          rating: stars,
+          review: review || null,
         },
       });
     }
