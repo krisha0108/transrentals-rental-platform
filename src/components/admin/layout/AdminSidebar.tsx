@@ -449,6 +449,7 @@ const adminItems: NavItem[] = [
     children: [
       { name: 'All Payments', href: '/admin/payments', icon: CreditCard },
       { name: 'Payments Tally', href: '/admin/payments-tally', icon: Receipt },
+      { name: 'Refunds', href: '/admin/refunds', icon: IndianRupee },
     ],
   },
   {
@@ -484,7 +485,6 @@ const websiteItems: NavItem[] = [
   { name: 'General Blog', href: '/admin/blog', icon: FileEdit },
   { name: 'Web Stories', href: '/admin/web-stories', icon: Film },
   { name: 'Customer Reviews', href: '/admin/reviews', icon: MessageSquareQuote },
-  { name: 'Refunds', href: '/admin/refunds', icon: IndianRupee },
   { name: 'Media Library', href: '/admin/media', icon: Image },
   { name: 'Navigation', href: '/admin/website/navigation', icon: List },
   { name: 'Footer', href: '/admin/website/footer', icon: FileCheck },
