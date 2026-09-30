@@ -11,6 +11,8 @@ import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
 
 export type ManagerNotificationType =
+  // The refunds desk: a cancelled booking owes the customer money.
+  | 'REFUND_PENDING'
   | 'NEW_LOCATION_REQUEST'
   | 'NEW_SERVICE_REQUEST'
   | 'NEW_CONTACT_INQUIRY'

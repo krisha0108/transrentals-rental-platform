@@ -14,6 +14,7 @@ const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
   { href: '/manager/notifications', label: 'Notifications', icon: Bell },
   { href: '/manager/call-reports', label: 'Call Reports', icon: PhoneCall },
+  { href: '/manager/refunds', label: 'Refunds', icon: IndianRupee },
   { href: '/manager/vendor-performance', label: 'Performance', icon: TrendingUp },
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },

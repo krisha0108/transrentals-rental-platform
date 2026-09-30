@@ -1,22 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { publishScheduledStories } from '@/lib/web-stories/publish-scheduled';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Public list of published, non-archived, non-expired stories
-// Optional query params: service (slug), location (slug)
+// Optional query params: service (slug), location (slug), featured (bool —
+// only admin-picked stories, for the homepage carousel rather than the full
+// /stories listing), limit (cap the result count, applied after targeting
+// filtering so it stays accurate for the homepage's untargeted request)
 export async function GET(request: NextRequest) {
   try {
+    await publishScheduledStories();
     const now = new Date();
     const { searchParams } = new URL(request.url);
     const serviceFilter = searchParams.get('service') || null;
     const locationFilter = searchParams.get('location') || null;
+    const featuredOnly = searchParams.get('featured') === 'true';
+    const limitParam = parseInt(searchParams.get('limit') || '', 10);
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : null;
 
     const stories = await prisma.web_stories.findMany({
       where: {
         isPublished: true,
         isArchived: false,
+        ...(featuredOnly ? { isFeatured: true } : {}),
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: now } },
@@ -86,7 +95,9 @@ export async function GET(request: NextRequest) {
         totalReactions: s.reactions.length,
       }));
 
-    return NextResponse.json({ stories: formatted });
+    const result = limit ? formatted.slice(0, limit) : formatted;
+
+    return NextResponse.json({ stories: result });
   } catch (error) {
     logger.error('Failed to fetch public web stories', error);
     return NextResponse.json({ error: 'Failed to fetch stories' }, { status: 500 });

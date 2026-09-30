@@ -201,7 +201,7 @@ async function acceptTruckQuote(quoteRequestId: string, quoteId: string) {
     });
 
     return booking;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 
   return result;
 }
@@ -303,7 +303,7 @@ async function acceptPackersQuote(quoteRequestId: string, quoteId: string) {
     });
 
     return booking;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 
   return result;
 }
@@ -422,7 +422,7 @@ async function acceptEquipmentQuote(quoteRequestId: string, quoteId: string) {
     });
 
     return booking;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 
   return result;
 }
@@ -537,7 +537,7 @@ async function acceptBusQuote(quoteRequestId: string, quoteId: string) {
     });
 
     return booking;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 
   return result;
 }
@@ -654,7 +654,7 @@ async function acceptBikeQuote(quoteRequestId: string, quoteId: string) {
     });
 
     return booking;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 
   return result;
 }
@@ -782,7 +782,7 @@ async function acceptSelfDriveQuote(quoteRequestId: string, quoteId: string) {
     });
 
     return booking;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 
   return result;
 }

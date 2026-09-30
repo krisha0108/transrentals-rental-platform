@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
 import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Equipment Booking details
@@ -149,6 +151,33 @@ export async function PATCH(
           data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'CUSTOMER', cancellationReason: reason || 'Cancelled by customer', refundAmount },
         });
 
+
+        // Non-blocking: the vendor has kit set aside for this job.
+        if (booking.vendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.vendorId,
+            title: 'Booking cancelled by customer',
+            body: `Booking #${booking.bookingNumber} was cancelled. Reason: ${reason || 'not given'}.`,
+            type: 'booking_cancelled',
+            serviceType: 'equipment',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber,
+          }).catch((err: unknown) => console.error('[Cancel] vendor notification failed:', err));
+        }
+
+        // Money owed goes on the refunds queue and the desk is told. Never
+        // blocks the cancellation.
+        openRefundFollowup({
+          source: 'equipment_bookings',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceType: 'Equipment Rental',
+          customerId: booking.customerId,
+          customerName: booking.customerName,
+          amount: refundAmount,
+          reason,
+          paidAmount: booking.advancePaid || 0,
+        }).catch(() => {});
         return NextResponse.json({ success: true, message: 'Booking cancelled', booking: { id: updatedBooking.id, bookingNumber: updatedBooking.bookingNumber, status: updatedBooking.status, refundAmount } });
       }
 

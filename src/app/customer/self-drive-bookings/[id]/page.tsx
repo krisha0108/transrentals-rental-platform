@@ -32,6 +32,7 @@ import {
   Check,
   Upload,
   MessageCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CustomerBookingChat from '@/components/customer/CustomerBookingChat';
@@ -39,6 +40,7 @@ import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
 import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
+import RefundStatusCard from '@/components/customer/RefundStatusCard';
 
 interface BankAccount {
   id: string;
@@ -608,6 +610,23 @@ export default function CustomerSelfDriveBookingPage() {
               </section>
             )}
 
+            {/* Cancelled — headline notice. Full refund detail is further
+                down in "Refund Information" / RefundStatusCard; this banner's
+                only job is to be the first thing a customer sees. */}
+            {booking.status === 'CANCELLED' && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <RotateCcw className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-red-800 text-sm">Your booking has been cancelled</p>
+                  <p className="text-xs text-red-700 mt-0.5">
+                    If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Vehicle Details */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between gap-2 border-b border-gray-50 bg-[#FCFDFC] px-4 py-3">
@@ -1037,7 +1056,6 @@ export default function CustomerSelfDriveBookingPage() {
               </div>
             )}
 
-            {booking.vendor && <BookingPaymentSafetyNotice />}
 
             {/* Customer Notes */}
             {booking.customerNotes && (
@@ -1111,6 +1129,16 @@ export default function CustomerSelfDriveBookingPage() {
               </div>
             </div>
           </aside>
+        </div>
+
+        {/* Below both columns, at full content width — the same notice, but its
+            rules read as short lines instead of a tall wall in the 372px rail. */}
+        <div className="mt-4 space-y-5 lg:mt-5">
+          {/* Renders itself away when there is no refund to talk about. A refund
+              is owed whether or not a vendor was ever assigned, so it does not
+              sit behind the notice's vendor guard. */}
+          <RefundStatusCard source="car_bookings" bookingId={booking.id} />
+          {booking.vendor && <BookingPaymentSafetyNotice />}
         </div>
       </div>
 

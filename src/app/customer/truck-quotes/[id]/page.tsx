@@ -1148,6 +1148,16 @@ export default function CustomerTruckQuoteDetailPage() {
       {/* Accept Button */}
       {selectedQuote && (
         <div className="fixed bottom-0 left-0 right-0 z-[60] border-t border-gray-200 bg-white/[0.92] shadow-[0_-12px_40px_-18px_rgba(15,26,21,.3)] backdrop-blur-[14px]">
+          {/* The banner at the top of the column is a screen away from here, so
+              a failed accept has to say so next to the button that failed. */}
+          {error && (
+            <div className="mx-auto max-w-7xl px-4 pt-3 sm:px-6 lg:px-8">
+              <p className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[13px] font-medium text-red-700">
+                <AlertCircle className="mt-[1px] h-4 w-4 shrink-0" />
+                {error}
+              </p>
+            </div>
+          )}
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid h-[38px] w-[38px] flex-none place-items-center rounded-xl border border-[#C8F1DF] bg-[#E9FAF2] text-[#056B3E]">

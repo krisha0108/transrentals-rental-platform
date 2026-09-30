@@ -45,11 +45,13 @@ import {
   Sparkles,
   StickyNote,
   IndianRupee,
+  RotateCcw,
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
 import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
+import RefundStatusCard from '@/components/customer/RefundStatusCard';
 import {
   formatShiftingScope,
   formatPropertyTypeAndSize,
@@ -942,6 +944,20 @@ export default function CustomerPackersBookingDetailPage() {
             </section>
           )}
 
+          {/* Cancelled — headline notice */}
+          {booking.status === 'CANCELLED' && (
+            <Card title="Booking Cancelled" tone="danger">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-red-100">
+                  <RotateCcw className="h-5 w-5 text-red-700" />
+                </div>
+                <p className="text-[13px] leading-relaxed text-gray-600">
+                  Your booking has been cancelled. If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+                </p>
+              </div>
+            </Card>
+          )}
+
           {/* Payment Submitted - Under Review */}
           {booking.status === 'PAYMENT_SUBMITTED' && (
             <Card title="Payment Under Review" tone="warning">
@@ -1515,7 +1531,6 @@ export default function CustomerPackersBookingDetailPage() {
             </Card>
           )}
 
-          {booking.vendor && <BookingPaymentSafetyNotice />}
 
           {/* ── Need a hand ── */}
           <Card title="Need a hand">
@@ -1560,6 +1575,16 @@ export default function CustomerPackersBookingDetailPage() {
           </Card>
         </aside>
         {/* ══ /Right rail ══ */}
+      </div>
+
+      {/* Outside the grid on purpose: the right rail is sticky, and a sticky
+          grid item paints over anything sharing its rows. Full content width. */}
+      <div className="max-w-7xl mx-auto space-y-5 px-4 pb-5 sm:px-6 lg:px-8">
+        {/* Renders itself away when there is no refund to talk about. A refund
+            is owed whether or not a vendor was ever assigned, so it does not
+            sit behind the notice's vendor guard. */}
+        <RefundStatusCard source="packers_bookings" bookingId={booking.id} />
+        {booking.vendor && <BookingPaymentSafetyNotice />}
       </div>
 
       {/* Rate Modal */}

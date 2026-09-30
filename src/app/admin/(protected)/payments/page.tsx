@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   CreditCard,
   ChevronRight,
@@ -10,10 +11,22 @@ import {
   Loader2,
   Eye,
   RefreshCw,
+  IndianRupee,
+  Wallet,
+  Clock,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import ServiceTabs from './_components/ServiceTabs';
+
+interface EarningsSummary {
+  totalBookings: number;
+  totalValue: number;
+  totalCollected: number;
+  totalPending: number;
+  totalRefunded: number;
+}
 
 interface PendingPayment {
   id: string;
@@ -39,16 +52,26 @@ interface PendingPayment {
   updatedAt: string;
 }
 
+const VALID_BOOKING_TYPES = ['bike', 'chauffeur', 'bus', 'car', 'truck', 'equipment', 'packers', 'luxury', 'wander'] as const;
+
 export default function PaymentsPage() {
+  // Deep-link support — e.g. /admin/payments?type=bike from the Payments Tally page.
+  const searchParams = useSearchParams();
+  const typeParam = searchParams?.get('type');
+  const initialFilter = (VALID_BOOKING_TYPES as readonly string[]).includes(typeParam || '')
+    ? (typeParam as (typeof VALID_BOOKING_TYPES)[number])
+    : 'all';
+
   const [payments, setPayments] = useState<PendingPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury' | 'wander'>('all');
+  const [filter, setFilter] = useState<'all' | 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury' | 'wander'>(initialFilter);
   const [dayFilter, setDayFilter] = useState<'all' | 'today' | 'yesterday' | 'last7' | 'last30'>('all');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'all'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'manual' | 'direct'>('all');
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
+  const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
 
   // useCallback gives fetchPayments a stable identity that only changes when
   // the filters change — avoids stale-closure issues on the initial render.
@@ -77,6 +100,25 @@ export default function PaymentsPage() {
   useEffect(() => {
     fetchPayments();
   }, [fetchPayments]);
+
+  // Earning summary for the current service + date selection — reuses the
+  // Payments Tally endpoint so the numbers always agree with that page.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/admin/payments/tally?range=${dayFilter}&services=${filter}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then((r) => r.json())
+      .then((json) => setEarnings(json.success ? json.totals : null))
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Failed to fetch earnings summary:', err);
+          setEarnings(null);
+        }
+      });
+    return () => controller.abort();
+  }, [filter, dayFilter]);
 
   const handleVerify = async (action: 'verify' | 'reject') => {
     if (!selectedPayment) return;
@@ -172,6 +214,16 @@ export default function PaymentsPage() {
           Refresh
         </Button>
       </div>
+
+      {/* Earning summary — for the current service + date selection */}
+      {earnings && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <EarningTile icon={<IndianRupee className="w-5 h-5" />} label="Booking Value" value={formatPrice(earnings.totalValue)} accent="bg-gray-100 text-gray-700" />
+          <EarningTile icon={<Wallet className="w-5 h-5" />} label="Collected" value={formatPrice(earnings.totalCollected)} accent="bg-emerald-100 text-emerald-700" />
+          <EarningTile icon={<Clock className="w-5 h-5" />} label="Pending / Due" value={formatPrice(earnings.totalPending)} accent="bg-amber-100 text-amber-700" />
+          <EarningTile icon={<RotateCcw className="w-5 h-5" />} label="Refunded" value={formatPrice(earnings.totalRefunded)} accent="bg-red-100 text-red-700" />
+        </div>
+      )}
 
       {/* Unified filters card — Status · Date · Service rows */}
       <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
@@ -503,6 +555,20 @@ export default function PaymentsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function EarningTile({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-start gap-3">
+      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', accent)}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</div>
+        <div className="text-2xl font-bold text-gray-900 truncate leading-tight mt-0.5">{value}</div>
+      </div>
     </div>
   );
 }
