@@ -50,11 +50,12 @@ const DATE_PRESETS: { key: DatePreset; label: string }[] = [
   { key: 'custom', label: 'Custom Date' },
 ];
 
-type TabKey = 'overview' | 'inquiries' | 'bookings' | 'managers' | 'vendors' | 'gaps' | 'idle' | 'systemHealth';
+type TabKey = 'overview' | 'inquiries' | 'inquiryGeo' | 'bookings' | 'managers' | 'vendors' | 'gaps' | 'idle' | 'systemHealth';
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'overview', label: 'Overview', icon: Activity },
   { key: 'inquiries', label: 'Untouched Inquiries', icon: Inbox },
+  { key: 'inquiryGeo', label: 'Inquiries by Location', icon: MapPin },
   { key: 'bookings', label: 'Untouched Bookings', icon: PackageX },
   { key: 'managers', label: 'Manager Performance', icon: Users },
   { key: 'vendors', label: 'Vendors Needing Action', icon: Store },
@@ -87,6 +88,25 @@ interface Summary {
   paymentFailures: number;
   paymentFailuresPrevious: number | null;
 }
+
+interface InquiryGeoBreakdown {
+  total: number;
+  byStatus: { status: string; count: number }[];
+  byState: { name: string; count: number }[];
+  byCity: { name: string; count: number }[];
+  topState: { name: string; count: number } | null;
+  topCity: { name: string; count: number } | null;
+}
+
+const INQUIRY_STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Pending',
+  QUOTES_RECEIVED: 'Quotes Received',
+  QUOTE_ACCEPTED: 'Quote Accepted',
+  BOOKING_CONFIRMED: 'Booking Confirmed',
+  CANCELLED: 'Cancelled',
+  EXPIRED: 'Expired',
+  DROPPED: 'Dropped',
+};
 
 // Renders a "+18% vs yesterday"-style trend chip. `goodDirection` says which
 // way is good news — 'up' for volume metrics (more inquiries = good),
@@ -366,6 +386,26 @@ export default function AdminOperationsTrackerPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  // State/Location filter — accurate (id-backed) alternative to typing a city
+  // into the search box. Applies to every tab that lists or breaks down
+  // records by city (inquiries, bookings, inquiries-by-location).
+  const [states, setStates] = useState<{ id: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
+  const [stateFilter, setStateFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const citiesInState = stateFilter ? cities.filter((c) => c.parentId === stateFilter) : cities;
+  const geoQS = locationFilter ? `&location=${locationFilter}` : stateFilter ? `&state=${stateFilter}` : '';
+
+  useEffect(() => {
+    fetch('/api/admin/operations/geo-filters')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.states) setStates(data.states);
+        if (data?.cities) setCities(data.cities);
+      })
+      .catch(() => {});
+  }, []);
+
   const [summary, setSummary] = useState<Summary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -374,6 +414,8 @@ export default function AdminOperationsTrackerPage() {
 
   const [inquiries, setInquiries] = useState<Paginated<TrackedItem> | null>(null);
   const [inquiriesPage, setInquiriesPage] = useState(1);
+
+  const [inquiryGeo, setInquiryGeo] = useState<InquiryGeoBreakdown | null>(null);
 
   const [bookings, setBookings] = useState<Paginated<TrackedItem> | null>(null);
   const [bookingsPage, setBookingsPage] = useState(1);
@@ -416,7 +458,7 @@ export default function AdminOperationsTrackerPage() {
   useEffect(() => {
     setInquiriesPage(1); setBookingsPage(1); setVendorsPage(1);
     setGapsPage(1); setIdlePage(1); setManagersPage(1); setPaymentFailuresPage(1); setDemandCoveragePage(1);
-  }, [filter, debouncedSearch]);
+  }, [filter, debouncedSearch, stateFilter, locationFilter]);
 
   // Switching the vendor-count threshold only needs to reset its own page —
   // the tab-data effect below re-fetches because vendorThreshold is in its
@@ -471,12 +513,17 @@ export default function AdminOperationsTrackerPage() {
         setManagers(managersData.managers || []);
         setPaymentFailures(paymentsData);
       } else if (activeTab === 'inquiries') {
-        const res = await fetch(`/api/admin/operations/inquiries?filter=${preset}${rangeQS}&page=${page.inquiries}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+        const res = await fetch(`/api/admin/operations/inquiries?filter=${preset}${rangeQS}${geoQS}&page=${page.inquiries}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load inquiries');
         setInquiries(data);
+      } else if (activeTab === 'inquiryGeo') {
+        const res = await fetch(`/api/admin/operations/inquiry-geo?filter=${preset}${rangeQS}${geoQS}`);
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load inquiries by location');
+        setInquiryGeo(data);
       } else if (activeTab === 'bookings') {
-        const res = await fetch(`/api/admin/operations/bookings?filter=${preset}${rangeQS}&page=${page.bookings}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
+        const res = await fetch(`/api/admin/operations/bookings?filter=${preset}${rangeQS}${geoQS}&page=${page.bookings}&limit=${PAGE_LIMIT}${q ? `&search=${encodeURIComponent(q)}` : ''}`);
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data?.error || 'Failed to load bookings');
         setBookings(data);
@@ -526,7 +573,7 @@ export default function AdminOperationsTrackerPage() {
       setTabLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rangeQS]);
+  }, [rangeQS, geoQS]);
 
   useEffect(() => {
     (async () => { setSummaryLoading(true); await loadSummary(filter); setSummaryLoading(false); })();
@@ -539,7 +586,7 @@ export default function AdminOperationsTrackerPage() {
       inquiries: inquiriesPage, bookings: bookingsPage, vendors: vendorsPage, gaps: gapsPage, idle: idlePage, managers: managersPage, paymentFailures: paymentFailuresPage, demandCoverage: demandCoveragePage,
     }, vendorThreshold);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, filter, rangeQS, debouncedSearch, inquiriesPage, bookingsPage, vendorsPage, gapsPage, idlePage, paymentFailuresPage, demandCoveragePage, vendorThreshold, loadTabData]);
+  }, [tab, filter, rangeQS, geoQS, debouncedSearch, inquiriesPage, bookingsPage, vendorsPage, gapsPage, idlePage, paymentFailuresPage, demandCoveragePage, vendorThreshold, loadTabData]);
 
   // Same substitution loadTabData applies before fetching — kept here too so
   // the render side (chart titles, PeriodNote) can show what period the data
@@ -885,6 +932,33 @@ export default function AdminOperationsTrackerPage() {
           )}
         </div>
       )}
+
+      <select
+        value={stateFilter}
+        onChange={(e) => { setStateFilter(e.target.value); setLocationFilter(''); }}
+        className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:outline-none"
+      >
+        <option value="">All States</option>
+        {states.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+      </select>
+
+      <select
+        value={locationFilter}
+        onChange={(e) => setLocationFilter(e.target.value)}
+        className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:outline-none"
+      >
+        <option value="">All Locations</option>
+        {citiesInState.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+      </select>
+
+      {(stateFilter || locationFilter) && (
+        <button
+          onClick={() => { setStateFilter(''); setLocationFilter(''); }}
+          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+        >
+          Clear location filter
+        </button>
+      )}
       </div>
 
       {error && (
@@ -1107,6 +1181,77 @@ export default function AdminOperationsTrackerPage() {
                   <RowList items={inquiries.items} recordType="INQUIRY" onActioned={handleInquiryActioned} />
                   <PaginationBar page={inquiries.page} totalPages={inquiries.totalPages} total={inquiries.total} onChange={setInquiriesPage} />
                 </>
+              )
+            )}
+
+            {/* Inquiries by Location — every service's quote requests for the
+                picked period, broken down by status, state and city. */}
+            {tab === 'inquiryGeo' && (
+              !inquiryGeo || inquiryGeo.total === 0 ? (
+                <EmptyState icon={Inbox} text="No inquiries in this period." />
+              ) : (
+                <div className="p-5 space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-slate-100 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Total Inquiries ({DATE_PRESETS.find((p) => p.key === filter)?.label})</p>
+                      <p className="text-2xl font-bold text-slate-900">{inquiryGeo.total}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-100 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Highest State</p>
+                      <p className="text-2xl font-bold text-slate-900">{inquiryGeo.topState?.name || '—'}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-1">{inquiryGeo.topState?.count ?? 0} inquiries</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-100 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Highest City</p>
+                      <p className="text-2xl font-bold text-slate-900">{inquiryGeo.topCity?.name || '—'}</p>
+                      <p className="text-xs text-slate-500 font-medium mt-1">{inquiryGeo.topCity?.count ?? 0} inquiries</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-100 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">By Status</p>
+                    <div className="space-y-2">
+                      {inquiryGeo.byStatus.map((s) => {
+                        const pct = inquiryGeo.total > 0 ? Math.round((s.count / inquiryGeo.total) * 100) : 0;
+                        return (
+                          <div key={s.status} className="flex items-center gap-3">
+                            <span className="w-36 shrink-0 text-xs font-medium text-slate-600">{INQUIRY_STATUS_LABEL[s.status] || s.status}</span>
+                            <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: CHART_COLOR.categorical1 }} />
+                            </div>
+                            <span className="w-20 shrink-0 text-right text-xs font-bold text-slate-900">{s.count} <span className="text-slate-400 font-normal">({pct}%)</span></span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-slate-100 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">By State</p>
+                      <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+                        {inquiryGeo.byState.map((s, i) => (
+                          <div key={s.name} className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${i === 0 ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50'}`}>
+                            <span className={`font-medium ${i === 0 ? 'text-indigo-700' : 'text-slate-700'}`}>{i === 0 && '👑 '}{s.name}</span>
+                            <span className={`font-bold ${i === 0 ? 'text-indigo-700' : 'text-slate-900'}`}>{s.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-100 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">By City</p>
+                      <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+                        {inquiryGeo.byCity.map((c, i) => (
+                          <div key={c.name} className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${i === 0 ? 'bg-indigo-50 border border-indigo-100' : 'hover:bg-slate-50'}`}>
+                            <span className={`font-medium ${i === 0 ? 'text-indigo-700' : 'text-slate-700'}`}>{i === 0 && '👑 '}{c.name}</span>
+                            <span className={`font-bold ${i === 0 ? 'text-indigo-700' : 'text-slate-900'}`}>{c.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )
             )}
 

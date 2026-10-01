@@ -131,6 +131,7 @@ function ManagerBookingsPageInner() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [assignedServices, setAssignedServices] = useState<Service[]>([]);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [stateOptions, setStateOptions] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Filters read from the URL rather than local state, so applying a filter,
@@ -149,6 +150,7 @@ function ManagerBookingsPageInner() {
   const statusFilters = csv('status');
   const serviceFilters = csv('service');
   const locationFilters = csv('location');
+  const stateFilters = csv('state');
   const sourceFilter = searchParams.get('source') || 'all';
   const dateFilter = (searchParams.get('date') || 'all') as DateFilter;
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
@@ -183,7 +185,7 @@ function ManagerBookingsPageInner() {
     (searchTerm ? 1 : 0) +
     (dateFilter !== 'all' ? 1 : 0) +
     (sourceFilter !== 'all' ? 1 : 0) +
-    serviceFilters.length + statusFilters.length + locationFilters.length;
+    serviceFilters.length + statusFilters.length + locationFilters.length + stateFilters.length;
 
   const clearFilters = useCallback(() => {
     setSearchInput('');
@@ -212,6 +214,7 @@ function ManagerBookingsPageInner() {
       if (serviceFilters.length) params.set('service', serviceFilters.join(','));
       if (sourceFilter !== 'all') params.set('source', sourceFilter);
       if (locationFilters.length) params.set('location', locationFilters.join(','));
+      if (stateFilters.length) params.set('state', stateFilters.join(','));
       if (dateFilter !== 'all') params.set('date', dateFilter);
       if (searchTerm) params.set('search', searchTerm);
       params.set('page', String(page));
@@ -224,6 +227,7 @@ function ManagerBookingsPageInner() {
         setBookings(data.bookings || []);
         if (data.services) setAssignedServices(data.services);
         setLocationOptions(data.locations || []);
+        setStateOptions(data.states || []);
         setBookingStats(data.stats || { total: 0, active: 0, completed: 0, cancelled: 0, revenue: 0 });
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalCount(data.pagination?.total || 0);
@@ -373,6 +377,18 @@ function ManagerBookingsPageInner() {
             options={STATUS_FILTERS.filter((f) => f.value !== 'all').map((f) => ({ value: f.value, label: f.label }))}
             values={statusFilters}
             onChange={(v) => updateFilter({ status: v.join(',') })}
+          />
+
+          {/* State — narrows which of your assigned locations are in scope;
+              picking one also clears Locations so a stale city from a
+              different state can't silently zero out the results. */}
+          <FilterMultiSelect
+            label="States"
+            allLabel="All States"
+            icon={MapPin}
+            options={stateOptions.map((s) => ({ value: s.id, label: s.name }))}
+            values={stateFilters}
+            onChange={(v) => updateFilter({ state: v.join(','), location: '' })}
           />
 
           {/* Location — searchable multi-select, same styling as /manager/vendors */}

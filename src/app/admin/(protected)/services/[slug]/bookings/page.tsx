@@ -222,6 +222,16 @@ export default function ServiceBookingsPage() {
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
 
+  const [states, setStates] = useState<{ id: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ id: string; name: string; parentId: string | null }[]>([]);
+  const [vendors, setVendors] = useState<{ id: string; businessName: string }[]>([]);
+  const [stateFilter, setStateFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [vendorFilter, setVendorFilter] = useState('');
+  const [locationVendorCount, setLocationVendorCount] = useState<number | null>(null);
+
+  const citiesInState = stateFilter ? cities.filter((c) => c.parentId === stateFilter) : cities;
+
   const ServiceIcon = service ? IconMap[service.icon || ''] || Car : Car;
 
   // Fetch service from database
@@ -242,6 +252,25 @@ export default function ServiceBookingsPage() {
       }
     };
     fetchService();
+  }, [slug]);
+
+  // Filter dropdown data — states, cities, and vendors approved for this
+  // service. Fetched once per service, independent of the booking filters.
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const res = await fetch(`/api/admin/services/${slug}/bookings/filters`);
+        if (res.ok) {
+          const data = await res.json();
+          setStates(data.states || []);
+          setCities(data.cities || []);
+          setVendors(data.vendors || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch booking filters:', error);
+      }
+    };
+    if (slug) fetchFilters();
   }, [slug]);
 
   // Debounce search — wait 400ms after user stops typing before hitting API
@@ -282,6 +311,9 @@ export default function ServiceBookingsPage() {
           status: statusFilter,
           dateFilter: dateFilter,
           ...(debouncedSearch ? { search: debouncedSearch } : {}),
+          ...(stateFilter ? { state: stateFilter } : {}),
+          ...(locationFilter ? { location: locationFilter } : {}),
+          ...(vendorFilter ? { vendor: vendorFilter } : {}),
         });
 
         // Add custom date range if provided
@@ -312,6 +344,7 @@ export default function ServiceBookingsPage() {
           })));
           if (data.stats) setStats(data.stats);
           setPagination(data.pagination);
+          setLocationVendorCount(typeof data.locationVendorCount === 'number' ? data.locationVendorCount : null);
         } else {
           const errorData = await res.json();
           console.error('API Error:', res.status, errorData);
@@ -349,7 +382,7 @@ export default function ServiceBookingsPage() {
     if (slug) {
       fetchBookings();
     }
-  }, [slug, page, debouncedSearch, statusFilter, dateFilter, startDate, endDate, pagination.limit]);
+  }, [slug, page, debouncedSearch, statusFilter, dateFilter, startDate, endDate, pagination.limit, stateFilter, locationFilter, vendorFilter]);
 
   // Source filter is client-side only (not in API); search & status are server-side
   const filteredBookings = sourceFilter === 'ALL'
@@ -448,6 +481,12 @@ export default function ServiceBookingsPage() {
           <p className="text-xs text-gray-500 mb-1">Revenue</p>
           <p className="text-2xl font-bold text-green-600">₹{(stats.totalRevenue / 1000).toFixed(1)}K</p>
         </div>
+        {locationFilter && locationVendorCount !== null && (
+          <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200 shadow-sm">
+            <p className="text-xs text-indigo-600 mb-1">Vendors in {cities.find((c) => c.id === locationFilter)?.name || 'this location'}</p>
+            <p className="text-2xl font-bold text-indigo-700">{locationVendorCount}</p>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -563,6 +602,53 @@ export default function ServiceBookingsPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* State / Location / Vendor Filter Row */}
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <div className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-gray-400" />
+              <select
+                value={stateFilter}
+                onChange={(e) => {
+                  setStateFilter(e.target.value);
+                  setLocationFilter('');
+                  setPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All States</option>
+                {states.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <select
+                value={locationFilter}
+                onChange={(e) => {
+                  setLocationFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Locations</option>
+                {citiesInState.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <select
+              value={vendorFilter}
+              onChange={(e) => {
+                setVendorFilter(e.target.value);
+                setPage(1);
+              }}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Vendors</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>{v.businessName}</option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

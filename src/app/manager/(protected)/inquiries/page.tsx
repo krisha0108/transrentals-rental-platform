@@ -230,6 +230,7 @@ function ManagerInquiriesPageInner() {
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [stateOptions, setStateOptions] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Filters read from the URL rather than local state, so applying a filter,
@@ -244,6 +245,7 @@ function ManagerInquiriesPageInner() {
   const statusFilters = csv('status');
   const serviceFilters = csv('service');
   const locationFilters = csv('location');
+  const stateFilters = csv('state');
   const sourceFilter = searchParams.get('source') || 'all';
   const dateFilter = (searchParams.get('date') || 'all') as DateFilter;
   const actionedFilter = (searchParams.get('actioned') || 'all') as 'all' | 'actioned' | 'notActioned';
@@ -277,7 +279,7 @@ function ManagerInquiriesPageInner() {
     (dateFilter !== 'all' ? 1 : 0) +
     (actionedFilter !== 'all' ? 1 : 0) +
     (sourceFilter !== 'all' ? 1 : 0) +
-    serviceFilters.length + statusFilters.length + locationFilters.length;
+    serviceFilters.length + statusFilters.length + locationFilters.length + stateFilters.length;
 
   const clearFilters = useCallback(() => {
     setSearchInput('');
@@ -305,6 +307,7 @@ function ManagerInquiriesPageInner() {
       if (statusFilters.length) params.set('status', statusFilters.join(','));
       if (sourceFilter !== 'all') params.set('source', sourceFilter);
       if (locationFilters.length) params.set('location', locationFilters.join(','));
+      if (stateFilters.length) params.set('state', stateFilters.join(','));
       if (dateFilter !== 'all') params.set('date', dateFilter);
       if (actionedFilter !== 'all') params.set('actioned', actionedFilter);
       if (searchTerm) params.set('search', searchTerm);
@@ -318,6 +321,7 @@ function ManagerInquiriesPageInner() {
         setInquiries(data.inquiries || []);
         setServices(data.services || []);
         setLocationOptions(data.locations || []);
+        setStateOptions(data.states || []);
         setStats(data.stats || { total: 0, pending: 0, quotesReceived: 0, quoteAccepted: 0, cancelled: 0 });
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalCount(data.pagination?.total || 0);
@@ -555,6 +559,18 @@ function ManagerInquiriesPageInner() {
             ]}
             values={statusFilters}
             onChange={(v) => updateFilter({ status: v.join(',') })}
+          />
+
+          {/* State — narrows which of your assigned locations are in scope;
+              picking one also clears Locations so a stale city from a
+              different state can't silently zero out the results. */}
+          <FilterMultiSelect
+            label="States"
+            allLabel="All States"
+            icon={MapPin}
+            options={stateOptions.map((s) => ({ value: s.id, label: s.name }))}
+            values={stateFilters}
+            onChange={(v) => updateFilter({ state: v.join(','), location: '' })}
           />
 
           {/* Location — searchable multi-select, same styling as /manager/vendors */}

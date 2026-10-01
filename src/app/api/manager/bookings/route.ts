@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       where: { id: session.user.id },
       include: {
         manager_locations: {
-          include: { locations: true },
+          include: { locations: { include: { locations: { select: { id: true, name: true } } } } },
         },
         manager_services: {
           include: { services: true },
@@ -34,6 +34,23 @@ export async function GET(request: NextRequest) {
     if (!manager || manager.role !== 'MANAGER') {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
     }
+
+    // Each assigned location, plus the state it belongs to (its parent row) —
+    // powers the State filter dropdown, scoped to only states the manager
+    // actually has locations in.
+    const assignedLocationsWithState = manager.manager_locations.map((ml) => ({
+      id: ml.locationId,
+      name: ml.locations.name,
+      stateId: ml.locations.locations?.id || null,
+      stateName: ml.locations.locations?.name || 'Unknown',
+    }));
+    const uniqueStates = Array.from(
+      new Map(
+        assignedLocationsWithState
+          .filter((l) => l.stateId)
+          .map((l) => [l.stateId as string, { id: l.stateId as string, name: l.stateName }])
+      ).values()
+    ).sort((a, b) => a.name.localeCompare(b.name));
 
     // Get assigned location IDs and names
     const assignedLocationIds = manager.manager_locations.map((ml) => ml.locationId);
@@ -50,6 +67,7 @@ export async function GET(request: NextRequest) {
           slug: ms.services.slug,
         })),
         locations: [],
+        states: uniqueStates,
         stats: { total: 0, active: 0, completed: 0, cancelled: 0, revenue: 0 },
         pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
       });
@@ -68,6 +86,15 @@ export async function GET(request: NextRequest) {
     const serviceFilters = multi('service');
     const statusFilters = multi('status');
     const locationFilters = multi('location');
+    const stateFilters = multi('state');
+    // A state filter narrows which of the manager's OWN assigned locations
+    // are even in scope — every per-table WHERE below is built from these
+    // scoped lists, not the raw assigned ones.
+    const locationsInScope = stateFilters.length > 0
+      ? assignedLocationsWithState.filter((l) => l.stateId && stateFilters.includes(l.stateId))
+      : assignedLocationsWithState;
+    const scopedLocationIds = locationsInScope.map((l) => l.id);
+    const scopedLocationNames = locationsInScope.map((l) => l.name);
     const sourceFilter = searchParams.get('source') || 'all';
     const dateFilter = searchParams.get('date') || 'all';
     const search = (searchParams.get('search') || '').trim().toLowerCase();
@@ -103,9 +130,9 @@ export async function GET(request: NextRequest) {
       return baseFilter;
     };
 
-    const locationIdFilter = buildFilter({ locationId: { in: assignedLocationIds } });
-    const pickupCityFilter = buildFilter({ pickupCity: { in: assignedLocationNames } });
-    const locationNameFilter = buildFilter({ locationName: { in: assignedLocationNames } });
+    const locationIdFilter = buildFilter({ locationId: { in: scopedLocationIds } });
+    const pickupCityFilter = buildFilter({ pickupCity: { in: scopedLocationNames } });
+    const locationNameFilter = buildFilter({ locationName: { in: scopedLocationNames } });
 
     // Common includes for relations
     const customerInclude = { select: { id: true, name: true, email: true, phone: true } };
@@ -640,6 +667,7 @@ export async function GET(request: NextRequest) {
       bookings: paginatedBookings,
       services: uniqueServices,
       locations: uniqueLocations,
+      states: uniqueStates,
       stats,
       pagination: { page, limit, total, totalPages },
     });

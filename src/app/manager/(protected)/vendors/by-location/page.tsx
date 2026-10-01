@@ -42,8 +42,8 @@ const TYPE_ICON: Record<string, any> = {
 
 export default function ManagerVendorsByLocationPage() {
   const [rows, setRows] = useState<LocationRow[]>([]);
-  const [totalLinks, setTotalLinks] = useState(0);
-  const [activeLinks, setActiveLinks] = useState(0);
+  const [uniqueVendors, setUniqueVendors] = useState(0);
+  const [uniqueActiveVendors, setUniqueActiveVendors] = useState(0);
   const [coreServiceCount, setCoreServiceCount] = useState(7);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -65,8 +65,8 @@ export default function ManagerVendorsByLocationPage() {
       const data = await res.json();
       if (data.success) {
         setRows(data.locations || []);
-        setTotalLinks(data.totalLinks || 0);
-        setActiveLinks(data.activeLinks || 0);
+        setUniqueVendors(data.uniqueVendors || 0);
+        setUniqueActiveVendors(data.uniqueActiveVendors || 0);
         setCoreServiceCount(data.coreServiceCount || 7);
       } else {
         setError(data.error || 'Failed to fetch data');
@@ -110,8 +110,8 @@ export default function ManagerVendorsByLocationPage() {
         <div className="flex gap-3 flex-wrap">
           {[
             { label: 'Locations', value: rows.length, color: 'bg-slate-50 border-slate-200 text-slate-700' },
-            { label: 'Approvals', value: totalLinks, color: 'bg-blue-50 border-blue-200 text-blue-700' },
-            { label: 'Active', value: activeLinks, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+            { label: 'Vendors', value: uniqueVendors, color: 'bg-blue-50 border-blue-200 text-blue-700' },
+            { label: 'Active Vendors', value: uniqueActiveVendors, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
           ].map((s) => (
             <div key={s.label} className={`flex flex-col items-center px-4 py-2.5 rounded-xl border ${s.color}`}>
               <span className="text-xl font-black">{isLoading ? '—' : s.value}</span>

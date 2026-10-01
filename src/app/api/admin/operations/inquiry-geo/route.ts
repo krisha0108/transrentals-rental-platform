@@ -1,0 +1,35 @@
+// GET ?filter=&dateFrom=&dateTo= — admin-wide inquiry breakdown for a picked
+// time period: total, by status, by state, by city, and which state/city
+// leads. Backs the Operations Tracker's "Inquiries by Location" tab.
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
+import { prisma } from '@/lib/db/prisma';
+import logger from '@/lib/security/logger';
+import { getDateRange, getInquiryGeoBreakdown, resolveGeoFilterParams } from '@/lib/admin-operations';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const currentUser = await prisma.admin_users.findUnique({ where: { id: session.user.id } });
+    if (!currentUser || !['SUPER_ADMIN', 'ADMIN'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const filter = searchParams.get('filter') || 'today';
+    const dateFilter = getDateRange(filter, searchParams.get('dateFrom'), searchParams.get('dateTo'));
+    const dateFilterObj = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
+
+    const geo = await resolveGeoFilterParams(searchParams);
+    const result = await getInquiryGeoBreakdown(dateFilterObj, geo);
+    return NextResponse.json({ success: true, ...result });
+  } catch (error: any) {
+    logger.error('Operations tracker inquiry-geo fetch error', error);
+    return NextResponse.json({ error: 'Failed to load inquiry breakdown', details: error?.message }, { status: 500 });
+  }
+}

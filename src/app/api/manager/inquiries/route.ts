@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     const manager = await prisma.admin_users.findUnique({
       where: { id: session.user.id },
       include: {
-        manager_locations: { include: { locations: true } },
+        manager_locations: { include: { locations: { include: { locations: { select: { id: true, name: true } } } } } },
         manager_services: { include: { services: true } },
       },
     });
@@ -75,6 +75,23 @@ export async function GET(request: NextRequest) {
     if (!manager || manager.role !== 'MANAGER') {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
     }
+
+    // Each assigned location, plus the state it belongs to (its parent row) —
+    // powers the State filter dropdown, scoped to only states the manager
+    // actually has locations in.
+    const assignedLocationsWithState = manager.manager_locations.map((ml) => ({
+      id: ml.locationId,
+      name: ml.locations.name,
+      stateId: ml.locations.locations?.id || null,
+      stateName: ml.locations.locations?.name || 'Unknown',
+    }));
+    const uniqueStates = Array.from(
+      new Map(
+        assignedLocationsWithState
+          .filter((l) => l.stateId)
+          .map((l) => [l.stateId as string, { id: l.stateId as string, name: l.stateName }])
+      ).values()
+    ).sort((a, b) => a.name.localeCompare(b.name));
 
     const assignedLocationIds = manager.manager_locations.map((ml) => ml.locationId);
     const assignedLocationNames = manager.manager_locations.map((ml) => ml.locations.name);
@@ -89,6 +106,7 @@ export async function GET(request: NextRequest) {
       inquiries: [],
       services: uniqueServices,
       locations: [],
+      states: uniqueStates,
       stats: { total: 0, pending: 0, quotesReceived: 0, quoteAccepted: 0, cancelled: 0 },
       pagination: { page, limit, total: 0, totalPages: 1 },
     });
@@ -109,6 +127,15 @@ export async function GET(request: NextRequest) {
     const serviceFilters = multi('service');
     const statusFilters = multi('status');
     const locationFilters = multi('location');
+    const stateFilters = multi('state');
+    // A state filter narrows which of the manager's OWN assigned locations
+    // are even in scope — everything downstream (branch WHEREs, the location
+    // dropdown's options) is built from this, not the raw assigned lists.
+    const locationsInScope = stateFilters.length > 0
+      ? assignedLocationsWithState.filter((l) => l.stateId && stateFilters.includes(l.stateId))
+      : assignedLocationsWithState;
+    const scopedLocationIds = locationsInScope.map((l) => l.id);
+    const scopedLocationNames = locationsInScope.map((l) => l.name);
     const sourceFilter = searchParams.get('source') || 'all';
     const dateFilter = searchParams.get('date') || 'all';
     const actionedFilter = searchParams.get('actioned') || 'all';
@@ -157,7 +184,7 @@ export async function GET(request: NextRequest) {
     // One SELECT per active, in-scope service — filters pushed down so each
     // table's own indexes (location/status) do the narrowing.
     const buildBranch = (def: ServiceDef, withFilters: boolean): Prisma.Sql | null => {
-      const locationValues = def.locationValueType === 'id' ? assignedLocationIds : assignedLocationNames;
+      const locationValues = def.locationValueType === 'id' ? scopedLocationIds : scopedLocationNames;
       if (locationValues.length === 0) return null;
 
       const conditions: Prisma.Sql[] = [
@@ -242,12 +269,13 @@ export async function GET(request: NextRequest) {
     };
 
     // Distinct location values for the filter dropdown — scoped to the
-    // manager's assigned locations/services and the current service filter
-    // only (not status/date/etc.), so the dropdown doesn't shrink as other
-    // filters narrow the results — matches the page's prior behavior.
+    // manager's assigned locations/services, the current state filter, and
+    // the current service filter only (not status/date/etc.), so the
+    // dropdown doesn't shrink as other filters narrow the results — matches
+    // the page's prior behavior, now also narrowed by the picked state.
     const distinctLocationBranches = activeDefs
       .map((def) => {
-        const locationValues = def.locationValueType === 'id' ? assignedLocationIds : assignedLocationNames;
+        const locationValues = def.locationValueType === 'id' ? scopedLocationIds : scopedLocationNames;
         if (locationValues.length === 0) return null;
         return Prisma.sql`
           SELECT ${ident(def.displayLocationCol)} AS locName
@@ -273,6 +301,7 @@ export async function GET(request: NextRequest) {
         inquiries: [],
         services: uniqueServices,
         locations: uniqueLocations,
+        states: uniqueStates,
         stats,
         pagination: { page, limit, total, totalPages },
       });
@@ -541,6 +570,7 @@ export async function GET(request: NextRequest) {
       inquiries,
       services: uniqueServices,
       locations: uniqueLocations,
+      states: uniqueStates,
       stats,
       pagination: { page, limit, total, totalPages },
     });

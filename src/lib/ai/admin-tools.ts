@@ -3,7 +3,7 @@ import { computeManagerStats } from '@/lib/manager-performance';
 import {
   getDateRange, getUntouchedInquiries, getUntouchedBookings,
   getVendorsNeedingAction, getCoverageGaps, getIdleVendorCoverage,
-  getPaymentFailures, getSystemHealth,
+  getPaymentFailures, getSystemHealth, getInquiryGeoBreakdown,
 } from '@/lib/admin-operations';
 
 const OPS_PERIOD_ENUM = ['today', 'yesterday', 'thisWeek', 'thisMonth', 'lastMonth', 'all'] as const;
@@ -123,6 +123,29 @@ export const ADMIN_TOOLS = [
             description: 'Filter by service type (default all)',
           },
           limit: { type: 'number', description: 'Max recent inquiries to show (default 5)' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_inquiry_geo_breakdown',
+      description:
+        "Accurate inquiry counts by STATE and by CITY (across every service) for a time period — this is the authoritative source for questions like 'how many inquiries came from Gujarat this month', 'which state has the most inquiries', 'top city for inquiries last month'. Also breaks down by status (pending/quotes received/accepted/etc). Always use this tool (not get_inquiry_info) for any question naming a specific state or city, or asking which state/city leads — it groups by real state, not just raw city text.",
+      parameters: {
+        type: 'object',
+        properties: {
+          period: {
+            type: 'string',
+            enum: [...OPS_PERIOD_ENUM],
+            description: 'Predefined time period — defaults to "today" if omitted.',
+          },
+          state: {
+            type: 'string',
+            description: 'Optional — a specific state name to pull out of the breakdown (e.g. "Gujarat"). Partial, case-insensitive match.',
+          },
         },
         required: [],
       },
@@ -374,6 +397,7 @@ export async function executeTool(name: string, input: ToolInput): Promise<strin
       case 'get_customer_info':     return JSON.stringify(await getCustomerInfo(input));
       case 'get_driver_info':       return JSON.stringify(await getDriverInfo(input));
       case 'get_inquiry_info':      return JSON.stringify(await getInquiryInfo(input));
+      case 'get_inquiry_geo_breakdown':  return JSON.stringify(await getInquiryGeoBreakdownTool(input));
       case 'get_revenue_stats':     return JSON.stringify(await getRevenueStats(input));
       case 'get_fleet_stats':       return JSON.stringify(await getFleetStats());
       case 'get_booking_city_breakdown': return JSON.stringify(await getBookingCityBreakdown(input));
@@ -994,6 +1018,31 @@ async function getManagerPerformanceTool({ managerName, period = 'today' }: Tool
   results.sort((a, b) => (a.inquiries.coveragePct ?? 101) - (b.inquiries.coveragePct ?? 101));
 
   return { period, managers: results };
+}
+
+async function getInquiryGeoBreakdownTool({ period = 'today', state }: ToolInput) {
+  const result = await getInquiryGeoBreakdown(opsDateFilterObj(period), state ? { stateNameContains: state } : undefined);
+
+  if (state && result.total === 0) {
+    // Distinguish "that state genuinely had zero" from "no such state" by
+    // checking against the unfiltered breakdown's state list.
+    const unfiltered = await getInquiryGeoBreakdown(opsDateFilterObj(period));
+    const exists = unfiltered.byState.some((s) => s.name.toLowerCase().includes(String(state).toLowerCase()));
+    if (!exists) {
+      return { period, requestedState: state, found: false, message: `No inquiries found for a state matching "${state}" in this period.`, availableStates: unfiltered.byState.map((s) => s.name) };
+    }
+  }
+
+  return {
+    period,
+    ...(state ? { requestedState: state } : {}),
+    total: result.total,
+    byStatus: result.byStatus,
+    topState: result.topState,
+    topCity: result.topCity,
+    byState: result.byState.slice(0, 15),
+    byCity: result.byCity.slice(0, 15),
+  };
 }
 
 async function getUntouchedInquiriesTool({ period = 'today' }: ToolInput) {

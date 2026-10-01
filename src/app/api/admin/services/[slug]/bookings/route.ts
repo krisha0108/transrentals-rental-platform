@@ -16,6 +16,53 @@ const ADVANCE_PAID_STATUSES = [
 ];
 const CANCELLED_STATUSES = ['CANCELLED', 'REJECTED', 'EXPIRED'];
 
+// Which column holds the human-readable city on each quote/booking table —
+// the location & state filters match against this, by name, since several of
+// these tables never got a locationId column at all (they only ever stored
+// free-text city names).
+const CITY_COLUMN: Record<string, string> = {
+  bike_quote_requests: 'locationName', bike_bookings: 'locationName',
+  self_drive_quote_requests: 'locationName', car_bookings: 'locationName',
+  chauffeur_bookings: 'locationName',
+  bus_quote_requests: 'pickupCity', bus_bookings: 'pickupCity',
+  truck_quote_requests: 'pickupCity', truck_bookings: 'pickupCity',
+  luxury_quote_requests: 'pickupCity', luxury_bookings: 'pickupCity',
+  packers_quote_requests: 'pickupCity', packers_bookings: 'pickupCity',
+  equipment_quote_requests: 'deliveryCity', equipment_bookings: 'deliveryCity',
+};
+function cityFilter(table: keyof typeof CITY_COLUMN, cityName?: string, cityNamesInState?: string[]) {
+  const col = CITY_COLUMN[table];
+  if (cityName) return { [col]: cityName };
+  if (cityNamesInState && cityNamesInState.length > 0) return { [col]: { in: cityNamesInState } };
+  return {};
+}
+
+// Which column holds the winning vendor on each confirmed-booking table —
+// two different naming conventions depending on when the table was built.
+const VENDOR_COLUMN: Record<string, string> = {
+  bike_bookings: 'acceptedVendorId',
+  car_bookings: 'acceptedVendorId',
+  chauffeur_bookings: 'acceptedVendorId',
+  luxury_bookings: 'acceptedVendorId',
+  bus_bookings: 'vendorId',
+  truck_bookings: 'vendorId',
+  packers_bookings: 'vendorId',
+  equipment_bookings: 'vendorId',
+};
+function vendorFilter(table: keyof typeof VENDOR_COLUMN, vendorId?: string) {
+  return vendorId ? { [VENDOR_COLUMN[table]]: vendorId } : {};
+}
+
+// A quote request only "has" a vendor once one of its quotes was accepted —
+// every service's `*_quotes` table follows the same requestId/vendorId/status shape.
+async function acceptedQuoteRequestIds(quotesTable: string, vendorId: string): Promise<string[]> {
+  const rows = await (prisma as any)[quotesTable].findMany({
+    where: { vendorId, status: 'ACCEPTED' },
+    select: { requestId: true },
+  });
+  return rows.map((r: any) => r.requestId);
+}
+
 // Compute stat-card numbers from the full filtered record set (pre-pagination)
 // so the cards reflect the date/status filter, not just the visible page.
 function buildBookingStats(records: Array<{ status?: string; paymentStatus?: string; totalAmount?: number }>) {
@@ -139,10 +186,30 @@ async function getBookingsForService(
   search: string,
   status: string,
   startDate: Date | null = null,
-  endDate: Date | null = null
+  endDate: Date | null = null,
+  locationId: string = '',
+  stateId: string = '',
+  vendorId: string = ''
 ) {
   const skip = (page - 1) * limit;
   serviceSlug = normalizeServiceSlug(serviceSlug);
+
+  // The dropdowns pass ids; the booking tables only ever stored city names
+  // (and several never got a locationId column at all), so both filters
+  // resolve down to a name (or list of names) before touching any table.
+  let cityName = '';
+  if (locationId) {
+    const loc = await prisma.locations.findUnique({ where: { id: locationId }, select: { name: true } });
+    cityName = loc?.name || '';
+  }
+  let cityNamesInState: string[] | undefined;
+  if (stateId && !locationId) {
+    const citiesInState = await prisma.locations.findMany({
+      where: { parentId: stateId, isActive: true },
+      select: { name: true },
+    });
+    cityNamesInState = Array.from(new Set(citiesInState.map((c) => c.name)));
+  }
 
   // Map service slugs to booking models
   switch (serviceSlug) {
@@ -157,6 +224,7 @@ async function getBookingsForService(
       // Fetch quote requests (exclude confirmed ones)
       const quoteWhere: any = {
         id: { notIn: confirmedQuoteIds },
+        ...cityFilter('bike_quote_requests', cityName, cityNamesInState),
       };
       if (search) {
         quoteWhere.OR = [
@@ -177,7 +245,10 @@ async function getBookingsForService(
       }
 
       // Fetch confirmed bookings
-      const bookingWhere: any = {};
+      const bookingWhere: any = {
+        ...cityFilter('bike_bookings', cityName, cityNamesInState),
+        ...vendorFilter('bike_bookings', vendorId),
+      };
       if (search) {
         bookingWhere.OR = [
           { bookingNumber: { contains: search } },
@@ -194,6 +265,12 @@ async function getBookingsForService(
         bookingWhere.createdAt = {};
         if (startDate) bookingWhere.createdAt.gte = startDate;
         if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
+      // A vendor filter only matches confirmed bookings directly (acceptedVendorId);
+      // a quote request only "has" a vendor once one of its quotes was accepted.
+      if (vendorId) {
+        const requestIds = await acceptedQuoteRequestIds('bike_quotes', vendorId);
+        quoteWhere.id = { in: requestIds.filter((id) => !confirmedQuoteIds.includes(id)) };
       }
 
       const [quoteRequests, confirmedBikeBookings] = await Promise.all([
@@ -281,6 +358,7 @@ async function getBookingsForService(
       // Fetch quote requests (exclude confirmed ones)
       const quoteWhere: any = {
         id: { notIn: confirmedQuoteIds },
+        ...cityFilter('self_drive_quote_requests', cityName, cityNamesInState),
       };
       if (search) {
         quoteWhere.OR = [
@@ -301,7 +379,10 @@ async function getBookingsForService(
       }
 
       // Fetch confirmed bookings
-      const bookingWhere: any = {};
+      const bookingWhere: any = {
+        ...cityFilter('car_bookings', cityName, cityNamesInState),
+        ...vendorFilter('car_bookings', vendorId),
+      };
       if (search) {
         bookingWhere.OR = [
           { bookingNumber: { contains: search } },
@@ -318,6 +399,12 @@ async function getBookingsForService(
         bookingWhere.createdAt = {};
         if (startDate) bookingWhere.createdAt.gte = startDate;
         if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
+      // A vendor filter only matches confirmed bookings directly (acceptedVendorId);
+      // a quote request only "has" a vendor once one of its quotes was accepted.
+      if (vendorId) {
+        const requestIds = await acceptedQuoteRequestIds('self_drive_quotes', vendorId);
+        quoteWhere.id = { in: requestIds.filter((id) => !confirmedQuoteIds.includes(id)) };
       }
 
       const [quoteRequests, confirmedSelfDriveBookings] = await Promise.all([
@@ -399,7 +486,10 @@ async function getBookingsForService(
     case 'car-rental':
     case 'chauffeur-driven':
     case 'chauffeur-service': {
-      const where: any = {};
+      const where: any = {
+        ...cityFilter('chauffeur_bookings', cityName, cityNamesInState),
+        ...vendorFilter('chauffeur_bookings', vendorId),
+      };
       if (search) {
         where.OR = [
           { bookingNumber: { contains: search } },
@@ -494,6 +584,7 @@ async function getBookingsForService(
       // Fetch quote requests (exclude confirmed ones)
       const quoteWhere: any = {
         id: { notIn: confirmedQuoteIds }, // Exclude confirmed bookings
+        ...cityFilter('bus_quote_requests', cityName, cityNamesInState),
       };
       if (search) {
         quoteWhere.OR = [
@@ -514,7 +605,10 @@ async function getBookingsForService(
       }
 
       // Fetch confirmed bookings
-      const bookingWhere: any = {};
+      const bookingWhere: any = {
+        ...cityFilter('bus_bookings', cityName, cityNamesInState),
+        ...vendorFilter('bus_bookings', vendorId),
+      };
       if (search) {
         bookingWhere.OR = [
           { bookingNumber: { contains: search } },
@@ -531,6 +625,12 @@ async function getBookingsForService(
         bookingWhere.createdAt = {};
         if (startDate) bookingWhere.createdAt.gte = startDate;
         if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
+      // A vendor filter only matches confirmed bookings directly (vendorId);
+      // a quote request only "has" a vendor once one of its quotes was accepted.
+      if (vendorId) {
+        const requestIds = await acceptedQuoteRequestIds('bus_quotes', vendorId);
+        quoteWhere.id = { in: requestIds.filter((id) => !confirmedQuoteIds.includes(id)) };
       }
 
       const [quoteRequests, confirmedBusBookings] = await Promise.all([
@@ -614,6 +714,7 @@ async function getBookingsForService(
       // Fetch quote requests (exclude confirmed ones)
       const quoteWhere: any = {
         id: { notIn: confirmedQuoteIds }, // Exclude confirmed bookings
+        ...cityFilter('truck_quote_requests', cityName, cityNamesInState),
       };
       if (search) {
         quoteWhere.OR = [
@@ -634,7 +735,10 @@ async function getBookingsForService(
       }
 
       // Fetch confirmed bookings
-      const bookingWhere: any = {};
+      const bookingWhere: any = {
+        ...cityFilter('truck_bookings', cityName, cityNamesInState),
+        ...vendorFilter('truck_bookings', vendorId),
+      };
       if (search) {
         bookingWhere.OR = [
           { bookingNumber: { contains: search } },
@@ -651,6 +755,12 @@ async function getBookingsForService(
         bookingWhere.createdAt = {};
         if (startDate) bookingWhere.createdAt.gte = startDate;
         if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
+      // A vendor filter only matches confirmed bookings directly (vendorId);
+      // a quote request only "has" a vendor once one of its quotes was accepted.
+      if (vendorId) {
+        const requestIds = await acceptedQuoteRequestIds('truck_quotes', vendorId);
+        quoteWhere.id = { in: requestIds.filter((id) => !confirmedQuoteIds.includes(id)) };
       }
 
       const [quoteRequests, confirmedTruckBookings] = await Promise.all([
@@ -733,6 +843,7 @@ async function getBookingsForService(
       // Fetch quote requests (exclude confirmed ones)
       const quoteWhere: any = {
         id: { notIn: confirmedQuoteIds }, // Exclude confirmed bookings
+        ...cityFilter('luxury_quote_requests', cityName, cityNamesInState),
       };
       if (search) {
         quoteWhere.OR = [
@@ -753,7 +864,10 @@ async function getBookingsForService(
       }
 
       // Fetch confirmed bookings
-      const bookingWhere: any = {};
+      const bookingWhere: any = {
+        ...cityFilter('luxury_bookings', cityName, cityNamesInState),
+        ...vendorFilter('luxury_bookings', vendorId),
+      };
       if (search) {
         bookingWhere.OR = [
           { bookingNumber: { contains: search } },
@@ -770,6 +884,12 @@ async function getBookingsForService(
         bookingWhere.createdAt = {};
         if (startDate) bookingWhere.createdAt.gte = startDate;
         if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
+      // A vendor filter only matches confirmed bookings directly (acceptedVendorId);
+      // a quote request only "has" a vendor once one of its quotes was accepted.
+      if (vendorId) {
+        const requestIds = await acceptedQuoteRequestIds('luxury_quotes', vendorId);
+        quoteWhere.id = { in: requestIds.filter((id) => !confirmedQuoteIds.includes(id)) };
       }
 
       const [quoteRequests, confirmedLuxuryBookings] = await Promise.all([
@@ -852,6 +972,7 @@ async function getBookingsForService(
       // Fetch quote requests (exclude confirmed ones)
       const quoteWhere: any = {
         id: { notIn: confirmedQuoteIds }, // Exclude confirmed bookings
+        ...cityFilter('packers_quote_requests', cityName, cityNamesInState),
       };
       if (search) {
         quoteWhere.OR = [
@@ -872,7 +993,10 @@ async function getBookingsForService(
       }
 
       // Fetch confirmed bookings
-      const bookingWhere: any = {};
+      const bookingWhere: any = {
+        ...cityFilter('packers_bookings', cityName, cityNamesInState),
+        ...vendorFilter('packers_bookings', vendorId),
+      };
       if (search) {
         bookingWhere.OR = [
           { bookingNumber: { contains: search } },
@@ -889,6 +1013,12 @@ async function getBookingsForService(
         bookingWhere.createdAt = {};
         if (startDate) bookingWhere.createdAt.gte = startDate;
         if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
+      // A vendor filter only matches confirmed bookings directly (vendorId);
+      // a quote request only "has" a vendor once one of its quotes was accepted.
+      if (vendorId) {
+        const requestIds = await acceptedQuoteRequestIds('packers_quotes', vendorId);
+        quoteWhere.id = { in: requestIds.filter((id) => !confirmedQuoteIds.includes(id)) };
       }
 
       const [quoteRequests, confirmedPackersBookings] = await Promise.all([
@@ -970,6 +1100,7 @@ async function getBookingsForService(
       // Fetch quote requests (exclude confirmed ones)
       const quoteWhere: any = {
         id: { notIn: confirmedQuoteIds }, // Exclude confirmed bookings
+        ...cityFilter('equipment_quote_requests', cityName, cityNamesInState),
       };
       if (search) {
         quoteWhere.OR = [
@@ -990,7 +1121,10 @@ async function getBookingsForService(
       }
 
       // Fetch confirmed bookings
-      const bookingWhere: any = {};
+      const bookingWhere: any = {
+        ...cityFilter('equipment_bookings', cityName, cityNamesInState),
+        ...vendorFilter('equipment_bookings', vendorId),
+      };
       if (search) {
         bookingWhere.OR = [
           { bookingNumber: { contains: search } },
@@ -1007,6 +1141,12 @@ async function getBookingsForService(
         bookingWhere.createdAt = {};
         if (startDate) bookingWhere.createdAt.gte = startDate;
         if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
+      // A vendor filter only matches confirmed bookings directly (vendorId);
+      // a quote request only "has" a vendor once one of its quotes was accepted.
+      if (vendorId) {
+        const requestIds = await acceptedQuoteRequestIds('equipment_quotes', vendorId);
+        quoteWhere.id = { in: requestIds.filter((id) => !confirmedQuoteIds.includes(id)) };
       }
 
       const [quoteRequests, confirmedEquipmentBookings] = await Promise.all([
@@ -1104,6 +1244,9 @@ export async function GET(
     const dateFilter = searchParams.get('dateFilter') || 'ALL';
     const customStartDate = searchParams.get('startDate') || '';
     const customEndDate = searchParams.get('endDate') || '';
+    const locationId = searchParams.get('location') || '';
+    const stateId = searchParams.get('state') || '';
+    const vendorId = searchParams.get('vendor') || '';
 
     // Calculate date range based on filter
     const { startDate, endDate } = getDateRange(dateFilter, customStartDate, customEndDate);
@@ -1125,8 +1268,28 @@ export async function GET(
       search,
       status,
       startDate,
-      endDate
+      endDate,
+      locationId,
+      stateId,
+      vendorId
     );
+
+    // How many vendors actually run this service in the picked city — the
+    // count the admin asked for alongside a location filter. Independent of
+    // the date range: it answers "how many vendors are there", not
+    // "how many vendors booked something".
+    let locationVendorCount: number | null = null;
+    if (locationId) {
+      locationVendorCount = await prisma.vendor_approved_locations.count({
+        where: {
+          locationId,
+          isActive: true,
+          vendors: {
+            vendor_approved_services: { some: { serviceId: service.id, isActive: true } },
+          },
+        },
+      });
+    }
 
     // Add callsCount to each booking in one query
     const pageIds = bookings.map((b: any) => b.id);
@@ -1154,6 +1317,7 @@ export async function GET(
         slug: service.slug,
       },
       bookings: bookingsWithCalls,
+      locationVendorCount,
       stats: stats ?? {
         total,
         pending: 0,

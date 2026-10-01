@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const assignedLocationIds = manager.manager_locations.map((ml) => ml.locationId);
     if (assignedLocationIds.length === 0) {
-      return NextResponse.json({ success: true, locations: [], totalLinks: 0, activeLinks: 0 });
+      return NextResponse.json({ success: true, locations: [], totalLinks: 0, activeLinks: 0, uniqueVendors: 0, uniqueActiveVendors: 0 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const approvedVendorFilter = { vendors: { status: 'APPROVED' as const } };
     const groupWhere = { ...approvedVendorFilter, locationId: { in: scopedLocationIds } };
 
-    const [allCounts, activeCounts, totalLinks, activeLinks] = await Promise.all([
+    const [allCounts, activeCounts, totalLinks, activeLinks, uniqueVendorRows, uniqueActiveVendorRows] = await Promise.all([
       prisma.vendor_approved_locations.groupBy({
         by: ['locationId'],
         where: groupWhere,
@@ -65,7 +65,15 @@ export async function GET(request: NextRequest) {
       }),
       prisma.vendor_approved_locations.count({ where: groupWhere }),
       prisma.vendor_approved_locations.count({ where: { ...groupWhere, isActive: true } }),
+      // Distinct vendors, not approval rows — a vendor approved at 30 of this
+      // manager's locations is still 1 vendor, not 30. `totalLinks`/
+      // `activeLinks` above are the approval-row counts (one per location);
+      // this is the headline number that should actually be labeled "Vendors".
+      prisma.vendor_approved_locations.groupBy({ by: ['vendorId'], where: groupWhere }),
+      prisma.vendor_approved_locations.groupBy({ by: ['vendorId'], where: { ...groupWhere, isActive: true } }),
     ]);
+    const uniqueVendors = uniqueVendorRows.length;
+    const uniqueActiveVendors = uniqueActiveVendorRows.length;
 
     const activeByLocation = new Map(activeCounts.map((c) => [c.locationId, c._count.id]));
     const locationMeta = new Map(manager.manager_locations.map((ml) => [ml.locationId, ml.locations]));
@@ -137,6 +145,8 @@ export async function GET(request: NextRequest) {
       locations,
       totalLinks,
       activeLinks,
+      uniqueVendors,
+      uniqueActiveVendors,
       coreServiceCount: coreServices.length,
       selectedService: selectedService ? { key: selectedService.key, name: selectedService.name } : null,
     });
