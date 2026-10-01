@@ -102,6 +102,15 @@ const approvedNavigationItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    name: 'Notifications',
+    href: '/vendor/notifications',
+    icon: Bell,
+    children: [
+      { name: 'All Notifications', href: '/vendor/notifications', icon: Bell },
+      { name: 'Notification Settings', href: '/vendor/notification-settings', icon: Settings },
+    ],
+  },
+  {
     name: 'Customer Chats',
     href: '/vendor/chat',
     icon: MessageSquare,
@@ -467,19 +476,10 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Request Location', href: '/vendor/locations/request', icon: MapPin },
     ],
   },
-  // {
-  //   name: 'Reviews',
-  //   href: '/vendor/reviews',
-  //   icon: Star,
-  // },
   {
-    name: 'Notifications',
-    href: '/vendor/notifications',
-    icon: Bell,
-    children: [
-      { name: 'All Notifications', href: '/vendor/notifications', icon: Bell },
-      { name: 'Notification Settings', href: '/vendor/notification-settings', icon: Settings },
-    ],
+    name: 'Customer Reviews',
+    href: '/vendor/reviews',
+    icon: Star,
   },
   {
     name: 'Get Started',
@@ -507,6 +507,11 @@ const pendingNavigationItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    name: 'Notifications',
+    href: '/vendor/notifications',
+    icon: Bell,
+  },
+  {
     name: 'Get Started',
     href: '/vendor/get-started',
     icon: Sparkles,
@@ -521,11 +526,6 @@ const pendingNavigationItems: NavItem[] = [
       { name: 'Request Service',  href: '/vendor/services/request',  icon: Layers  },
       { name: 'Request Location', href: '/vendor/locations/request', icon: MapPin  },
     ],
-  },
-  {
-    name: 'Notifications',
-    href: '/vendor/notifications',
-    icon: Bell,
   },
   // ── Preview pages — fully navigable, actions locked until verified ──
   {
@@ -639,6 +639,7 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
   // "Bulk Bookings" and "B2B Corporate" so vendors notice new requests.
   const [openBulkCount, setOpenBulkCount] = useState(0);
   const [openB2bCount, setOpenB2bCount] = useState(0);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   const isApproved = vendorStatus === 'APPROVED';
 
@@ -716,6 +717,31 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
     };
   }, [isApproved]);
 
+  // Poll unread notification count for the "Notifications" sidebar badge —
+  // same cadence as the other counts, but not gated on isApproved: pending
+  // vendors still get agreement/document-review notifications and should see
+  // the badge too.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/vendor/notifications/unread-count', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setUnreadNotifCount(Number(data?.unreadCount) || 0);
+      } catch { /* network blip — keep last value */ }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchCount(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
   // Filter navigation items based on approved service IDs
   // This approach is stable - even if admin changes service slugs, IDs remain the same
   const getFilteredNavigationItems = () => {
@@ -781,6 +807,8 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
       dynamicBadge = formatBadge(openBulkCount);
     } else if (item.href === '/vendor/b2b-bookings' && openB2bCount > 0) {
       dynamicBadge = formatBadge(openB2bCount);
+    } else if (item.href === '/vendor/notifications' && unreadNotifCount > 0) {
+      dynamicBadge = formatBadge(unreadNotifCount);
     }
 
     // ── Locked item: visible but navigates back to dashboard (no sub-menu) ──

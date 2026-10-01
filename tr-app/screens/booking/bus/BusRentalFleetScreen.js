@@ -10,11 +10,11 @@ import {
   Alert,
   ActivityIndicator,
   BackHandler,
-  Modal,
   StatusBar,
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -25,7 +25,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import bookingService from '../../services/bookingService';
 import locationService from '../../services/locationService';
 import api from '../../api';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toTimeString, combineDateAndTime, toLocalDateString } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
 import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
@@ -41,6 +41,13 @@ const TEXT_PRIMARY = '#111827';
 const TEXT_SECONDARY = '#6B7280';
 const TEXT_MUTED = '#9CA3AF';
 const BORDER = '#E5E7EB';
+
+// "10:00 AM" style label, the shape this screen keeps pickup/return time in.
+const formatTime12h = (date) => {
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours % 12 || 12}:${minutes} ${hours >= 12 ? 'PM' : 'AM'}`;
+};
 
 const SHADOW_SM = Platform.select({
   ios: {
@@ -136,9 +143,10 @@ export default function BusRentalFleetScreen() {
   const [fromLocation, setFromLocation] = useState(null);
   const [toLocation, setToLocation] = useState(null);
   const [passengers, setPassengers] = useState('');
-  const [pickupDate, setPickupDate] = useState(new Date());
-  const [pickupTime, setPickupTime] = useState('10:00 AM');
-  const [returnDate, setReturnDate] = useState(new Date());
+  // pickupDate also carries the pickup clock time, kept in step with pickupTime.
+  const [pickupDate, setPickupDate] = useState(() => getEarliestPickup());
+  const [pickupTime, setPickupTime] = useState(() => formatTime12h(getEarliestPickup()));
+  const [returnDate, setReturnDate] = useState(() => getEarliestPickup());
   const [returnTime, setReturnTime] = useState('10:00 AM');
   const [requirements, setRequirements] = useState('');
   const [needAC, setNeedAC] = useState(true);
@@ -307,10 +315,13 @@ export default function BusRentalFleetScreen() {
       onChange: (event, selectedDate) => {
         if (event.type === 'set' && selectedDate) {
           if (type === 'pickup') {
-            setPickupDate(selectedDate);
+            // Keep the chosen time unless it is now too soon on the new date.
+            const pickup = clampPickup(combineDateAndTime(selectedDate, toTimeString(pickupDate)));
+            setPickupDate(pickup);
+            setPickupTime(formatTime12h(pickup));
             // If pickup date is after current return date, update return date too
-            if (selectedDate > returnDate) {
-              setReturnDate(selectedDate);
+            if (pickup > returnDate) {
+              setReturnDate(pickup);
             }
           } else {
             setReturnDate(selectedDate);
@@ -331,19 +342,20 @@ export default function BusRentalFleetScreen() {
         if (event.type === 'set' && selectedDate) {
           const hours = selectedDate.getHours();
           const minutes = selectedDate.getMinutes();
-          const ampm = hours >= 12 ? 'PM' : 'AM';
-          const formattedHours = hours % 12 || 12;
-          const formattedMinutes = minutes.toString().padStart(2, '0');
-          const timeString = `${formattedHours}:${formattedMinutes} ${ampm}`;
+          const timeString = formatTime12h(selectedDate);
 
           if (type === 'pickup') {
             const finalDateTime = new Date(pickupDate);
-            finalDateTime.setHours(hours);
-            finalDateTime.setMinutes(minutes);
+            finalDateTime.setHours(hours, minutes, 0, 0);
             if (isPickupTooSoon(finalDateTime)) {
+              // Too close to now for a driver to reach: snap to the earliest slot.
+              const earliest = getEarliestPickup();
+              setPickupDate(earliest);
+              setPickupTime(formatTime12h(earliest));
               setShowBookingAlert(true);
               return;
             }
+            setPickupDate(finalDateTime);
             setPickupTime(timeString);
           } else {
             setReturnTime(timeString);
@@ -436,11 +448,11 @@ export default function BusRentalFleetScreen() {
         passengers: parseInt(passengers),
         pickupCity: (fromLocation?.name || fromSearch || '').trim() || null,
         pickupAddress: pickupFullAddress.trim() || (fromLocation?.name || fromSearch || '').trim() || null,
-        pickupDate: pickupDate.toISOString().split('T')[0],
+        pickupDate: toLocalDateString(pickupDate),
         pickupTime,
         dropCity: (toLocation?.name || toSearch || '').trim() || null,
         dropAddress: dropFullAddress.trim() || (toLocation?.name || toSearch || '').trim() || null,
-        returnDate: returnDate ? returnDate.toISOString().split('T')[0] : null,
+        returnDate: returnDate ? toLocalDateString(returnDate) : null,
         returnTime: returnTime || null,
         tripDays,
         requirements: requirements || null,

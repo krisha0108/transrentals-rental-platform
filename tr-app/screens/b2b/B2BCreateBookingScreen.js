@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform,
-  Dimensions, Modal, FlatList, StatusBar,
+  Dimensions, FlatList, StatusBar,
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { b2bService } from '../services';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toTimeString, combineDateAndTime, toLocalDateString } from '../utils/dateValidation';
 import BookingAlertModal from '../utils/AdvanceBookingAlert';
 
 const { width } = Dimensions.get('window');
@@ -39,7 +40,7 @@ export default function B2BCreateBookingScreen({ navigation }) {
   const [showTripPicker, setShowTripPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     serviceType: '',
     vehiclesRequired: '1',
     passengerCount: '',
@@ -47,12 +48,12 @@ export default function B2BCreateBookingScreen({ navigation }) {
     tripType: 'ONE_WAY',
     pickupLocation: '',
     dropLocation: '',
-    scheduledDate: new Date(),
-    scheduledTime: new Date(),
+    scheduledDate: getEarliestPickup(),
+    scheduledTime: getEarliestPickup(),
     returnDate: null,
     returnTime: null,
     specialNotes: '',
-  });
+  }));
 
   useEffect(() => {
     (async () => {
@@ -94,9 +95,9 @@ export default function B2BCreateBookingScreen({ navigation }) {
         tripType: form.tripType,
         pickupLocation: form.pickupLocation,
         dropLocation: form.dropLocation || null,
-        scheduledDate: form.scheduledDate.toISOString().split('T')[0],
+        scheduledDate: toLocalDateString(form.scheduledDate),
         scheduledTime: formatTime(form.scheduledTime),
-        returnDate: form.returnDate ? form.returnDate.toISOString().split('T')[0] : null,
+        returnDate: form.returnDate ? toLocalDateString(form.returnDate) : null,
         returnTime: form.returnTime ? formatTime(form.returnTime) : null,
         specialNotes: form.specialNotes || null,
       };
@@ -343,7 +344,14 @@ export default function B2BCreateBookingScreen({ navigation }) {
           minimumDate={getMinBookingDate()}
           onChange={(e, date) => {
             setShowDatePicker(null);
-            if (date) handleChange(showDatePicker === 'return' ? 'returnDate' : 'scheduledDate', date);
+            if (!date) return;
+            if (showDatePicker === 'return') {
+              handleChange('returnDate', date);
+              return;
+            }
+            // Keep the chosen time unless it is now too soon on the new date.
+            const pickup = clampPickup(combineDateAndTime(date, toTimeString(form.scheduledTime)));
+            setForm(prev => ({ ...prev, scheduledDate: pickup, scheduledTime: pickup }));
           }}
         />
       )}
@@ -353,7 +361,20 @@ export default function B2BCreateBookingScreen({ navigation }) {
           mode="time"
           onChange={(e, time) => {
             setShowTimePicker(null);
-            if (time) handleChange(showTimePicker === 'return' ? 'returnTime' : 'scheduledTime', time);
+            if (!time) return;
+            if (showTimePicker === 'return') {
+              handleChange('returnTime', time);
+              return;
+            }
+            const chosen = combineDateAndTime(form.scheduledDate, toTimeString(time));
+            if (isPickupTooSoon(chosen)) {
+              // Too close to now for a driver to reach: snap to the earliest slot.
+              const earliest = getEarliestPickup();
+              setForm(prev => ({ ...prev, scheduledDate: earliest, scheduledTime: earliest }));
+              setShowBookingAlert(true);
+              return;
+            }
+            handleChange('scheduledTime', time);
           }}
         />
       )}

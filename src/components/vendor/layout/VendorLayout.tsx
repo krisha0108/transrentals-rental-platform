@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { VendorSidebar } from './VendorSidebar';
-import { Menu, Loader2, AlertTriangle, Lock, CheckCircle2, ArrowRight, X, FileText, MapPin, Wrench, Home, LogOut } from 'lucide-react';
+import { Menu, Loader2, AlertTriangle, Lock, CheckCircle2, ArrowRight, X, FileText, MapPin, Wrench, Home, LogOut, Bell } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ToastProvider } from '@/components/ui/toast';
@@ -225,12 +225,35 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   const [onboardingCounts, setOnboardingCounts] = useState({ docs: 0, locations: 0, services: 0 });
   const [hasAddress, setHasAddress] = useState(true);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
   useVendorWebNotifications();
   useVendorActivityHeartbeat(status === 'authenticated');
+
+  // Drives the bell on the mobile sticky header — the sidebar's own copy of
+  // this badge is hidden behind the hamburger menu until it's opened, so
+  // mobile needs its own always-visible indicator.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/vendor/notifications/unread-count', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setUnreadNotifCount(Number(data?.unreadCount) || 0);
+      } catch { /* network blip — keep last value */ }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [status]);
 
   // skipCache=true bypasses the sessionStorage snapshot entirely — used by
   // the vendor-approved-services-changed listener below so toggling a
@@ -429,10 +452,18 @@ export function VendorLayout({ children }: VendorLayoutProps) {
 
           <div className="lg:pl-64">
             {/* Mobile menu button */}
-            <div className="lg:hidden sticky top-0 z-30 bg-[#f5f6fa]/80 backdrop-blur-md border-b border-gray-200/50 px-4 py-3">
+            <div className="lg:hidden sticky top-0 z-30 bg-[#f5f6fa]/80 backdrop-blur-md border-b border-gray-200/50 px-4 py-3 flex items-center justify-between">
               <button onClick={() => setSidebarOpen(true)} className="p-2 hover:bg-white rounded-xl transition">
                 <Menu className="w-6 h-6 text-gray-700" />
               </button>
+              <Link href="/vendor/notifications" className="relative p-2 hover:bg-white rounded-xl transition">
+                <Bell className="w-5 h-5 text-gray-700" />
+                {unreadNotifCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+                    {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                  </span>
+                )}
+              </Link>
             </div>
 
             {/* ── Missing Address Banner ── */}

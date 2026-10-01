@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Modal,
   RefreshControl,
   Animated,
   Dimensions,
@@ -16,6 +15,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import {launchImageLibrary} from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';

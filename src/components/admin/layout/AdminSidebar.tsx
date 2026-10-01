@@ -67,7 +67,9 @@ import {
   Share2,
   Radar,
   MessageSquareQuote,
+  IndianRupee,
   PhoneCall,
+  Receipt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -441,11 +443,6 @@ const adminItems: NavItem[] = [
     ],
   },
   {
-    name: 'Payments',
-    href: '/admin/payments',
-    icon: CreditCard,
-  },
-  {
     name: 'Analytics',
     href: '/admin/analytics',
     icon: BarChart3,
@@ -457,6 +454,20 @@ const adminItems: NavItem[] = [
     ],
   },
 ];
+
+// Rendered as its own section right below Operations Tracker, not buried in
+// the Management group — payments and refunds get checked often enough to
+// want them one click from the top of the sidebar.
+const paymentsItem: NavItem = {
+  name: 'Payments',
+  href: '/admin/payments',
+  icon: CreditCard,
+  children: [
+    { name: 'All Payments', href: '/admin/payments', icon: CreditCard },
+    { name: 'Payments Tally', href: '/admin/payments-tally', icon: Receipt },
+    { name: 'Refunds', href: '/admin/refunds', icon: IndianRupee },
+  ],
+};
 
 // Website Controls (Global site management)
 const websiteItems: NavItem[] = [
@@ -510,6 +521,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const [missionControls, setMissionControls] = useState<NavItem[]>(FALLBACK_MISSION_CONTROLS);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [contactChangeCount, setContactChangeCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch services from database to sync with services-management
   useEffect(() => {
@@ -557,6 +569,58 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const matchesHref = (href: string) =>
     !!pathname && (pathname === href || pathname.startsWith(href + '/'));
 
+  // Sidebar search — filters nav items (and their children) by name.
+  const query = searchQuery.trim().toLowerCase();
+  const nameMatches = (name: string) => query !== '' && name.toLowerCase().includes(query);
+  const itemMatchesSearch = (item: NavItem): boolean => {
+    if (nameMatches(item.name)) return true;
+    return !!item.children?.some((c) => !c.isHeader && itemMatchesSearch(c));
+  };
+  // While searching: a parent whose own name matches shows all its children;
+  // otherwise only the children that themselves match are shown.
+  const getVisibleChildren = (item: NavItem): NavItem[] => {
+    const children = item.children || [];
+    if (!query) return children;
+    if (nameMatches(item.name)) return children.filter((c) => !c.isHeader);
+    return children.filter((c) => !c.isHeader && itemMatchesSearch(c));
+  };
+
+  const aiContentManagerItem: NavItem = {
+    name: 'AI Content Manager',
+    href: '/admin/seo-content',
+    icon: Sparkles,
+    children: [
+      { name: 'Pages Inventory', href: '/admin/seo-content/inventory', icon: Layers },
+      { name: 'All Pages', href: '/admin/seo-content', icon: FileText },
+      { name: 'Bulk Generate', href: '/admin/seo-content/bulk', icon: Sparkles },
+    ],
+  };
+
+  const tourManagementItem: NavItem = {
+    name: 'Tour Management',
+    href: '/admin/wander',
+    icon: Compass,
+    children: [
+      { name: 'Categories', href: '/admin/wander/categories', icon: Layers },
+      { name: 'Experiences', href: '/admin/wander/experiences', icon: Compass },
+      { name: 'Listings', href: '/admin/wander/listings', icon: List },
+      { name: 'Add Tour', href: '/admin/wander/listings?addMode=open', icon: PlusCircle },
+      { name: 'Quote Requests', href: '/admin/wander/quotes', icon: MessageSquare },
+    ],
+  };
+
+  const hasAnyResults =
+    !query ||
+    nameMatches('Dashboard') ||
+    nameMatches('Operations Tracker') ||
+    itemMatchesSearch(paymentsItem) ||
+    missionControls.some(itemMatchesSearch) ||
+    itemMatchesSearch(aiContentManagerItem) ||
+    itemMatchesSearch(tourManagementItem) ||
+    websiteItems.some(itemMatchesSearch) ||
+    settingsItems.some(itemMatchesSearch) ||
+    adminItems.some(itemMatchesSearch);
+
   // A child whose href is a prefix of a sibling's (e.g. "Overview" at /admin/analytics next to
   // /admin/analytics/forms) must only light up on an exact match, otherwise it stays highlighted
   // on every sub-page of the section.
@@ -582,7 +646,8 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     const Icon = item.icon;
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);
-    const isExpanded = expandedSections.includes(item.name);
+    const isExpanded = expandedSections.includes(item.name) || (!!query && itemMatchesSearch(item));
+    const visibleChildren = getVisibleChildren(item);
 
     if (hasChildren) {
       return (
@@ -612,7 +677,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
           {isExpanded && (
             <div className="ml-4 pl-3 border-l border-gray-700 space-y-0.5">
-              {item.children!.map((child) => {
+              {visibleChildren.map((child) => {
                 const ChildIcon = child.icon;
 
                 // Render section header (non-clickable). A hairline rule separates each group
@@ -731,115 +796,150 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
-            {/* Dashboard */}
-            <div>
-              <Link
-                href="/admin/dashboard"
-                onClick={onClose}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                  pathname === '/admin/dashboard'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            {/* Search */}
+            <div className="sticky top-0 bg-gray-900 z-10 pb-1 -mt-1 pt-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search menu..."
+                  className="w-full pl-9 pr-8 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 )}
-              >
-                <LayoutDashboard className="w-5 h-5" />
-                <span className="font-medium">Dashboard</span>
-              </Link>
-              <Link
-                href="/admin/operations"
-                onClick={onClose}
-                className={cn(
-                  'mt-1 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                  pathname === '/admin/operations'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                )}
-              >
-                <Radar className="w-5 h-5" />
-                <span className="font-medium">Operations Tracker</span>
-              </Link>
+              </div>
             </div>
+
+            {/* Dashboard */}
+            {(!query || nameMatches('Dashboard') || nameMatches('Operations Tracker')) && (
+              <div>
+                {(!query || nameMatches('Dashboard')) && (
+                  <Link
+                    href="/admin/dashboard"
+                    onClick={onClose}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                      pathname === '/admin/dashboard'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    )}
+                  >
+                    <LayoutDashboard className="w-5 h-5" />
+                    <span className="font-medium">Dashboard</span>
+                  </Link>
+                )}
+                {(!query || nameMatches('Operations Tracker')) && (
+                  <Link
+                    href="/admin/operations"
+                    onClick={onClose}
+                    className={cn(
+                      'mt-1 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                      pathname === '/admin/operations'
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                        : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    )}
+                  >
+                    <Radar className="w-5 h-5" />
+                    <span className="font-medium">Operations Tracker</span>
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* Payments & Refunds — one click below Operations Tracker */}
+            {(!query || itemMatchesSearch(paymentsItem)) && (
+              <div className="space-y-1">
+                {renderNavItem(paymentsItem)}
+              </div>
+            )}
 
             {/* 8 Mission Controls */}
-            <div>
-              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Services
-              </p>
-              <div className="space-y-1">
-                {missionControls.map((item) => renderNavItem(item, true))}
+            {(!query || missionControls.some(itemMatchesSearch)) && (
+              <div>
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Services
+                </p>
+                <div className="space-y-1">
+                  {missionControls.filter((item) => !query || itemMatchesSearch(item)).map((item) => renderNavItem(item, true))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* SEO Content (AI-powered per-city page content) */}
-            <div>
-              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                SEO Content
-              </p>
-              <div className="space-y-1">
-                {renderNavItem({
-                  name: 'AI Content Manager',
-                  href: '/admin/seo-content',
-                  icon: Sparkles,
-                  children: [
-                    { name: 'Pages Inventory', href: '/admin/seo-content/inventory', icon: Layers },
-                    { name: 'All Pages', href: '/admin/seo-content', icon: FileText },
-                    { name: 'Bulk Generate', href: '/admin/seo-content/bulk', icon: Sparkles },
-                  ],
-                })}
+            {(!query || itemMatchesSearch(aiContentManagerItem)) && (
+              <div>
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  SEO Content
+                </p>
+                <div className="space-y-1">
+                  {renderNavItem(aiContentManagerItem)}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Tour Management */}
-            <div>
-              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Tour Management
-              </p>
-              <div className="space-y-1">
-                {renderNavItem({
-                  name: 'Tour Management',
-                  href: '/admin/wander',
-                  icon: Compass,
-                  children: [
-                    { name: 'Categories', href: '/admin/wander/categories', icon: Layers },
-                    { name: 'Experiences', href: '/admin/wander/experiences', icon: Compass },
-                    { name: 'Listings', href: '/admin/wander/listings', icon: List },
-                    { name: 'Add Tour', href: '/admin/wander/listings?addMode=open', icon: PlusCircle },
-                    { name: 'Quote Requests', href: '/admin/wander/quotes', icon: MessageSquare },
-                  ],
-                })}
+            {(!query || itemMatchesSearch(tourManagementItem)) && (
+              <div>
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Tour Management
+                </p>
+                <div className="space-y-1">
+                  {renderNavItem(tourManagementItem)}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Website Controls */}
-            <div>
-              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Website
-              </p>
-              <div className="space-y-1">
-                {websiteItems.map((item) => renderNavItem(item))}
+            {(!query || websiteItems.some(itemMatchesSearch)) && (
+              <div>
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Website
+                </p>
+                <div className="space-y-1">
+                  {websiteItems.filter((item) => !query || itemMatchesSearch(item)).map((item) => renderNavItem(item))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Settings */}
-            <div>
-              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Settings
-              </p>
-              <div className="space-y-1">
-                {settingsItems.map((item) => renderNavItem(item))}
+            {(!query || settingsItems.some(itemMatchesSearch)) && (
+              <div>
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Settings
+                </p>
+                <div className="space-y-1">
+                  {settingsItems.filter((item) => !query || itemMatchesSearch(item)).map((item) => renderNavItem(item))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Admin */}
-            <div>
-              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Management
-              </p>
-              <div className="space-y-1">
-                {adminItems.map((item) => renderNavItem(item))}
+            {(!query || adminItems.some(itemMatchesSearch)) && (
+              <div>
+                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Management
+                </p>
+                <div className="space-y-1">
+                  {adminItems.filter((item) => !query || itemMatchesSearch(item)).map((item) => renderNavItem(item))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* No results */}
+            {query && !hasAnyResults && (
+              <div className="px-3 py-6 text-center text-sm text-gray-500">
+                No menu items match &ldquo;{searchQuery}&rdquo;
+              </div>
+            )}
           </nav>
 
           {/* Footer */}

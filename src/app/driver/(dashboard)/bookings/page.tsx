@@ -24,6 +24,7 @@ import {
   Search,
   Zap,
 } from 'lucide-react';
+import { PageHeader, StatTile } from '../_components/PortalUI';
 
 interface Booking {
   id: string;
@@ -159,6 +160,12 @@ export default function DriverBookingsPage() {
     }
   };
 
+  // Broadcast trips whose pickup has not already passed — what the badge
+  // means by "available", and what the list below it actually shows.
+  const upcomingAvailable = availableBookings.filter(
+    b => new Date(b.pickupDate) >= new Date(),
+  ).length;
+
   const fetchAvailable = async () => {
     setAvailableLoading(true);
     try {
@@ -195,19 +202,20 @@ export default function DriverBookingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-semibold text-gray-900">Trips</h1>
-          <p className="text-xs text-gray-500">Your bookings & available trips</p>
-        </div>
-        <button
-          onClick={tab === 'available' ? fetchAvailable : fetchBookings}
-          className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200"
-        >
-          <RefreshCw className="w-5 h-5 text-gray-600" />
-        </button>
-      </div>
+      <PageHeader
+        icon={Calendar}
+        title="My Trips"
+        subtitle="Everything assigned to you, and what is still up for grabs"
+        actions={
+          <button
+            type="button"
+            onClick={tab === 'available' ? fetchAvailable : fetchBookings}
+            className="dv-action-ghost"
+          >
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
@@ -226,9 +234,9 @@ export default function DriverBookingsPage() {
             }`}
           >
             <Radio className="w-4 h-4 text-blue-500" /> Available
-            {availableBookings.length > 0 && tab !== 'available' && (
+            {upcomingAvailable > 0 && tab !== 'available' && (
               <span className="w-5 h-5 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                {availableBookings.length > 9 ? '9+' : availableBookings.length}
+                {upcomingAvailable > 9 ? '9+' : upcomingAvailable}
               </span>
             )}
           </button>
@@ -238,16 +246,22 @@ export default function DriverBookingsPage() {
       {tab === 'available' && (() => {
         const now = new Date();
         const AVAIL_TRIP_TYPES = ['ALL', 'LOCAL', 'OUTSTATION_ONEWAY', 'OUTSTATION_ROUNDTRIP', 'AIRPORT_PICKUP', 'AIRPORT_DROP'];
+        // Whatever the date switch is currently letting through. The chip
+        // counts are taken from this, not from the raw list, so a number on
+        // screen always describes the rows underneath it.
+        const inDateRange = availableBookings.filter(
+          b => availShowAll || new Date(b.pickupDate) >= now,
+        );
+        const hiddenByDate = availableBookings.length - inDateRange.length;
+
         const typeCounts = AVAIL_TRIP_TYPES.reduce((acc, t) => {
-          acc[t] = t === 'ALL' ? availableBookings.length : availableBookings.filter(b => b.tripType === t).length;
+          acc[t] = t === 'ALL' ? inDateRange.length : inDateRange.filter(b => b.tripType === t).length;
           return acc;
         }, {} as Record<string, number>);
 
-        let filtered = availableBookings.filter(b => {
-          if (!availShowAll && new Date(b.pickupDate) < now) return false;
-          if (availTripType !== 'ALL' && b.tripType !== availTripType) return false;
-          return true;
-        });
+        let filtered = inDateRange.filter(
+          b => availTripType === 'ALL' || b.tripType === availTripType,
+        );
         filtered = [...filtered].sort((a, b) =>
           availSort === 'soonest'
             ? new Date(a.pickupDate).getTime() - new Date(b.pickupDate).getTime()
@@ -274,9 +288,10 @@ export default function DriverBookingsPage() {
               </div>
               <button
                 onClick={() => setAvailShowAll(v => !v)}
+                title={availShowAll ? 'Showing every date' : 'Showing upcoming pickups only'}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${availShowAll ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
               >
-                {availShowAll ? 'All Dates' : 'Upcoming'}
+                {availShowAll ? 'All Dates' : `Upcoming${hiddenByDate > 0 ? ` \u00b7 ${hiddenByDate} older` : ''}`}
               </button>
             </div>
 
@@ -287,7 +302,7 @@ export default function DriverBookingsPage() {
                   key={t}
                   onClick={() => setAvailTripType(t)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition flex items-center gap-1.5 ${
-                    availTripType === t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
+                    availTripType === t ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-200 hover:border-green-300'
                   }`}
                 >
                   {t === 'ALL' ? 'All Types' : TRIP_TYPE_LABELS_MAP[t] || t}
@@ -298,18 +313,34 @@ export default function DriverBookingsPage() {
 
             {availableLoading ? (
               <div className="flex items-center justify-center h-48">
-                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="bg-white rounded-xl border p-10 text-center">
-                <Radio className="w-14 h-14 text-gray-300 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-1">No Available Trips</h3>
-                <p className="text-sm text-gray-500">
-                  {availTripType !== 'ALL' ? 'No trips for this type. Try changing the filter.' : 'No broadcasted trips right now. Check back later.'}
+              <div className="dv-empty">
+                <span className="dv-empty-icon"><Radio className="w-7 h-7" /></span>
+                <p className="dv-empty-title">No available trips</p>
+                <p className="dv-empty-sub">
+                  {availTripType !== 'ALL'
+                    ? 'Nothing broadcast for this trip type right now.'
+                    : hiddenByDate > 0
+                      ? `Nothing upcoming. ${hiddenByDate} broadcast trip${hiddenByDate > 1 ? 's have' : ' has'} a pickup date that has already passed.`
+                      : 'Nothing is being broadcast right now. New trips appear here as they come in.'}
                 </p>
-                <button onClick={fetchAvailable} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
-                  Refresh
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                  {availTripType !== 'ALL' && (
+                    <button type="button" onClick={() => setAvailTripType('ALL')} className="dv-action-ghost">
+                      Show all types
+                    </button>
+                  )}
+                  {!availShowAll && hiddenByDate > 0 && (
+                    <button type="button" onClick={() => setAvailShowAll(true)} className="dv-action">
+                      Show past dates too ({hiddenByDate})
+                    </button>
+                  )}
+                  <button type="button" onClick={fetchAvailable} className="dv-action-ghost">
+                    <RefreshCw className="w-4 h-4" /> Refresh
+                  </button>
+                </div>
               </div>
             ) : (
               filtered.map(booking => {
@@ -319,17 +350,17 @@ export default function DriverBookingsPage() {
                 const isPast = new Date(booking.pickupDate) < now;
                 return (
                   <Link key={booking.id} href={`/driver/bookings/${booking.bookingNumber}`}
-                    className={`block bg-white rounded-xl border shadow-sm p-4 transition hover:border-emerald-300 hover:shadow-md ${isAccepted ? 'border-green-400 bg-green-50' : ''} ${isPast ? 'opacity-60' : ''}`}
+                    className={`block bg-white rounded-xl border shadow-sm p-4 transition hover:border-green-300 hover:shadow-md ${isAccepted ? 'border-green-400 bg-green-50' : ''} ${isPast ? 'opacity-60' : ''}`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                          <Car className="w-5 h-5 text-emerald-600" />
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Car className="w-5 h-5 text-green-600" />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
                             <p className="text-xs font-mono text-gray-400">#{booking.bookingNumber}</p>
-                            {isNewTrip && !isPast && <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full"><Zap className="w-2.5 h-2.5" /> NEW</span>}
+                            {isNewTrip && !isPast && <span className="flex items-center gap-0.5 text-xs font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full"><Zap className="w-2.5 h-2.5" /> NEW</span>}
                             {isPast && <span className="text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">PAST</span>}
                           </div>
                           <p className="font-semibold text-gray-900">{booking.carCategoryName}</p>
@@ -339,7 +370,7 @@ export default function DriverBookingsPage() {
                       {booking.driverBatta != null && booking.driverBatta > 0 && (
                         <div className="text-right">
                           <p className="text-xs text-gray-500">Your Earning</p>
-                          <p className="font-bold text-emerald-700 flex items-center gap-0.5 justify-end">
+                          <p className="font-bold text-green-700 flex items-center gap-0.5 justify-end">
                             <IndianRupee className="w-3.5 h-3.5" />{booking.driverBatta.toLocaleString()}
                           </p>
                         </div>
@@ -347,14 +378,14 @@ export default function DriverBookingsPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                       <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                        <MapPin className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                         <div>
                           <p className="text-xs text-gray-500">Route</p>
                           <p className="font-medium">{booking.dropCity ? `${booking.pickupCity} → ${booking.dropCity}` : booking.pickupCity}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <Clock className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                        <Clock className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                         <div>
                           <p className="text-xs text-gray-500">Pickup</p>
                           <p className="font-medium">
@@ -383,7 +414,7 @@ export default function DriverBookingsPage() {
                       <button
                         onClick={(e) => { e.preventDefault(); if (!isPast) handleAccept(booking); }}
                         disabled={isAccepting || accepting !== null || isPast}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition disabled:opacity-50"
                       >
                         {isAccepting ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</> : isPast ? 'Trip Expired' : 'Accept Trip'}
                       </button>
@@ -400,7 +431,7 @@ export default function DriverBookingsPage() {
       {tab === 'my' && <><div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
           placeholder="Search by booking#, city, customer..."
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -411,7 +442,7 @@ export default function DriverBookingsPage() {
           onClick={() => setServiceType('all')}
           className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition flex items-center gap-2 ${
             serviceType === 'all'
-              ? 'bg-emerald-600 text-white'
+              ? 'bg-green-600 text-white'
               : 'bg-white text-gray-600 hover:bg-gray-100 border'
           }`}
         >
@@ -424,7 +455,7 @@ export default function DriverBookingsPage() {
           onClick={() => setServiceType('car')}
           className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition flex items-center gap-2 ${
             serviceType === 'car'
-              ? 'bg-emerald-600 text-white'
+              ? 'bg-green-600 text-white'
               : 'bg-white text-gray-600 hover:bg-gray-100 border'
           }`}
         >
@@ -479,39 +510,27 @@ export default function DriverBookingsPage() {
       </div>
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-3">
-        <button
-          onClick={() => setFilter('active')}
-          className={`p-4 rounded-xl border transition ${
-            filter === 'active' ? 'bg-amber-50 border-amber-300' : 'bg-white'
-          }`}
-        >
-          <p className="text-2xl font-bold text-amber-600">{stats.active}</p>
-          <p className="text-xs text-gray-500">Active</p>
-        </button>
-        <button
-          onClick={() => setFilter('completed')}
-          className={`p-4 rounded-xl border transition ${
-            filter === 'completed' ? 'bg-green-50 border-green-300' : 'bg-white'
-          }`}
-        >
-          <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-          <p className="text-xs text-gray-500">Completed</p>
-        </button>
-        <button
-          onClick={() => setFilter('all')}
-          className={`p-4 rounded-xl border transition ${
-            filter === 'all' ? 'bg-blue-50 border-blue-300' : 'bg-white'
-          }`}
-        >
-          <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-          <p className="text-xs text-gray-500">All</p>
-        </button>
+        <StatTile
+          icon={AlertCircle} label="Active" value={stats.active}
+          accent="bg-amber-400" tone="bg-amber-100 text-amber-600"
+          onClick={() => setFilter('active')} selected={filter === 'active'}
+        />
+        <StatTile
+          icon={CheckCircle} label="Completed" value={stats.completed}
+          accent="bg-green-400" tone="bg-green-100 text-green-600"
+          onClick={() => setFilter('completed')} selected={filter === 'completed'}
+        />
+        <StatTile
+          icon={Calendar} label="All trips" value={stats.total}
+          accent="bg-blue-400" tone="bg-blue-100 text-blue-600"
+          onClick={() => setFilter('all')} selected={filter === 'all'}
+        />
       </div>
 
       {/* Bookings List */}
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
         </div>
       ) : bookings.length === 0 ? (
         <div className="bg-white rounded-xl border p-8 text-center">
@@ -541,11 +560,15 @@ export default function DriverBookingsPage() {
             const StatusIcon = statusConfig.icon;
 
             return (
-              <Link
+              <div
                 key={booking.id}
-                href={`/driver/bookings/${booking.bookingNumber}`}
-                className="block bg-white rounded-xl border shadow-sm overflow-hidden hover:shadow-md transition"
+                className="relative bg-white rounded-xl border shadow-sm overflow-hidden transition hover:shadow-md hover:border-green-200 focus-within:ring-2 focus-within:ring-green-400"
               >
+                <Link
+                  href={`/driver/bookings/${booking.bookingNumber}`}
+                  aria-label={`Open trip ${booking.bookingNumber}`}
+                  className="absolute inset-0 z-0"
+                />
                 {/* Status Bar */}
                 <div className={`px-4 py-2 ${statusConfig.bgColor} flex items-center justify-between`}>
                   <div className="flex items-center gap-2">
@@ -569,7 +592,7 @@ export default function DriverBookingsPage() {
                           ? 'bg-purple-200 text-purple-700'
                           : booking.serviceType === 'equipment'
                           ? 'bg-amber-200 text-amber-700'
-                          : 'bg-emerald-200 text-emerald-700'
+                          : 'bg-green-200 text-green-700'
                       }`}>
                         {booking.serviceType === 'bus' ? 'Bus' : booking.serviceType === 'equipment' ? 'Equipment' : booking.serviceType === 'luxury' ? 'Luxury' : 'Car'}
                       </span>
@@ -590,7 +613,7 @@ export default function DriverBookingsPage() {
                       ) : booking.serviceType === 'luxury' ? (
                         <Crown className="w-5 h-5 text-purple-500" />
                       ) : (
-                        <Car className="w-5 h-5 text-emerald-500" />
+                        <Car className="w-5 h-5 text-green-500" />
                       )}
                       <div>
                         <h3 className="font-semibold text-gray-900">
@@ -605,14 +628,14 @@ export default function DriverBookingsPage() {
                     {booking.driverBatta && booking.status === 'COMPLETED' && (
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Your Batta</p>
-                        <p className="font-bold text-emerald-600">₹{booking.driverBatta}</p>
+                        <p className="font-bold text-green-600">₹{booking.driverBatta}</p>
                       </div>
                     )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <MapPin className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Route</p>
                         <p className="font-medium">
@@ -631,7 +654,7 @@ export default function DriverBookingsPage() {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <Clock className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <Clock className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Pickup</p>
                         <p className="font-medium">
@@ -645,7 +668,7 @@ export default function DriverBookingsPage() {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <User className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <User className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Customer</p>
                         <p className="font-medium">{booking.customerName}</p>
@@ -653,13 +676,12 @@ export default function DriverBookingsPage() {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <Phone className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <Phone className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Phone</p>
                         <a
                           href={`tel:${booking.customerPhone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-medium text-emerald-600"
+                          className="relative z-10 font-medium text-green-600 hover:underline"
                         >
                           {booking.customerPhone}
                         </a>
@@ -679,7 +701,7 @@ export default function DriverBookingsPage() {
                     </div>
                   )}
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>

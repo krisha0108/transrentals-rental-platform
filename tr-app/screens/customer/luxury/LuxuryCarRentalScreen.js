@@ -12,10 +12,10 @@ import {
   Dimensions,
   Image,
   Platform,
-  Modal,
   FlatList,
   StatusBar,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,7 +30,7 @@ import {
 import api from '../../api';
 import b2bService from '../../services/b2bService';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toTimeString, combineDateAndTime, toLocalDateString } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
 import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
@@ -65,8 +65,8 @@ export default function LuxuryCarRentalScreen() {
   const [dropAddress, setDropAddress] = useState('');
 
   // Dates & Time
-  const [pickupDate, setPickupDate] = useState(new Date());
-  const [pickupTime, setPickupTime] = useState('10:00');
+  const [pickupDate, setPickupDate] = useState(() => getEarliestPickup());
+  const [pickupTime, setPickupTime] = useState(() => toTimeString(getEarliestPickup()));
   const [returnDate, setReturnDate] = useState(null);
   const [returnTime, setReturnTime] = useState('10:00');
   const [showPickupDatePicker, setShowPickupDatePicker] = useState(false);
@@ -282,9 +282,9 @@ export default function LuxuryCarRentalScreen() {
           pickupLocation: pickupCity.trim(),
           dropLocation: tripType === 'outstation' ? dropCity.trim() : null,
           tripType: tripType === 'local' ? 'HOURLY' : tripType === 'outstation' ? 'ROUND_TRIP' : 'ONE_WAY',
-          scheduledDate: pickupDate.toISOString().split('T')[0],
+          scheduledDate: toLocalDateString(pickupDate),
           scheduledTime: pickupTime,
-          returnDate: returnDate ? returnDate.toISOString().split('T')[0] : null,
+          returnDate: returnDate ? toLocalDateString(returnDate) : null,
           returnTime: returnDate ? returnTime : null,
           specialNotes: JSON.stringify({
             occasion: occasion || null,
@@ -733,22 +733,34 @@ export default function LuxuryCarRentalScreen() {
               minimumDate={getMinBookingDate()}
               onChange={(event, selectedDate) => {
                 setShowPickupDatePicker(Platform.OS === 'ios');
-                if (selectedDate) setPickupDate(selectedDate);
+                if (selectedDate) {
+                  // Keep the chosen time unless it is now too soon on the new date.
+                  const pickup = clampPickup(combineDateAndTime(selectedDate, pickupTime));
+                  setPickupDate(pickup);
+                  setPickupTime(toTimeString(pickup));
+                }
               }}
             />
           )}
 
           {showPickupTimePicker && (
             <DateTimePicker
-              value={new Date()}
+              value={combineDateAndTime(pickupDate, pickupTime)}
               mode="time"
               display="default"
               onChange={(event, selectedTime) => {
                 setShowPickupTimePicker(Platform.OS === 'ios');
                 if (selectedTime) {
-                  const hours = selectedTime.getHours().toString().padStart(2, '0');
-                  const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
-                  setPickupTime(`${hours}:${minutes}`);
+                  const chosen = combineDateAndTime(pickupDate, toTimeString(selectedTime));
+                  if (isPickupTooSoon(chosen)) {
+                    // Too close to now for a driver to reach: snap to the earliest slot.
+                    const earliest = getEarliestPickup();
+                    setPickupDate(earliest);
+                    setPickupTime(toTimeString(earliest));
+                    setShowBookingAlert(true);
+                    return;
+                  }
+                  setPickupTime(toTimeString(selectedTime));
                 }
               }}
             />

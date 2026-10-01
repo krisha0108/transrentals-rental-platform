@@ -15,7 +15,7 @@ const VEHICLE_PHOTO_SLOTS = [
   { key: 'photoInterior',  type: 'interior',  label: 'Interior' },
 ];
 
-const inp = 'w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition';
+const inp = 'w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition';
 
 export default function EditVehiclePage() {
   const params = useParams()!;
@@ -150,7 +150,7 @@ export default function EditVehiclePage() {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+      <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
     </div>
   );
 
@@ -164,7 +164,7 @@ export default function EditVehiclePage() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-500 rounded-2xl p-5 mb-5 text-white shadow-lg shadow-emerald-200">
+      <div className="bg-gradient-to-r from-green-700 via-green-600 to-teal-500 rounded-2xl p-5 mb-5 text-white shadow-lg shadow-green-200">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition shrink-0">
             <ArrowLeft className="w-5 h-5" />
@@ -174,7 +174,7 @@ export default function EditVehiclePage() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight">Edit Vehicle</h1>
-            <p className="text-emerald-100 text-xs mt-0.5">Update vehicle details</p>
+            <p className="text-green-100 text-xs mt-0.5">Update vehicle details</p>
           </div>
         </div>
       </div>
@@ -184,11 +184,11 @@ export default function EditVehiclePage() {
       <div className="space-y-4">
         {/* Vehicle Details */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-3 bg-emerald-50 border-b border-emerald-100">
-            <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <Car className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="flex items-center gap-2.5 px-5 py-3 bg-green-50 border-b border-green-100">
+            <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+              <Car className="w-3.5 h-3.5 text-green-600" />
             </div>
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Vehicle Details</span>
+            <span className="text-xs font-bold text-green-800 uppercase tracking-wider">Vehicle Details</span>
           </div>
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -230,7 +230,7 @@ export default function EditVehiclePage() {
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map(c => (
                   <button key={c} type="button" onClick={() => setCategory(category === c ? '' : c)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition ${category === c ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-400'}`}>
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition ${category === c ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-500 border-gray-200 hover:border-green-400'}`}>
                     {c}
                   </button>
                 ))}
@@ -269,7 +269,7 @@ export default function EditVehiclePage() {
                         <img src={docPhotos[doc.key]} className="w-8 h-8 rounded-lg object-cover border border-gray-200" alt={doc.label} />
                       </a>
                     )}
-                    <label className={`flex items-center gap-1.5 text-xs font-semibold cursor-pointer px-2.5 py-1.5 rounded-lg border transition ${uploadingDoc === doc.key ? 'opacity-50' : 'text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100'}`}>
+                    <label className={`flex items-center gap-1.5 text-xs font-semibold cursor-pointer px-2.5 py-1.5 rounded-lg border transition ${uploadingDoc === doc.key ? 'opacity-50' : 'text-green-600 border-green-200 bg-green-50 hover:bg-green-100'}`}>
                       {uploadingDoc === doc.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                       {docPhotos[doc.key] ? 'Replace' : 'Upload'}
                       <input type="file" accept="image/*" className="hidden" disabled={!!uploadingDoc} onChange={e => { const f = e.target.files?.[0]; if (f) uploadDocPhoto(f, doc.key); e.target.value = ''; }} />
@@ -278,10 +278,10 @@ export default function EditVehiclePage() {
                 </div>
                 {doc.numberPlaceholder && (
                   <input value={doc.numberVal} onChange={e => doc.setNumber(e.target.value)} placeholder={doc.numberPlaceholder}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
                 )}
                 <input type="date" value={doc.expiryVal} onChange={e => doc.setExpiry(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" />
               </div>
             ))}
           </div>
@@ -304,7 +304,7 @@ export default function EditVehiclePage() {
                   <div key={slot.key} className="flex flex-col items-center gap-1.5">
                     <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
                       {isUploading ? (
-                        <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                        <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
                       ) : url ? (
                         <>
                           <img src={url} alt={slot.label} className="w-full h-full object-cover" />
@@ -335,7 +335,7 @@ export default function EditVehiclePage() {
         </div>
 
         <button onClick={handleSave} disabled={saving}
-          className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl font-bold text-sm hover:from-emerald-700 hover:to-teal-600 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-200">
+          className="w-full py-4 bg-gradient-to-r from-green-600 to-teal-500 text-white rounded-2xl font-bold text-sm hover:from-green-700 hover:to-teal-600 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-green-200">
           {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><Save className="w-4 h-4" />Save Changes</>}
         </button>
       </div>

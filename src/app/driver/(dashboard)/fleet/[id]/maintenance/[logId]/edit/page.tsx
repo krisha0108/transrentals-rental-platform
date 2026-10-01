@@ -16,7 +16,7 @@ const TYPES = [
 ];
 
 const TYPE_ACTIVE: Record<string, string> = {
-  emerald: 'bg-emerald-600 text-white border-emerald-600',
+  emerald: 'bg-green-600 text-white border-green-600',
   red: 'bg-red-500 text-white border-red-500',
   blue: 'bg-blue-600 text-white border-blue-600',
   purple: 'bg-purple-600 text-white border-purple-600',

@@ -14,7 +14,7 @@ What you can do:
 - Look up vendor information and approval status
 - Search customer records
 - View driver information and status
-- Analyze inquiry/quote request data
+- Analyze inquiry/quote request data, including accurate breakdowns by STATE and CITY for any time period (use get_inquiry_geo_breakdown for any question naming a state/city or asking which one leads — not get_inquiry_info, which only groups by service)
 - Get revenue statistics from completed bookings
 - Check fleet and vehicle counts
 - View travel agent information

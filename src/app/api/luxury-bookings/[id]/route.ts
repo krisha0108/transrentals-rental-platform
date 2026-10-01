@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
-import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { updateVendorRating, parseStarRating } from '@/lib/utils/update-vendor-rating';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Luxury Booking details (supports new quote-based flow)
@@ -295,6 +297,34 @@ export async function PATCH(
           },
         });
 
+        // Non-blocking: the vendor has a slot held for this job.
+        const cancelledVendorId = booking.assignedVendorId || booking.acceptedVendorId;
+        if (cancelledVendorId) {
+          sendVendorDirectNotification({
+            vendorId: cancelledVendorId,
+            title: 'Booking cancelled by customer',
+            body: `Booking #${booking.bookingNumber} was cancelled. Reason: ${reason || 'not given'}.`,
+            type: 'booking_cancelled',
+            serviceType: 'luxury',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber,
+          }).catch((err: unknown) => console.error('[Cancel] vendor notification failed:', err));
+        }
+
+        // Money owed goes on the refunds queue and the desk is told. Never
+        // blocks the cancellation.
+        openRefundFollowup({
+          source: 'luxury_bookings',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceType: 'Luxury Cars',
+          customerId: booking.customerId,
+          customerName: booking.customerName,
+          amount: refundAmount,
+          reason,
+          paidAmount: booking.advancePaid || 0,
+        }).catch(() => {});
+
         return NextResponse.json({
           success: true,
           message: 'Booking cancelled',
@@ -312,25 +342,33 @@ export async function PATCH(
         if (booking.status !== 'COMPLETED') {
           return NextResponse.json({ error: 'Can only rate completed bookings' }, { status: 400 });
         }
+        if (booking.rating) {
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+        }
         const { rating, review } = data;
-        if (!rating || rating < 1 || rating > 5) {
+        const stars = parseStarRating(rating);
+        if (!stars) {
           return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
         }
 
-        const updatedBooking = await prisma.luxury_bookings.update({
-          where: { id },
+        // Only an unrated row is written, so a double submit cannot count twice.
+        const { count } = await prisma.luxury_bookings.updateMany({
+          where: { id, rating: null },
           data: {
-            rating,
+            rating: stars,
             review: review || null,
           },
         });
+        if (!count) {
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+        }
 
-        updateVendorRating(booking.acceptedVendorId, rating).catch(() => {});
+        updateVendorRating(booking.acceptedVendorId, stars).catch(() => {});
 
         return NextResponse.json({
           success: true,
           message: 'Rating submitted',
-          booking: { id: updatedBooking.id, rating: updatedBooking.rating },
+          booking: { id: booking.id, rating: stars },
         });
       }
 

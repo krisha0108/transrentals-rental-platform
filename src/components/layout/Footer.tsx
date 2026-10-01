@@ -150,7 +150,6 @@ export function Footer() {
     { name: 'Become a Vendor', href: '/vendor' },
     { name: 'For Travel Agents', href: '/travel-agents' },
     { name: 'Become a Driver', href: '/driver' },
-    { name: 'Vendor Guide', href: '/vendor-guide.html', external: true },
     { name: 'Interactive Guide', href: '/guide/vendor' },
     { name: 'Stories', href: '/stories' },
     { name: 'Reflections', href: '/blog' },
@@ -357,23 +356,13 @@ export function Footer() {
               <h4 className="text-white font-semibold mb-3">Quick Links</h4>
               <div className="grid grid-cols-2 gap-2">
                 {quickLinks.map((link) => (
-                  link.external ? (
-                    <a
-                      key={link.href}
-                      href={link.href}
-                      className="text-sm hover:text-primary transition-colors"
-                    >
-                      {link.name}
-                    </a>
-                  ) : (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="text-sm hover:text-primary transition-colors"
-                    >
-                      {link.name}
-                    </Link>
-                  )
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="text-sm hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
                 ))}
               </div>
             </div>

@@ -2,25 +2,28 @@
  * WanderListingDetailScreen.js
  * Tour detail + Quote Request — matches TransRentals app design language
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Image, ActivityIndicator, Dimensions,
-  Alert, Modal, Platform, Linking, KeyboardAvoidingView,
+  Alert, Platform, Linking, KeyboardAvoidingView, Share, StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Modal from '../../../components/SafeModal';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import wanderService from '../../services/wanderService';
 import { BASE_URL } from '../../api';
+import StoriesRail from '../../../components/StoriesRail';
 
 const { width } = Dimensions.get('window');
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
+const HERO_HEIGHT = Math.round(width * 1.05);
 
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
 function safeArr(val, fallback = []) {
@@ -38,58 +41,147 @@ function getImg(img) {
 
 function formatPrice(listing) {
   if (!listing) return 'Get Quote';
+  const rupees = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
   if (listing.priceType === 'ON_REQUEST') return 'Price on request';
-  if (listing.priceType === 'PER_PERSON')
-    return `₹${Number(listing.basePrice || 0).toLocaleString('en-IN')}/person`;
-  if (listing.priceType === 'GROUP_BASED') {
-    const tiers = safeArr(listing.priceTiers);
-    if (tiers.length > 0)
-      return `From ₹${Number(tiers[0].price || 0).toLocaleString('en-IN')}`;
+  if (listing.priceType === 'PER_PERSON' && listing.basePrice) return `${rupees(listing.basePrice)}/person`;
+  if (listing.priceType === 'PER_GROUP' && listing.basePrice) return `${rupees(listing.basePrice)}/group`;
+  const tiers = safeArr(listing.priceTiers).filter((t) => Number(t.price) > 0);
+  if (tiers.length > 0) {
+    return `From ${rupees(Math.min(...tiers.map((t) => Number(t.price))))}`;
   }
-  if (listing.basePrice) return `₹${Number(listing.basePrice).toLocaleString('en-IN')}`;
+  if (listing.basePrice) return rupees(listing.basePrice);
   return 'Get Quote';
 }
 
-/* ─── Image Carousel ────────────────────────────────────────────────────── */
-function ImageCarousel({ images, coverImage }) {
-  const [idx, setIdx] = useState(0);
-  // Always ensure imgs is an array
-  const imgs = safeArr(images).filter(Boolean);
-  const allImgs = imgs.length > 0 ? imgs : (coverImage ? [coverImage] : []);
-
-  if (allImgs.length === 0) {
-    return (
-      <View style={styles.heroPlaceholder}>
-        <Ionicons name="image-outline" size={52} color="#94A3B8" />
-        <Text style={{ color: '#94A3B8', marginTop: 8, fontSize: 13 }}>No images</Text>
-      </View>
-    );
+// Lists arrive as arrays, JSON strings, or comma-separated text, and items
+// may be strings or {name|title|label} objects.
+function toTextList(val) {
+  let list = val;
+  if (typeof val === 'string') {
+    try { list = JSON.parse(val); } catch { list = val.split(','); }
   }
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((x) => (typeof x === 'string' ? x : x?.name || x?.title || x?.label || ''))
+    .map((s) => plainText(s))
+    .filter(Boolean);
+}
 
+// Tour descriptions written in the web editor can contain HTML.
+function plainText(text) {
+  return String(text || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<\/(p|li|div|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// "HOTEL_PICKUP" -> "Hotel pickup"
+function humanize(value) {
+  if (!value || typeof value !== 'string') return '';
+  const s = value.replace(/_/g, ' ').toLowerCase().trim();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const titleCase = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Vendor tours store [{title, description}] per day; travel-agent tours store
+// [{day, emoji, time, title, description, activities[]}] per stop.
+function normaliseItinerary(raw) {
+  return safeArr(raw).map((step, i) => {
+    if (typeof step === 'string') {
+      return { label: `Day ${i + 1}`, title: plainText(step), description: '', activities: [], time: '', emoji: '' };
+    }
+    const day = step.day || i + 1;
+    return {
+      label: typeof day === 'number' || /^\d+$/.test(String(day)) ? `Day ${day}` : String(day),
+      title: plainText(step.title) || `Day ${day}`,
+      description: plainText(step.description),
+      activities: toTextList(step.activities),
+      time: step.time || step.timeSpent || '',
+      emoji: step.emoji || '',
+    };
+  });
+}
+
+/* ─── Hero gallery ──────────────────────────────────────────────────────── */
+function HeroGallery({ images, topInset, category, title, city, duration, onBack, onShare, onSaved }) {
+  const [idx, setIdx] = useState(0);
+  const uris = images.map(getImg).filter(Boolean);
   return (
-    <View>
-      <ScrollView
-        horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={e =>
-          setIdx(Math.round(e.nativeEvent.contentOffset.x / width))
-        }
-      >
-        {allImgs.map((img, i) => {
-          const uri = getImg(img);
-          return uri
-            ? <Image key={i} source={{ uri }} style={styles.heroImg} resizeMode="cover" />
-            : <View key={i} style={[styles.heroImg, styles.heroPlaceholder]}>
-                <Ionicons name="image-outline" size={40} color="#94A3B8" />
-              </View>;
-        })}
-      </ScrollView>
-      {allImgs.length > 1 && (
-        <View style={styles.dotRow}>
-          {allImgs.map((_, i) => (
-            <View key={i} style={[styles.dot, i === idx && styles.dotActive]} />
-          ))}
+    <View style={styles.hero}>
+      {uris.length > 0 ? (
+        <ScrollView
+          horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => setIdx(Math.round(e.nativeEvent.contentOffset.x / width))}
+        >
+          {uris.map((uri, i) => <Image key={i} source={{ uri }} style={styles.heroImg} resizeMode="cover" />)}
+        </ScrollView>
+      ) : (
+        <LinearGradient colors={['#064E3B', '#09B368']} style={[styles.heroImg, styles.heroEmpty]}>
+          <Ionicons name="compass-outline" size={72} color="rgba(255,255,255,0.35)" />
+        </LinearGradient>
+      )}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
+        locations={[0, 0.35, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[styles.heroBar, { top: topInset + 8 }]}>
+        <TouchableOpacity style={styles.heroBtn} onPress={onBack} accessibilityLabel="Go back">
+          <Ionicons name="arrow-back" size={21} color="#fff" />
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity style={styles.heroBtn} onPress={onShare} accessibilityLabel="Share tour">
+            <Ionicons name="share-social-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.heroBtn} onPress={onSaved} accessibilityLabel="My trips">
+            <Ionicons name="bookmark-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.heroText} pointerEvents="none">
+        {category ? <Text style={styles.heroCategory}>{category.toUpperCase()}</Text> : null}
+        <Text style={styles.heroTitle} numberOfLines={3}>{title}</Text>
+        <View style={styles.heroMetaRow}>
+          {city ? (
+            <View style={styles.heroMeta}>
+              <Ionicons name="location" size={13} color="#A7F3D0" />
+              <Text style={styles.heroMetaText}>{titleCase(city)}</Text>
+            </View>
+          ) : null}
+          {duration ? (
+            <View style={styles.heroMeta}>
+              <Ionicons name="time" size={13} color="#A7F3D0" />
+              <Text style={styles.heroMetaText}>{duration}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+      {uris.length > 1 && (
+        <View style={styles.heroCounter} pointerEvents="none">
+          <Ionicons name="images-outline" size={12} color="#fff" />
+          <Text style={styles.heroCounterText}>{idx + 1}/{uris.length}</Text>
         </View>
       )}
+    </View>
+  );
+}
+
+function Section({ title, subtitle, children }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.sectionSub}>{subtitle}</Text> : null}
+      <View style={{ marginTop: 12 }}>{children}</View>
     </View>
   );
 }
@@ -117,6 +209,30 @@ export default function WanderListingDetailScreen() {
   const [groupSize, setGroupSize]         = useState('2');
   const [pickupLocation, setPickupLocation] = useState('');
   const [requirements, setRequirements]   = useState('');
+
+  // Page state
+  const [aboutOpen, setAboutOpen]   = useState(false);
+  const [openDays, setOpenDays]     = useState({});
+  const [includeTab, setIncludeTab] = useState('in');
+  const insets = useSafeAreaInsets();
+
+  // The photo runs under the status bar on this screen only.
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setTranslucent(true);
+        StatusBar.setBackgroundColor('transparent');
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setTranslucent(false);
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, []),
+  );
 
   useEffect(() => {
     if (listingId) loadById();
@@ -203,7 +319,7 @@ export default function WanderListingDetailScreen() {
   /* ── Loading ── */
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={20} color="#0F172A" />
@@ -222,7 +338,7 @@ export default function WanderListingDetailScreen() {
   /* ── Error / Not found ── */
   if (error || !listing) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Icon name="arrow-left" size={20} color="#0F172A" />
@@ -243,230 +359,308 @@ export default function WanderListingDetailScreen() {
   }
 
   /* ── Data ── */
-  const images     = safeArr(listing.images);
-  const priceTiers = safeArr(listing.priceTiers);
-  const inclusions = safeArr(listing.inclusions);
-  const exclusions = safeArr(listing.exclusions);
-  const highlights = safeArr(listing.highlights);
-  const itinerary  = safeArr(listing.itinerary);
-  const tripTypes  = safeArr(listing.tripTypes);
-  const price      = formatPrice(listing);
-  const isOnRequest = listing.priceType === 'ON_REQUEST';
-  const vendorName = listing.vendor?.name || listing.vendor?.businessName || '';
+  const images      = safeArr(listing.images).filter(Boolean);
+  const heroImages  = images.length > 0 ? images : (listing.coverImage ? [listing.coverImage] : []);
+  const priceTiers  = safeArr(listing.priceTiers);
+  const inclusions  = toTextList(listing.inclusions);
+  const exclusions  = toTextList(listing.exclusions);
+  const highlights  = toTextList(listing.highlights);
+  const itinerary   = normaliseItinerary(listing.itinerary);
+  const tripTypes   = toTextList(listing.tripTypes);
+  const languages   = toTextList(listing.guideLanguages);
+  const availableDays = toTextList(listing.availableDays);
+  const price       = formatPrice(listing);
+  const isOnRequest = price === 'Price on request' || price === 'Get Quote';
+  const vendor      = listing.vendor || {};
+  const vendorName  = vendor.businessName || vendor.name || '';
+  const city        = listing.mainLocation?.name || listing.destination || '';
+  const about       = plainText(listing.description || listing.shortDescription);
+  const groupText   = listing.minGroupSize > 0 && listing.maxGroupSize > 0
+    ? `${listing.minGroupSize}–${listing.maxGroupSize} people`
+    : listing.maxGroupSize > 0 ? `Up to ${listing.maxGroupSize}` : null;
+  const pickupText  = listing.meetingPoint || humanize(listing.pickupType);
+
+  const facts = [
+    listing.duration && { icon: 'time-outline', label: 'Duration', value: listing.duration },
+    groupText && { icon: 'people-outline', label: 'Group size', value: groupText },
+    pickupText && { icon: 'navigate-outline', label: 'Pickup', value: pickupText },
+    languages.length > 0 && { icon: 'chatbubbles-outline', label: 'Guide', value: languages.slice(0, 2).join(', ') },
+  ].filter(Boolean);
+
+  const goodToKnow = [
+    listing.meetingPoint && { icon: 'location-outline', label: 'Meeting point', value: listing.meetingPoint },
+    availableDays.length > 0 && { icon: 'calendar-outline', label: 'Runs on', value: availableDays.join(', ') },
+    listing.advanceNoticeHours > 0 && { icon: 'alarm-outline', label: 'Book ahead', value: `At least ${listing.advanceNoticeHours} hours before` },
+    listing.cancellationPolicy && { icon: 'shield-checkmark-outline', label: 'Cancellation', value: `${humanize(listing.cancellationPolicy)} policy` },
+    listing.cancellationNotes && { icon: 'document-text-outline', label: 'Policy details', value: plainText(listing.cancellationNotes) },
+  ].filter(Boolean);
+
+  const shareTour = () => {
+    const url = `${BASE_URL}/wander/${listing.slug || listing.id}`;
+    Share.share({ message: `${listing.title}\n${url}` }).catch(() => {});
+  };
+  const openGroup = () => navigation.navigate('WanderGroup', { listingId: listing.id, listingTitle: listing.title });
+  const includeList = includeTab === 'in' ? inclusions : exclusions;
 
   /* ── Render ── */
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* TOP BAR */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.topTitle} numberOfLines={1}>Tour Details</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('MyWanderBookings')}>
-          <Ionicons name="bookmark-outline" size={20} color={GREEN} />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* HERO */}
+        <HeroGallery
+          images={heroImages}
+          topInset={insets.top}
+          category={listing.category?.name}
+          title={listing.title}
+          city={city}
+          duration={listing.duration}
+          onBack={() => navigation.goBack()}
+          onShare={shareTour}
+          onSaved={() => navigation.navigate('MyWanderBookings')}
+        />
 
-        {/* IMAGES */}
-        <ImageCarousel images={images} coverImage={listing.coverImage} />
-
-        {/* TITLE CARD */}
-        <View style={styles.card}>
-          {listing.category?.name && (
-            <Text style={styles.catLabel}>{listing.category.name.toUpperCase()}</Text>
-          )}
-          <Text style={styles.title}>{listing.title}</Text>
-
-          {/* Meta row */}
-          <View style={styles.metaRow}>
-            {listing.mainLocation?.name && (
-              <View style={styles.metaChip}>
-                <Ionicons name="location-outline" size={13} color={GREEN} />
-                <Text style={styles.metaChipText}>{listing.mainLocation.name}</Text>
+        <View style={styles.sheet}>
+          {/* Rating + trip types */}
+          <View style={styles.badgeRow}>
+            {listing.rating > 0 ? (
+              <View style={styles.ratingPill}>
+                <Ionicons name="star" size={13} color="#F59E0B" />
+                <Text style={styles.ratingPillText}>{Number(listing.rating).toFixed(1)}</Text>
+                {listing.totalRatings > 0 && <Text style={styles.ratingPillCount}>({listing.totalRatings})</Text>}
+              </View>
+            ) : (
+              <View style={styles.newPill}>
+                <Ionicons name="sparkles" size={12} color={GREEN} />
+                <Text style={styles.newPillText}>New tour</Text>
               </View>
             )}
-            {listing.duration && (
-              <View style={styles.metaChip}>
-                <Icon name="clock" size={13} color={GREEN} />
-                <Text style={styles.metaChipText}>{listing.duration}</Text>
-              </View>
-            )}
-            {tripTypes.slice(0, 2).map((t, i) => (
-              <View key={i} style={styles.metaChip}>
-                <Icon name="tag" size={11} color={GREEN} />
-                <Text style={styles.metaChipText}>{t}</Text>
-              </View>
+            {tripTypes.slice(0, 3).map((t) => (
+              <View key={t} style={styles.typePill}><Text style={styles.typePillText}>{t}</Text></View>
             ))}
           </View>
 
-          {/* Rating */}
-          {listing.rating > 0 && (
-            <View style={styles.ratingRow}>
-              {[1,2,3,4,5].map(s => (
-                <Ionicons key={s} name={s <= Math.round(listing.rating) ? 'star' : 'star-outline'} size={16} color="#FFB800" />
+          {/* Quick facts */}
+          {facts.length > 0 && (
+            <View style={styles.factsGrid}>
+              {facts.map((f) => (
+                <View key={f.label} style={[styles.factTile, facts.length === 1 && { width: '100%' }]}>
+                  <View style={styles.factIcon}><Ionicons name={f.icon} size={18} color={GREEN} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.factLabel}>{f.label}</Text>
+                    <Text style={styles.factValue} numberOfLines={2}>{f.value}</Text>
+                  </View>
+                </View>
               ))}
-              <Text style={styles.ratingVal}> {Number(listing.rating).toFixed(1)}</Text>
-              {listing.totalRatings > 0 && (
-                <Text style={styles.ratingCount}>({listing.totalRatings} reviews)</Text>
-              )}
             </View>
           )}
-        </View>
 
-        {/* VENDOR */}
-        {vendorName ? (
-          <View style={styles.card}>
-            <View style={styles.vendorRow}>
-              <View style={styles.vendorAvatar}>
-                <Ionicons name="business-outline" size={22} color={GREEN} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.vendorName}>{vendorName}</Text>
-                <Text style={styles.vendorMeta}>
-                  Verified Vendor{listing.totalBookings > 0 ? ` · ${listing.totalBookings} trips done` : ''}
-                </Text>
-              </View>
-              {listing.vendor?.phone && (
-                <TouchableOpacity style={styles.callBtn}
-                  onPress={() => Linking.openURL(`tel:${listing.vendor.phone}`)}>
-                  <Icon name="phone" size={14} color={GREEN} />
+          {/* Price */}
+          <View style={styles.priceCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.priceLabel}>{isOnRequest ? 'Pricing' : 'Starting from'}</Text>
+              <Text style={styles.priceBig}>{isOnRequest ? 'Get a custom quote' : price}</Text>
+              {isOnRequest && <Text style={styles.priceHint}>The host sends a price for your dates and group.</Text>}
+            </View>
+            <View style={styles.priceIcon}><Ionicons name="pricetag" size={20} color="#fff" /></View>
+          </View>
+          {priceTiers.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tierRow}>
+              {priceTiers.map((t, i) => (
+                <View key={i} style={styles.tierChip}>
+                  <Text style={styles.tierChipGroup}>{t.groupSize} {Number(t.groupSize) === 1 ? 'person' : 'people'}</Text>
+                  <Text style={styles.tierChipPrice}>₹{Number(t.price || 0).toLocaleString('en-IN')}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* About */}
+          {about ? (
+            <Section title="About this tour">
+              <Text style={styles.bodyText} numberOfLines={aboutOpen ? undefined : 5}>{about}</Text>
+              {about.length > 260 && (
+                <TouchableOpacity onPress={() => setAboutOpen((v) => !v)} style={styles.moreBtn}>
+                  <Text style={styles.moreBtnText}>{aboutOpen ? 'Show less' : 'Read more'}</Text>
+                  <Ionicons name={aboutOpen ? 'chevron-up' : 'chevron-down'} size={14} color={GREEN} />
                 </TouchableOpacity>
               )}
-            </View>
-          </View>
-        ) : null}
+            </Section>
+          ) : null}
 
-        {/* PRICE */}
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Pricing</Text>
-          {priceTiers.length > 0 ? (
-            <View style={styles.tierGrid}>
-              {priceTiers.map((t, i) => (
-                <View key={i} style={styles.tierItem}>
-                  <Text style={styles.tierGroup}>{t.groupSize} persons</Text>
-                  <Text style={styles.tierPrice}>₹{Number(t.price || 0).toLocaleString('en-IN')}</Text>
+          {/* Highlights */}
+          {highlights.length > 0 && (
+            <Section title="Highlights">
+              {highlights.map((h, i) => (
+                <View key={i} style={styles.highlightRow}>
+                  <View style={styles.highlightIcon}><Ionicons name="sparkles" size={12} color="#B45309" /></View>
+                  <Text style={styles.bodyText}>{h}</Text>
                 </View>
               ))}
-            </View>
-          ) : (
-            <Text style={[styles.priceValue, isOnRequest && { color: GREEN, fontSize: 16 }]}>
-              {price}
-            </Text>
+            </Section>
           )}
-          {listing.minGroupSize > 0 && (
-            <Text style={styles.groupNote}>
-              Min {listing.minGroupSize} · Max {listing.maxGroupSize} persons
-            </Text>
-          )}
-          {listing.cancellationPolicy && (
-            <View style={styles.policyRow}>
-              <Icon name="shield" size={12} color={GREEN} />
-              <Text style={styles.policyText}>
-                {' '}{listing.cancellationPolicy.replace(/_/g, ' ')} cancellation
-              </Text>
-            </View>
-          )}
-        </View>
 
-        {/* DESCRIPTION */}
-        {listing.description ? (
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>About This Tour</Text>
-            <Text style={styles.descText}>{listing.description}</Text>
-          </View>
-        ) : null}
-
-        {/* HIGHLIGHTS */}
-        {highlights.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Highlights</Text>
-            {highlights.map((h, i) => (
-              <View key={i} style={styles.bulletRow}>
-                <Ionicons name="star" size={13} color="#FFB800" />
-                <Text style={styles.bulletText}>{h}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* INCLUSIONS / EXCLUSIONS */}
-        {(inclusions.length > 0 || exclusions.length > 0) && (
-          <View style={styles.card}>
-            {inclusions.length > 0 && (
-              <>
-                <Text style={styles.sectionLabel}>Inclusions</Text>
-                {inclusions.map((inc, i) => (
-                  <View key={i} style={styles.bulletRow}>
-                    <Icon name="check-circle" size={14} color={GREEN} />
-                    <Text style={styles.bulletText}>{inc}</Text>
+          {/* Itinerary timeline */}
+          {itinerary.length > 0 && (
+            <Section title="Itinerary" subtitle={`${itinerary.length} ${itinerary.length === 1 ? 'stop' : 'stops'} planned`}>
+              {itinerary.map((step, i) => {
+                const last = i === itinerary.length - 1;
+                const open = openDays[i] ?? i === 0;
+                return (
+                  <View key={i} style={styles.tlRow}>
+                    <View style={styles.tlRail}>
+                      <View style={[styles.tlDot, open && styles.tlDotActive]}>
+                        {step.emoji
+                          ? <Text style={{ fontSize: 12 }}>{step.emoji}</Text>
+                          : <Text style={[styles.tlDotText, open && { color: '#fff' }]}>{i + 1}</Text>}
+                      </View>
+                      {!last && <View style={styles.tlLine} />}
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.tlCard, last && { marginBottom: 0 }]}
+                      activeOpacity={0.8}
+                      onPress={() => setOpenDays((d) => ({ ...d, [i]: !open }))}
+                    >
+                      <View style={styles.tlHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.tlKicker}>{step.label}{step.time ? ` · ${step.time}` : ''}</Text>
+                          <Text style={styles.tlTitle}>{step.title}</Text>
+                        </View>
+                        {(step.description || step.activities.length > 0) && (
+                          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#94A3B8" />
+                        )}
+                      </View>
+                      {open && step.description ? <Text style={styles.tlDesc}>{step.description}</Text> : null}
+                      {open && step.activities.map((a, j) => (
+                        <View key={j} style={styles.tlActivity}>
+                          <View style={styles.tlActivityDot} />
+                          <Text style={styles.tlActivityText}>{a}</Text>
+                        </View>
+                      ))}
+                    </TouchableOpacity>
                   </View>
-                ))}
-              </>
-            )}
-            {exclusions.length > 0 && (
-              <>
-                <Text style={[styles.sectionLabel, { marginTop: inclusions.length > 0 ? 16 : 0 }]}>
-                  Exclusions
-                </Text>
-                {exclusions.map((exc, i) => (
-                  <View key={i} style={styles.bulletRow}>
-                    <Icon name="x-circle" size={14} color="#EF4444" />
-                    <Text style={styles.bulletText}>{exc}</Text>
-                  </View>
-                ))}
-              </>
-            )}
-          </View>
-        )}
+                );
+              })}
+            </Section>
+          )}
 
-        {/* ITINERARY */}
-        {itinerary.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Itinerary</Text>
-            {itinerary.map((day, i) => (
-              <View key={i} style={styles.dayRow}>
-                <View style={styles.dayBadge}>
-                  <Text style={styles.dayBadgeText}>D{i + 1}</Text>
+          {/* Included / not included */}
+          {(inclusions.length > 0 || exclusions.length > 0) && (
+            <Section title="What's included">
+              {inclusions.length > 0 && exclusions.length > 0 && (
+                <View style={styles.segment}>
+                  {[['in', `Included (${inclusions.length})`], ['out', `Not included (${exclusions.length})`]].map(([key, label]) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[styles.segmentBtn, includeTab === key && styles.segmentBtnActive]}
+                      onPress={() => setIncludeTab(key)}
+                    >
+                      <Text style={[styles.segmentText, includeTab === key && styles.segmentTextActive]}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
+              )}
+              {(inclusions.length > 0 && exclusions.length > 0 ? includeList : inclusions.length > 0 ? inclusions : exclusions).map((item, i) => {
+                const included = inclusions.length > 0 && exclusions.length > 0 ? includeTab === 'in' : inclusions.length > 0;
+                return (
+                  <View key={i} style={styles.incRow}>
+                    <Ionicons
+                      name={included ? 'checkmark-circle' : 'close-circle'}
+                      size={18}
+                      color={included ? GREEN : '#EF4444'}
+                    />
+                    <Text style={styles.bodyText}>{item}</Text>
+                  </View>
+                );
+              })}
+            </Section>
+          )}
+
+          {/* Good to know */}
+          {goodToKnow.length > 0 && (
+            <Section title="Good to know">
+              {goodToKnow.map((g, i) => (
+                <View key={g.label} style={[styles.infoRow, i === goodToKnow.length - 1 && { borderBottomWidth: 0 }]}>
+                  <Ionicons name={g.icon} size={18} color="#475569" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.infoLabel}>{g.label}</Text>
+                    <Text style={styles.infoValue}>{g.value}</Text>
+                  </View>
+                </View>
+              ))}
+            </Section>
+          )}
+
+          {/* Stories about this place */}
+          {city ? (
+            <StoriesRail
+              city={city}
+              title={`Stories from ${titleCase(city)}`}
+              subtitle="Places to see, food and tips before you go"
+              style={styles.storiesRail}
+            />
+          ) : null}
+
+          {/* Host */}
+          {vendorName ? (
+            <Section title="Your host">
+              <View style={styles.hostRow}>
+                {getImg(vendor.logo) ? (
+                  <Image source={{ uri: getImg(vendor.logo) }} style={styles.hostLogo} />
+                ) : (
+                  <View style={styles.hostAvatar}><Text style={styles.hostInitial}>{vendorName.charAt(0).toUpperCase()}</Text></View>
+                )}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.dayTitle}>{day.title || `Day ${i + 1}`}</Text>
-                  {day.description ? <Text style={styles.dayDesc}>{day.description}</Text> : null}
+                  <View style={styles.hostNameRow}>
+                    <Text style={styles.hostName} numberOfLines={1}>{vendorName}</Text>
+                    <Ionicons name="checkmark-circle" size={15} color={GREEN} />
+                  </View>
+                  <Text style={styles.hostMeta}>
+                    {[
+                      vendor.rating > 0 ? `★ ${Number(vendor.rating).toFixed(1)}` : null,
+                      vendor._count?.wander_listings > 0 ? `${vendor._count.wander_listings} tours` : null,
+                      listing.totalBookings > 0 ? `${listing.totalBookings} trips done` : null,
+                    ].filter(Boolean).join('  ·  ') || 'Verified TransRentals partner'}
+                  </Text>
                 </View>
+                {vendor.phone ? (
+                  <TouchableOpacity style={styles.hostCall} onPress={() => Linking.openURL(`tel:${vendor.phone}`)} accessibilityLabel="Call host">
+                    <Ionicons name="call" size={16} color={GREEN} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
-            ))}
-          </View>
-        )}
+            </Section>
+          ) : null}
 
-        <View style={{ height: 100 }} />
+          {/* Plan with friends */}
+          <TouchableOpacity activeOpacity={0.9} onPress={openGroup}>
+            <LinearGradient colors={['#064E3B', '#078A52']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.friendsCard}>
+              <View style={styles.friendsIcon}><Ionicons name="people" size={22} color="#fff" /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.friendsTitle}>Going with friends?</Text>
+                <Text style={styles.friendsSub}>Make a group, vote on dates and plan this trip together.</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={{ height: 24 }} />
+        </View>
       </ScrollView>
 
       {/* STICKY CTA */}
       <View style={styles.ctaBar}>
-        <View>
-          <Text style={styles.ctaLabel}>{isOnRequest ? 'Get personalised' : 'Starting from'}</Text>
-          <Text style={styles.ctaPrice}>{isOnRequest ? 'Quote' : price}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.ctaLabel}>{isOnRequest ? 'Custom pricing' : 'Starting from'}</Text>
+          <Text style={styles.ctaPrice} numberOfLines={1}>{isOnRequest ? 'Get a quote' : price}</Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            style={styles.ctaBtnOutline}
-            onPress={() => navigation.navigate('WanderGroup', { listingId: listing.id, listingTitle: listing.title })}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="people-outline" size={16} color={GREEN} />
-            <Text style={styles.ctaBtnOutlineText}>Friends</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.ctaBtn}
-            onPress={() => setShowQuoteForm(true)}
-            activeOpacity={0.85}
-          >
-            <Icon name="send" size={16} color="#fff" />
-            <Text style={styles.ctaBtnText}>Quote</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.ctaIconBtn} onPress={openGroup} activeOpacity={0.85} accessibilityLabel="Plan with friends">
+          <Ionicons name="people-outline" size={20} color={GREEN} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.ctaBtn} onPress={() => setShowQuoteForm(true)} activeOpacity={0.85}>
+          <Text style={styles.ctaBtnText}>Request Quote</Text>
+          <Ionicons name="arrow-forward" size={16} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* SUCCESS MODAL */}
@@ -702,15 +896,6 @@ const styles = StyleSheet.create({
   },
   retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  // Carousel
-  heroImg: { width, height: 260 },
-  heroPlaceholder: {
-    width, height: 260, backgroundColor: '#F1F5F9',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  dotRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 8, gap: 5 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#CBD5E1' },
-  dotActive: { backgroundColor: GREEN, width: 14, borderRadius: 3 },
 
   // Card block (white section)
   card: {
@@ -903,4 +1088,110 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   successSecondaryBtnText: { color: '#374151', fontSize: 14, fontWeight: '700' },
+
+  // Hero
+  hero: { width, height: HERO_HEIGHT, backgroundColor: '#0F172A' },
+  heroImg: { width, height: HERO_HEIGHT },
+  heroEmpty: { justifyContent: 'center', alignItems: 'center' },
+  heroBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
+  heroBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(15,23,42,0.45)', justifyContent: 'center', alignItems: 'center' },
+  heroText: { position: 'absolute', left: 18, right: 18, bottom: 40 },
+  heroCategory: { color: '#A7F3D0', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginBottom: 6 },
+  heroTitle: { color: '#fff', fontSize: 25, fontWeight: '800', lineHeight: 31 },
+  heroMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 10 },
+  heroMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  heroMetaText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  heroCounter: { position: 'absolute', right: 16, bottom: 44, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(15,23,42,0.55)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
+  heroCounterText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+
+  // Content sheet over the hero
+  sheet: { marginTop: -24, backgroundColor: BG, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 18 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16 },
+  ratingPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FEF3C7', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5 },
+  ratingPillText: { fontSize: 13, fontWeight: '800', color: '#92400E' },
+  ratingPillCount: { fontSize: 12, color: '#B45309' },
+  newPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E8F8F2', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5 },
+  newPillText: { fontSize: 12, fontWeight: '700', color: GREEN },
+  typePill: { backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#E2E8F0' },
+  typePillText: { fontSize: 12, fontWeight: '600', color: '#475569' },
+
+  factsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16, marginTop: 14 },
+  factTile: {
+    width: (width - 32 - 10) / 2, flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', borderRadius: 16, padding: 12,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1,
+  },
+  factIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#E8F8F2', justifyContent: 'center', alignItems: 'center' },
+  factLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '600' },
+  factValue: { fontSize: 13, color: '#0F172A', fontWeight: '700', marginTop: 1 },
+
+  priceCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 14,
+    backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: 'rgba(9,179,104,0.25)',
+  },
+  priceLabel: { fontSize: 12, color: '#64748B', fontWeight: '600' },
+  priceBig: { fontSize: 22, fontWeight: '800', color: '#0F172A', marginTop: 2 },
+  priceHint: { fontSize: 12, color: '#64748B', marginTop: 4 },
+  priceIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: GREEN, justifyContent: 'center', alignItems: 'center' },
+  tierRow: { gap: 8, paddingHorizontal: 16, paddingTop: 10 },
+  tierChip: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center' },
+  tierChipGroup: { fontSize: 11, color: '#64748B' },
+  tierChipPrice: { fontSize: 15, fontWeight: '800', color: GREEN, marginTop: 1 },
+
+  section: {
+    backgroundColor: '#fff', marginHorizontal: 16, marginTop: 14, borderRadius: 20, padding: 16,
+    shadowColor: '#000', shadowOpacity: 0.035, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1,
+  },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
+  sectionSub: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
+  bodyText: { flex: 1, fontSize: 14, color: '#334155', lineHeight: 22 },
+  moreBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, alignSelf: 'flex-start' },
+  moreBtnText: { fontSize: 13, fontWeight: '700', color: GREEN },
+
+  highlightRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 10 },
+  highlightIcon: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center', marginTop: 1 },
+
+  tlRow: { flexDirection: 'row' },
+  tlRail: { width: 34, alignItems: 'center' },
+  tlDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E8F8F2', borderWidth: 2, borderColor: GREEN, justifyContent: 'center', alignItems: 'center' },
+  tlDotActive: { backgroundColor: GREEN },
+  tlDotText: { fontSize: 11, fontWeight: '800', color: GREEN },
+  tlLine: { flex: 1, width: 2, backgroundColor: 'rgba(9,179,104,0.3)', marginVertical: 2 },
+  tlCard: { flex: 1, marginLeft: 10, marginBottom: 12, backgroundColor: '#F8FAFC', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#EEF2F7' },
+  tlHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tlKicker: { fontSize: 11, fontWeight: '700', color: GREEN, textTransform: 'uppercase', letterSpacing: 0.5 },
+  tlTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A', marginTop: 2 },
+  tlDesc: { fontSize: 13, color: '#475569', lineHeight: 20, marginTop: 8 },
+  tlActivity: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: 6 },
+  tlActivityDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: GREEN, marginTop: 8 },
+  tlActivityText: { flex: 1, fontSize: 13, color: '#475569', lineHeight: 20 },
+
+  segment: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4, marginBottom: 12 },
+  segmentBtn: { flex: 1, paddingVertical: 8, borderRadius: 9, alignItems: 'center' },
+  segmentBtnActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segmentText: { fontSize: 12.5, fontWeight: '600', color: '#64748B' },
+  segmentTextActive: { color: '#0F172A', fontWeight: '800' },
+  incRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 10 },
+
+  infoRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  infoLabel: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  infoValue: { fontSize: 14, color: '#0F172A', marginTop: 2, lineHeight: 20 },
+
+  storiesRail: { marginTop: 22 },
+
+  hostRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  hostLogo: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#F1F5F9' },
+  hostAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#E8F8F2', justifyContent: 'center', alignItems: 'center' },
+  hostInitial: { fontSize: 20, fontWeight: '800', color: GREEN },
+  hostNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  hostName: { fontSize: 15, fontWeight: '800', color: '#0F172A', flexShrink: 1 },
+  hostMeta: { fontSize: 12, color: '#64748B', marginTop: 3 },
+  hostCall: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E8F8F2', justifyContent: 'center', alignItems: 'center' },
+
+  friendsCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 14, borderRadius: 20, padding: 16 },
+  friendsIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center' },
+  friendsTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  friendsSub: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, lineHeight: 17 },
+
+  ctaIconBtn: { width: 48, height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: GREEN, backgroundColor: '#E8F8F2', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
 });

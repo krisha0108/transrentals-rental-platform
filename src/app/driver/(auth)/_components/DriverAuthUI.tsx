@@ -27,6 +27,7 @@ export function CardHeading({
   title,
   subtitle,
   stacked = false,
+  compactSubtitle = false,
 }: {
   icon: ReactNode;
   kicker?: string;
@@ -34,9 +35,15 @@ export function CardHeading({
   subtitle: string;
   /** Icon above the title rather than beside it. */
   stacked?: boolean;
+  /**
+   * Drop the subtitle once the window is too short to hold the form without
+   * scrolling. The title above it already names the screen, so this is the
+   * first line the layout can spare.
+   */
+  compactSubtitle?: boolean;
 }) {
   return (
-    <div className="mb-6">
+    <div className="mb-5">
       <div className={stacked ? '' : 'flex items-center gap-4'}>
         <span className="da-avatar">{icon}</span>
         <div className={stacked ? 'mt-4' : ''}>
@@ -44,7 +51,7 @@ export function CardHeading({
           <h1 className="da-card-title">{title}</h1>
         </div>
       </div>
-      <p className="mt-2.5 text-[14px] text-[#66718C]">{subtitle}</p>
+      <p className={`mt-2.5 text-[14px] text-[#66718C]${compactSubtitle ? ' da-sub-compact' : ''}`}>{subtitle}</p>
     </div>
   );
 }
@@ -131,11 +138,11 @@ function CardStyles() {
         box-shadow: 0 28px 64px -26px rgba(11,22,58,0.35), 0 0 0 1px rgba(17,28,64,0.045);
       }
       @media (min-width: 640px) { .da-card { padding: 38px 38px; } }
-      @media (min-width: 1024px) { .da-card { padding: 42px 42px; } }
+      @media (min-width: 1024px) { .da-card { padding: 28px 36px; } }
 
       .da-avatar {
         display: grid; place-items: center; flex: 0 0 auto;
-        width: 60px; height: 60px; border-radius: 50%;
+        width: 52px; height: 52px; border-radius: 50%;
         background: #E7F6ED; color: #15803D;
       }
       .da-kicker {
@@ -145,13 +152,13 @@ function CardStyles() {
       .da-card-title {
         font-size: 27px; font-weight: 800; letter-spacing: -0.02em; color: #14203F;
       }
-      @media (min-width: 640px) { .da-card-title { font-size: 31px; } }
+      @media (min-width: 640px) { .da-card-title { font-size: 28px; } }
 
       /* ── Fields ─────────────────────────────────────────────────────── */
       .da-field {
         display: flex; align-items: center; gap: 12px;
         border: 1.5px solid #E3E8F4; border-radius: 14px;
-        background: #FBFCFF; padding: 9px 14px; min-height: 62px;
+        background: #FBFCFF; padding: 9px 14px; min-height: 58px;
         transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
       }
       .da-field:hover { border-color: #CBD4EA; }
@@ -186,7 +193,7 @@ function CardStyles() {
       .da-field-input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
       .da-hint { margin-top: 6px; padding-left: 4px; font-size: 11.5px; color: #8C97B3; }
 
-      .da-field-plain { min-height: 62px; padding: 0 16px; }
+      .da-field-plain { min-height: 60px; padding: 0 16px; }
       .da-field-input-plain { margin-top: 0; font-size: 15px; }
 
       /* Two password boxes side by side leave very little room, so their
@@ -263,12 +270,26 @@ function CardStyles() {
 
       /* Same idea as the panel: on a short laptop screen the card tightens
          rather than running past the bottom of the window. */
-      @media (min-width: 1024px) and (max-height: 830px) {
+      @media (min-width: 1024px) and (max-height: 910px) {
         .da-card { padding: 26px 30px; }
         .da-card-title { font-size: 26px; }
         .da-avatar { width: 52px; height: 52px; }
         .da-field { min-height: 56px; }
         .da-primary { padding: 15px 20px; }
+      }
+
+      @media (min-width: 1024px) and (max-height: 800px) {
+        .da-sub-compact { display: none; }
+        .da-card { padding: 18px 26px; border-radius: 20px; }
+        .da-card-title { font-size: 22px; }
+        .da-avatar { width: 42px; height: 42px; }
+        .da-avatar svg { width: 20px; height: 20px; }
+        .da-field { min-height: 50px; padding: 6px 12px; }
+        .da-field-label { font-size: 11px; }
+        .da-field-input { font-size: 13.5px; margin-top: 2px; }
+        .da-hint { margin-top: 4px; font-size: 10.5px; line-height: 1.35; }
+        .da-primary { padding: 12px 20px; font-size: 15px; }
+        .da-select, .da-caret { font-size: 13.5px; }
       }
 
       @media (prefers-reduced-motion: reduce) {

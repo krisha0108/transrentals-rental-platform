@@ -6,7 +6,8 @@ import {
   Plus, Search, Edit, Trash2, Eye, Film,
   Globe, Clock, Archive, ChevronLeft, ChevronRight,
   Loader2, ArrowUp, ArrowDown, CheckCircle, XCircle,
-  LayoutGrid, AlertTriangle, TrendingUp,
+  LayoutGrid, AlertTriangle, TrendingUp, Star,
+  CalendarClock, BarChart3, Square, CheckSquare,
 } from 'lucide-react';
 
 interface WebStory {
@@ -22,9 +23,11 @@ interface WebStory {
   description: string | null;
   isPublished: boolean;
   isArchived: boolean;
+  isFeatured: boolean;
   displayOrder: number;
   expiresAt: string | null;
   publishedAt: string | null;
+  scheduledAt: string | null;
   createdAt: string;
   slideCount: number;
   hasTextElement: boolean;
@@ -52,6 +55,15 @@ function isExpired(story: WebStory): boolean {
     !story.isArchived &&
     !!story.expiresAt &&
     new Date(story.expiresAt).getTime() <= Date.now()
+  );
+}
+
+function isScheduled(story: WebStory): boolean {
+  return (
+    !story.isPublished &&
+    !story.isArchived &&
+    !!story.scheduledAt &&
+    new Date(story.scheduledAt).getTime() > Date.now()
   );
 }
 
@@ -92,7 +104,10 @@ export default function WebStoriesAdminPage() {
   const [tab, setTab] = useState<TabFilter>('all');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [featuring, setFeaturing] = useState<string | null>(null);
   const [reordering, setReordering] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkRunning, setBulkRunning] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -124,6 +139,10 @@ export default function WebStoriesAdminPage() {
 
   useEffect(() => { setPage(1); }, [tab, searchQuery]);
   useEffect(() => { fetchStories(); }, [fetchStories]);
+  // Selection is a set of ids on the currently visible page — clear it
+  // whenever the filters or page change so a stale selection can't apply an
+  // action to stories the admin can no longer see.
+  useEffect(() => { setSelected(new Set()); }, [tab, page, searchQuery]);
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
@@ -146,6 +165,19 @@ export default function WebStoriesAdminPage() {
     }
   };
 
+  // Featured stories are what the homepage carousel shows — separate from
+  // publish state, so an admin can curate a small homepage set without it
+  // affecting what's live on the full /stories listing.
+  const handleToggleFeature = async (id: string) => {
+    setFeaturing(id);
+    try {
+      const res = await fetch(`/api/admin/web-stories/${id}/feature`, { method: 'PATCH' });
+      if (res.ok) fetchStories();
+    } finally {
+      setFeaturing(null);
+    }
+  };
+
   // The swap itself is resolved server-side against the whole ordered list —
   // the neighbour of a page's first row lives on the previous page, so the
   // client is not in a position to work out what to swap with.
@@ -160,6 +192,51 @@ export default function WebStoriesAdminPage() {
       fetchStories();
     } finally {
       setReordering(null);
+    }
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelected((prev) => (prev.size === stories.length ? new Set() : new Set(stories.map((s) => s.id))));
+  };
+
+  type BulkAction = 'publish' | 'unpublish' | 'feature' | 'unfeature' | 'archive' | 'unarchive' | 'delete';
+
+  const BULK_ACTION_LABELS: Record<BulkAction, string> = {
+    publish: 'Publish',
+    unpublish: 'Unpublish',
+    feature: 'Feature',
+    unfeature: 'Unfeature',
+    archive: 'Archive',
+    unarchive: 'Unarchive',
+    delete: 'Delete',
+  };
+
+  const handleBulkAction = async (action: BulkAction) => {
+    if (selected.size === 0) return;
+    if (action === 'delete' && !confirm(`Delete ${selected.size} selected ${selected.size === 1 ? 'story' : 'stories'}? This cannot be undone.`)) {
+      return;
+    }
+    setBulkRunning(true);
+    try {
+      const res = await fetch('/api/admin/web-stories/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selected), action }),
+      });
+      if (res.ok) {
+        setSelected(new Set());
+        fetchStories();
+      }
+    } finally {
+      setBulkRunning(false);
     }
   };
 
@@ -187,13 +264,22 @@ export default function WebStoriesAdminPage() {
             Create and manage immersive AMP-style stories — appears at /stories
           </p>
         </div>
-        <Link
-          href="/admin/web-stories/new"
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium self-start"
-        >
-          <Plus className="w-4 h-4" />
-          New Story
-        </Link>
+        <div className="flex items-center gap-2 self-start">
+          <Link
+            href="/admin/web-stories/analytics"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </Link>
+          <Link
+            href="/admin/web-stories/new"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            New Story
+          </Link>
+        </div>
       </div>
 
       {/* AMP boilerplate notice */}
@@ -264,6 +350,37 @@ export default function WebStoriesAdminPage() {
         </div>
       </div>
 
+      {/* Bulk actions bar */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-purple-50 border border-purple-200 rounded-xl">
+          <span className="text-sm font-medium text-purple-900 mr-1">
+            {selected.size} selected
+          </span>
+          {(['publish', 'unpublish', 'feature', 'unfeature', 'archive', 'unarchive', 'delete'] as BulkAction[]).map((action) => (
+            <button
+              key={action}
+              onClick={() => handleBulkAction(action)}
+              disabled={bulkRunning}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition disabled:opacity-50 ${
+                action === 'delete'
+                  ? 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {BULK_ACTION_LABELS[action]}
+            </button>
+          ))}
+          <button
+            onClick={() => setSelected(new Set())}
+            disabled={bulkRunning}
+            className="text-xs text-purple-700 hover:text-purple-900 ml-1"
+          >
+            Clear
+          </button>
+          {bulkRunning && <Loader2 className="w-4 h-4 animate-spin text-purple-600" />}
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -294,6 +411,15 @@ export default function WebStoriesAdminPage() {
           <table className="w-full min-w-[520px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-4 py-3 w-8">
+                  <button onClick={toggleSelectAll} className="text-gray-400 hover:text-purple-600 transition-colors" title="Select all on this page">
+                    {selected.size === stories.length && stories.length > 0 ? (
+                      <CheckSquare className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Story</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Category</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Slides</th>
@@ -309,7 +435,16 @@ export default function WebStoriesAdminPage() {
               {stories.map((story, idx) => {
                 const { score } = calcSeoScore(story);
                 return (
-                  <tr key={story.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={story.id} className={`hover:bg-gray-50/50 transition-colors ${selected.has(story.id) ? 'bg-purple-50/50' : ''}`}>
+                    <td className="px-4 py-3">
+                      <button onClick={() => toggleSelected(story.id)} className="text-gray-400 hover:text-purple-600 transition-colors">
+                        {selected.has(story.id) ? (
+                          <CheckSquare className="w-4 h-4 text-purple-600" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {/* 9:16 thumbnail */}
@@ -378,26 +513,43 @@ export default function WebStoriesAdminPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {story.isArchived ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                          <Archive className="w-3 h-3" /> Archived
-                        </span>
-                      ) : isExpired(story) ? (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"
-                          title={`Expired on ${new Date(story.expiresAt as string).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — hidden from the public site`}
-                        >
-                          <AlertTriangle className="w-3 h-3" /> Expired
-                        </span>
-                      ) : story.isPublished ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          <CheckCircle className="w-3 h-3" /> Published
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                          <Clock className="w-3 h-3" /> Draft
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {story.isArchived ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            <Archive className="w-3 h-3" /> Archived
+                          </span>
+                        ) : isExpired(story) ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700"
+                            title={`Expired on ${new Date(story.expiresAt as string).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — hidden from the public site`}
+                          >
+                            <AlertTriangle className="w-3 h-3" /> Expired
+                          </span>
+                        ) : story.isPublished ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            <CheckCircle className="w-3 h-3" /> Published
+                          </span>
+                        ) : isScheduled(story) ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
+                            title={`Auto-publishes on ${new Date(story.scheduledAt as string).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`}
+                          >
+                            <CalendarClock className="w-3 h-3" /> Scheduled
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                            <Clock className="w-3 h-3" /> Draft
+                          </span>
+                        )}
+                        {story.isFeatured && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700"
+                            title="Shown in the homepage Visual Stories carousel"
+                          >
+                            <Star className="w-3 h-3 fill-amber-600" /> Featured
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <SeoScoreBadge score={score} />
@@ -461,6 +613,28 @@ export default function WebStoriesAdminPage() {
                             <XCircle className="w-4 h-4" />
                           ) : (
                             <Globe className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleToggleFeature(story.id)}
+                          disabled={featuring === story.id || !story.isPublished}
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+                            story.isFeatured
+                              ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50'
+                              : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                          }`}
+                          title={
+                            !story.isPublished
+                              ? 'Publish the story first to feature it'
+                              : story.isFeatured
+                              ? 'Remove from homepage carousel'
+                              : 'Show in homepage carousel'
+                          }
+                        >
+                          {featuring === story.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Star className={`w-4 h-4 ${story.isFeatured ? 'fill-amber-500' : ''}`} />
                           )}
                         </button>
                         <button

@@ -64,6 +64,22 @@ const NOTIF_CONFIG: Record<string, { icon: any; gradient: string; iconColor: str
   // Partnership agreement review outcome
   agreement_approved: { icon: FileSignature, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'Agreement' },
   agreement_rejected: { icon: FileSignature, gradient: 'from-red-500 to-rose-600', iconColor: 'text-white', label: 'Agreement' },
+  // Payments
+  payment_received: { icon: CreditCard, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'Payment' },
+  // Booking lifecycle
+  booking_cancelled: { icon: XCircle, gradient: 'from-red-500 to-rose-600', iconColor: 'text-white', label: 'Cancelled' },
+  booking_dropped: { icon: XCircle, gradient: 'from-gray-500 to-slate-600', iconColor: 'text-white', label: 'Dropped' },
+  trip_started: { icon: Rocket, gradient: 'from-blue-500 to-cyan-500', iconColor: 'text-white', label: 'Trip' },
+  trip_completed: { icon: CheckCheck, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'Trip' },
+  direct_booking_inquiry: { icon: Inbox, gradient: 'from-violet-500 to-purple-600', iconColor: 'text-white', label: 'Inquiry' },
+  // Onboarding review outcomes
+  document_approved: { icon: Check, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'Document' },
+  document_rejected: { icon: XCircle, gradient: 'from-red-500 to-rose-600', iconColor: 'text-white', label: 'Document' },
+  document_resubmit: { icon: RefreshCw, gradient: 'from-amber-400 to-orange-500', iconColor: 'text-white', label: 'Document' },
+  location_approved: { icon: Check, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'Location' },
+  location_rejected: { icon: XCircle, gradient: 'from-red-500 to-rose-600', iconColor: 'text-white', label: 'Location' },
+  service_approved: { icon: Check, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'Service' },
+  service_rejected: { icon: XCircle, gradient: 'from-red-500 to-rose-600', iconColor: 'text-white', label: 'Service' },
   // P2P types
   p2p_vehicle_requested: { icon: Truck, gradient: 'from-orange-500 to-amber-600', iconColor: 'text-white', label: 'P2P Request' },
   p2p_booking_accepted: { icon: Handshake, gradient: 'from-emerald-500 to-green-600', iconColor: 'text-white', label: 'P2P Accepted' },
@@ -121,6 +137,22 @@ const NOTIF_REDIRECT: Record<string, string> = {
   // Partnership agreement review outcome
   agreement_approved: '/vendor/partnership-agreement',
   agreement_rejected: '/vendor/partnership-agreement',
+  // Payments
+  payment_received: '/vendor/earnings',
+  // Booking lifecycle
+  booking_cancelled: '/vendor/bookings',
+  booking_dropped: '/vendor/bookings',
+  trip_started: '/vendor/bookings',
+  trip_completed: '/vendor/bookings',
+  direct_booking_inquiry: '/vendor/direct-bookings',
+  // Onboarding review outcomes
+  document_approved: '/vendor/documents',
+  document_rejected: '/vendor/documents',
+  document_resubmit: '/vendor/documents',
+  location_approved: '/vendor/locations',
+  location_rejected: '/vendor/locations',
+  service_approved: '/vendor/services',
+  service_rejected: '/vendor/services',
 };
 
 // Map serviceType to vendor dashboard route prefix
@@ -180,6 +212,16 @@ function getRedirectUrl(notification: Notification): string | null {
 
   // Trip started/completed → go to specific booking detail
   if ((type === 'trip_started' || type === 'trip_complete' || type === 'trip_completed') && routePrefix && bookingId) {
+    if (routePrefix === 'car-rental' && carBookingRef) {
+      return `/vendor/car-rental/bookings/${carBookingRef}`;
+    }
+    return `/vendor/${routePrefix}/bookings/${bookingId}`;
+  }
+
+  // Cancelled/dropped → go straight to that booking's own detail page, where
+  // the cancellation reason and refund status actually live. A generic
+  // bookings list has no cancelled filter applied and just looks wrong.
+  if ((type === 'booking_cancelled' || type === 'booking_dropped') && routePrefix && bookingId) {
     if (routePrefix === 'car-rental' && carBookingRef) {
       return `/vendor/car-rental/bookings/${carBookingRef}`;
     }

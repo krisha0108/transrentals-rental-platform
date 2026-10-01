@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, Animated, Easing, ScrollView,
-  KeyboardAvoidingView, Platform, Dimensions, Image, Modal, FlatList, StatusBar,
+  KeyboardAvoidingView, Platform, Dimensions, Image, FlatList, StatusBar,
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, getToken } from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services';
 import { b2bService } from '../services';
@@ -80,7 +81,7 @@ export default function B2BRegisterScreen({ navigation }) {
         const customerData = response.customers || response.customer;
         await authService.saveCustomerData(customerData, response.token);
         try {
-          const fcmToken = await messaging().getToken();
+          const fcmToken = await getToken(getMessaging());
           await authService.saveFcmToken(customerData.id, fcmToken);
         } catch (err) {
           // FCM token save failed silently

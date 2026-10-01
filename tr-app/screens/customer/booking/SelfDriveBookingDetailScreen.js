@@ -11,8 +11,12 @@ import {
   Alert,
   Platform,
   StatusBar,
-  Modal,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import CancelBookingSheet from '../../../components/CancelBookingSheet';
+import BookingStatusHero from '../../../components/BookingStatusHero';
+import RefundStatusCard from '../../../components/RefundStatusCard';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -23,6 +27,8 @@ import {
 } from 'react-native-responsive-screen';
 import api from '../../api';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 const SelfDriveBookingDetailScreen = () => {
   const route = useRoute();
@@ -97,32 +103,21 @@ const SelfDriveBookingDetailScreen = () => {
     }
   };
 
-  const handleCancelBooking = async () => {
-    Alert.alert(
-      'Cancel Booking',
-      'Are you sure you want to cancel this booking?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await api.patch(`/self-drive-bookings/${bookingId}`, {
-                action: 'cancel',
-                reason: 'Cancelled by customer',
-              });
-              if (response.data.success) {
-                Alert.alert('Success', 'Booking cancelled successfully');
-                fetchBookingDetails();
-              }
-            } catch (err) {
-              Alert.alert('Error', err.response?.data?.error || 'Failed to cancel booking');
-            }
-          },
-        },
-      ]
-    );
+  // Cancelling runs through CancelBookingSheet (confirm, then success or
+  // error) instead of two system alerts.
+  const [showCancelSheet, setShowCancelSheet] = useState(false);
+  const handleCancelBooking = () => setShowCancelSheet(true);
+  const cancelBooking = async (reason) => {
+    try {
+      const response = await api.patch(`/self-drive-bookings/${bookingId}`, {
+        action: 'cancel',
+        reason: reason || 'Cancelled by customer',
+      });
+      if (!response.data?.success) throw new Error(response.data?.error || 'Failed to cancel booking');
+      return { refundAmount: response.data?.booking?.refundAmount ?? null };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || err.message || 'Failed to cancel booking');
+    }
   };
 
   // Parse array data from API (handles both string and array formats)
@@ -314,17 +309,21 @@ const SelfDriveBookingDetailScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) + '18' }]}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(booking.status) }]} />
-            <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>{getStatusLabel(booking.status)}</Text>
-          </View>
-          <Text style={styles.bookingNumber}>#{booking.bookingNumber}</Text>
-          <Text style={styles.bookingDate}>
-            Booked on {formatDate(booking.createdAt)}
-          </Text>
-        </View>
+        {/* Status, progress and payment summary */}
+        <BookingStatusHero
+          style={styles.statusHero}
+          statusConfig={{ label: getStatusLabel(booking.status), color: getStatusColor(booking.status), icon: 'car-sport-outline' }}
+          status={booking.status}
+          meta={`#${booking.bookingNumber} · Booked on ${formatDate(booking.createdAt)}`}
+          totalAmount={booking.grandTotal}
+          advanceAmount={booking.advanceAmount}
+          paidAmount={booking.paidAmount}
+          paymentStatus={booking.paymentStatus}
+        />
+        {/* Refund progress for a cancelled booking (renders nothing otherwise) */}
+        {['CANCELLED', 'REFUNDED'].includes(String(booking.status).toUpperCase()) && (
+          <RefundStatusCard source="car_bookings" bookingId={booking.id} />
+        )}
 
         {/* Drop Reason Banner */}
         {booking.status === 'DROPPED' && booking.dropReason && (
@@ -656,6 +655,17 @@ const SelfDriveBookingDetailScreen = () => {
             </>
           )} */}
 
+          <CancelBookingSheet
+            visible={showCancelSheet}
+            onClose={() => { setShowCancelSheet(false); fetchBookingDetails(); }}
+            onConfirm={cancelBooking}
+            booking={{
+              title: booking.vehicleName || 'Self-Drive Car',
+              number: booking.bookingNumber,
+              when: booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null,
+              paid: booking.paidAmount || 0,
+            }}
+          />
           {canCancel && (
             <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelBooking}>
               <Ionicons name="close-circle-outline" size={wp('5%')} color="#e74c3c" />
@@ -728,7 +738,7 @@ const SelfDriveBookingDetailScreen = () => {
             <ScrollView style={styles.quoteModalContent} showsVerticalScrollIndicator={false}>
               {/* Tabs */}
               <View style={styles.quoteTabs}>
-                {['overview', 'inclusions', 'exclusions', 'terms'].map((tab) => (
+                {DETAILS_TABS.map((tab) => (
                   <TouchableOpacity
                     key={tab}
                     style={[styles.quoteTab, detailsTab === tab && styles.quoteTabActive]}
@@ -741,7 +751,7 @@ const SelfDriveBookingDetailScreen = () => {
                 ))}
               </View>
 
-              <View style={styles.quoteTabContent}>
+              <SwipeTabsView style={styles.quoteTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -956,11 +966,11 @@ const SelfDriveBookingDetailScreen = () => {
                           </View>
                         );
                       }
-                      if (terms.length === 1 || booking.quote.termsConditions) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.quoteListCard}>
                             <Text style={styles.quoteTermsText}>
-                              {terms[0] || booking.quote.termsConditions}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -974,7 +984,7 @@ const SelfDriveBookingDetailScreen = () => {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               <View style={{ height: hp('5%') }} />
             </ScrollView>
@@ -1125,6 +1135,11 @@ const styles = StyleSheet.create({
   },
 
   /* ── Status Card ───────────────────────── */
+  statusHero: {
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: hp('1.8%'),
+  },
   statusCard: {
     backgroundColor: CARD,
     borderRadius: wp('4%'),
@@ -1901,11 +1916,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: hp('5%'),
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   quoteEmptyText: {
     fontSize: wp('3.5%'),
     color: TEXT_MUTED,
     marginTop: hp('1%'),
+    textAlign: 'center',
   },
   rateBtn: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), overflow: 'hidden' },
   rateBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('2%'), paddingHorizontal: wp('4%'), gap: wp('2%') },

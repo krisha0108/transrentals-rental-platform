@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Car, Plus, Trash2, Loader2, AlertTriangle, Shield, Wrench, Building2 } from 'lucide-react';
+import { PageHeader, EmptyState } from '../_components/PortalUI';
 
 interface Vehicle {
   id: string;
@@ -72,46 +73,41 @@ export default function FleetPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-            <Car className="w-4 h-4 text-emerald-600" /> My Fleet
-          </h1>
-          <p className="text-xs text-gray-500 mt-0.5">{vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''}</p>
-        </div>
-        <Link
-          href="/driver/fleet/add"
-          className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
-        >
-          <Plus className="w-4 h-4" /> Add Vehicle
-        </Link>
-      </div>
+      <PageHeader
+        icon={Car}
+        title="My Fleet"
+        subtitle={
+          isLoading
+            ? 'Loading your vehicles\u2026'
+            : `${vehicles.length} vehicle${vehicles.length !== 1 ? 's' : ''} on your account`
+        }
+        actions={
+          <Link href="/driver/fleet/add" className="dv-action">
+            <Plus className="w-4 h-4" /> Add Vehicle
+          </Link>
+        }
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
         </div>
       ) : vehicles.length === 0 ? (
-        <div className="bg-white rounded-xl border p-10 text-center">
-          <Car className="w-14 h-14 text-gray-300 mx-auto mb-3" />
-          <p className="font-semibold text-gray-900">No vehicles yet</p>
-          <p className="text-sm text-gray-500 mt-1">Add your vehicle to start accepting bookings</p>
-          <Link
-            href="/driver/fleet/add"
-            className="inline-flex items-center gap-1.5 mt-4 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition"
-          >
-            <Plus className="w-4 h-4" /> Add First Vehicle
-          </Link>
-        </div>
+        <EmptyState
+          icon={Car}
+          title="No vehicles yet"
+          message="Add the vehicle you drive and you can start being matched to trips."
+          action={{ href: '/driver/fleet/add', label: 'Add your first vehicle', icon: Plus }}
+        />
       ) : (
         <div className="space-y-3">
           {vehicles.map(vehicle => (
             <Link key={vehicle.id} href={`/driver/fleet/${vehicle.id}`} className={`block bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition ${!vehicle.isActive ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${vehicle.isVendorVehicle ? 'bg-blue-100' : 'bg-emerald-100'}`}>
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${vehicle.isVendorVehicle ? 'bg-blue-100' : 'bg-green-100'}`}>
                   {vehicle.isVendorVehicle
                     ? <Building2 className="w-5 h-5 text-blue-600" />
-                    : <Car className="w-5 h-5 text-emerald-600" />
+                    : <Car className="w-5 h-5 text-green-600" />
                   }
                 </div>
                 <div className="flex-1 min-w-0">
@@ -125,7 +121,7 @@ export default function FleetPage() {
                     )}
                   </div>
                   {vehicle.registrationNo && (
-                    <p className="text-sm font-semibold text-emerald-700 mt-0.5">{vehicle.registrationNo}</p>
+                    <p className="text-sm font-semibold text-green-700 mt-0.5">{vehicle.registrationNo}</p>
                   )}
                   {(vehicle.category || vehicle.fuelType || vehicle.seatingCapacity) && (
                     <p className="text-xs text-gray-500 mt-1">

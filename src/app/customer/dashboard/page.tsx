@@ -62,6 +62,7 @@ import { quoteDisplay } from '@/lib/quote-font';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import NotificationPanel from '@/components/customer/NotificationPanel';
 import BackrCard from '@/components/backr/BackrCard';
+import CustomerRefundsList from '@/components/customer/CustomerRefundsList';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -1717,6 +1718,9 @@ export default function CustomerDashboardPage() {
             </div>
           </div>
         )}
+
+        {/* ══════════════ YOUR MONEY — refunds raised ══════════════ */}
+        {customer?.id && <CustomerRefundsList customerId={String(customer.id)} />}
 
         {/* ══════════════ YOUR RECORD — journeys ledger ══════════════ */}
         <div className="mx-auto max-w-[1320px] px-5 sm:px-8 lg:px-10 pt-[76px]">

@@ -676,6 +676,8 @@ export async function GET(request: NextRequest) {
           : null,
         quotations: [],
         is_quote_request: false,
+        // Lets the app offer "Rate trip" only on completed trips not yet rated.
+        rating: (b as any).rating ?? null,
       })),
       ...carBookings.map((b) => {
         // For self-drive, use location name from relation or locationName field
@@ -721,6 +723,7 @@ export async function GET(request: NextRequest) {
             : null,
           quotations: [],
           is_quote_request: false,
+          rating: (b as any).rating ?? null,
         };
       }),
       // Self-drive quote requests
@@ -774,6 +777,7 @@ export async function GET(request: NextRequest) {
           ? { name: b.vendors_chauffeur_bookings_assignedVendorIdTovendors.businessName, phone: b.vendors_chauffeur_bookings_assignedVendorIdTovendors.phone }
           : null,
         quotations: [],
+        rating: (b as any).rating ?? null,
       })),
       // Bus quote requests (pending, awaiting quotes)
       ...busQuoteRequests.map((b) => ({
@@ -824,6 +828,7 @@ export async function GET(request: NextRequest) {
           : null,
         quotations: [],
         is_quote_request: false,
+        rating: (b as any).rating ?? null,
       })),
       // Truck quote requests
       ...truckQuoteRequests.map((b) => ({
@@ -872,6 +877,7 @@ export async function GET(request: NextRequest) {
           : null,
         quotations: [],
         is_quote_request: false,
+        rating: (b as any).rating ?? null,
       })),
       // Packers quote requests
       ...packersQuoteRequests.map((b) => ({
@@ -918,6 +924,7 @@ export async function GET(request: NextRequest) {
           : null,
         quotations: [],
         is_quote_request: false,
+        rating: (b as any).rating ?? null,
       })),
       // Equipment quote requests
       ...equipmentQuoteRequests.map((b) => ({
@@ -954,6 +961,9 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.startDate.toISOString(),
         return_datetime: b.endDate?.toISOString() || null,
         status: mapEquipmentBookingStatus(b.status),
+        // `status` folds PENDING_PAYMENT and PAYMENT_SUBMITTED into "Open";
+        // the app needs the real one to tell "advance pending" from "verifying".
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.equipmentModel || b.equipmentType || 'Equipment',
         brand: null,
@@ -964,6 +974,7 @@ export async function GET(request: NextRequest) {
           : null,
         quotations: [],
         is_quote_request: false,
+        rating: (b as any).rating ?? null,
       })),
       // Luxury quote requests
       ...luxuryQuoteRequests.map((b) => ({
@@ -1014,6 +1025,7 @@ export async function GET(request: NextRequest) {
           : null,
         quotations: [],
         is_quote_request: false,
+        rating: (b as any).rating ?? null,
       })),
 
       // CUSTOM_BULK (multi-day event) bookings — surfaces in the customer's
@@ -1061,6 +1073,7 @@ export async function GET(request: NextRequest) {
           vendor: null,
           quotations: [],
           is_quote_request: false,
+          rating: (b as any).rating ?? null,
           // Bulk-specific extras read by the mobile detail screen
           bulk_total_days: plan?.total_days ?? null,
           bulk_total_people: plan?.total_people ?? null,

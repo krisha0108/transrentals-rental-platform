@@ -54,6 +54,7 @@ const MENU_SECTIONS = [
       { name: 'My Locations', icon: 'map-pin',  mcIcon: 'map-marker-outline', route: 'VendorLocations',  color: C.orange, bg: C.orangeL },
       { name: 'Fleet',        icon: 'truck',    mcIcon: 'garage-variant', route: 'FleetListScreen', color: C.blue,   bg: C.blueL },
       { name: 'Staff',        icon: 'users',    mcIcon: 'account-group-outline', route: 'StaffListScreen', color: C.indigo, bg: C.indigoL },
+      { name: 'Reviews',      icon: 'star',     mcIcon: 'star-outline',  route: 'VendorReviews',    color: C.amber,  bg: C.amberL },
     ],
   },
   {

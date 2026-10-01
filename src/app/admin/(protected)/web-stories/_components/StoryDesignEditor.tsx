@@ -169,6 +169,7 @@ interface Meta {
   title: string; slug: string; description: string; metaDescription: string;
   category: string; publisherName: string; publisherLogo: string;
   coverImage: string; coverImageSquare: string; coverImageLandscape: string; expiresAt: string;
+  scheduledAt: string;
   targetServices: string[]; targetLocations: string[];
 }
 
@@ -1119,6 +1120,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     publisherLogo: initialData?.publisherLogo || '', coverImage: initialData?.coverImage || '',
     coverImageSquare: initialData?.coverImageSquare || '', coverImageLandscape: initialData?.coverImageLandscape || '',
     expiresAt: initialData?.expiresAt || '',
+    scheduledAt: initialData?.scheduledAt || '',
     targetServices: initialData?.targetServices || [], targetLocations: initialData?.targetLocations || [],
   }));
 
@@ -1536,6 +1538,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     coverImageLandscape: meta.coverImageLandscape || null,
     publisherName: meta.publisherName.trim() || null, publisherLogo: meta.publisherLogo || null,
     category: meta.category.trim() || null, expiresAt: meta.expiresAt || null,
+    scheduledAt: meta.scheduledAt || null,
     targetServices: meta.targetServices, targetLocations: meta.targetLocations,
     slides: slides.map((s, i) => ({
       id: s.id.startsWith('_') ? undefined : s.id, order: i, duration: s.duration, bgType: s.bgType,
@@ -2219,10 +2222,11 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
           {tab === 'document' && (
             <div className="p-4 space-y-4">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Story Info</p>
-              {[{ label: 'Slug', key: 'slug' as const, placeholder: 'url-slug' }, { label: 'Category', key: 'category' as const, placeholder: 'Travel, Deals...' }, { label: 'Publisher Name', key: 'publisherName' as const, placeholder: 'TransRentals' }, { label: 'Description', key: 'description' as const, placeholder: 'Story description...' }, { label: 'Meta Description', key: 'metaDescription' as const, placeholder: 'SEO description...' }, { label: 'Expires At', key: 'expiresAt' as const, placeholder: '', type: 'datetime-local' }].map(f => (
+              {[{ label: 'Slug', key: 'slug' as const, placeholder: 'url-slug' }, { label: 'Category', key: 'category' as const, placeholder: 'Travel, Deals...' }, { label: 'Publisher Name', key: 'publisherName' as const, placeholder: 'TransRentals' }, { label: 'Description', key: 'description' as const, placeholder: 'Story description...' }, { label: 'Meta Description', key: 'metaDescription' as const, placeholder: 'SEO description...' }, { label: 'Schedule Publish', key: 'scheduledAt' as const, placeholder: '', type: 'datetime-local', hint: 'Draft auto-publishes at this time' }, { label: 'Expires At', key: 'expiresAt' as const, placeholder: '', type: 'datetime-local' }].map(f => (
                 <div key={f.key}>
                   <label className="text-xs text-slate-500 font-medium mb-1 block">{f.label}</label>
                   <input type={f.type || 'text'} placeholder={f.placeholder} value={(meta as any)[f.key]} onChange={e => setMeta(m => ({ ...m, [f.key]: e.target.value }))} className="w-full bg-slate-50 text-slate-800 text-xs px-3 py-2 rounded-xl outline-none border border-slate-200 focus:border-indigo-400 placeholder-slate-300" />
+                  {(f as any).hint && <p className="mt-1 text-[10px] text-slate-400">{(f as any).hint}</p>}
                 </div>
               ))}
               <div>

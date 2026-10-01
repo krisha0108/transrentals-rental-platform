@@ -23,6 +23,9 @@ type QueueItem = {
   /** Which booking table it came from, for a booking review. */
   bookingTable: string | null;
   bookingNumber: string | null;
+  /** The vendor who ran the booking, for a booking review. */
+  vendorId: string | null;
+  vendorName: string | null;
   name: string;
   email: string | null;
   phone: string | null;
@@ -41,7 +44,7 @@ type QueueItem = {
 };
 
 /**
- * GET /api/admin/reviews?status=pending&page=1&limit=20&search=
+ * GET /api/admin/reviews?status=pending&page=1&limit=20&search=&vendorId=
  *
  * The moderation queue, holding both kinds of review the site collects:
  * what visitors write from the homepage form (`customer_reviews`), and the
@@ -64,13 +67,17 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')?.trim() || '';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    // A vendor's reviews are only ever booking reviews, so this drops site reviews too.
+    const vendorId = searchParams.get('vendorId')?.trim() || '';
 
     const [siteRows, bookingRows, decisions] = await Promise.all([
-      prisma.customer_reviews.findMany({
-        orderBy: [{ createdAt: 'desc' }],
-        take: MAX_MERGED,
-      }),
-      fetchBookingReviews({ limit: MAX_MERGED }),
+      vendorId
+        ? Promise.resolve([])
+        : prisma.customer_reviews.findMany({
+            orderBy: [{ createdAt: 'desc' }],
+            take: MAX_MERGED,
+          }),
+      fetchBookingReviews({ limit: MAX_MERGED, vendorId: vendorId || undefined }),
       prisma.booking_review_moderation.findMany({ take: MAX_MERGED }),
     ]);
 
@@ -79,11 +86,22 @@ export async function GET(request: NextRequest) {
       decisions.map((d) => [`${d.source}:${d.bookingId}`, d])
     );
 
+    const vendorIds = [...new Set(bookingRows.map((r) => r.vendorId).filter((v): v is string => !!v))];
+    const vendors = vendorIds.length
+      ? await prisma.vendors.findMany({
+          where: { id: { in: vendorIds } },
+          select: { id: true, businessName: true },
+        })
+      : [];
+    const vendorNameById = new Map(vendors.map((v) => [v.id, v.businessName]));
+
     const siteItems: QueueItem[] = siteRows.map((r) => ({
       id: r.id,
       source: 'site',
       bookingTable: null,
       bookingNumber: null,
+      vendorId: null,
+      vendorName: null,
       name: r.name,
       email: r.email,
       phone: r.phone,
@@ -107,6 +125,8 @@ export async function GET(request: NextRequest) {
         source: 'booking',
         bookingTable: r.source,
         bookingNumber: r.bookingNumber,
+        vendorId: r.vendorId,
+        vendorName: r.vendorId ? vendorNameById.get(r.vendorId) ?? null : null,
         name: r.name,
         email: r.email,
         phone: r.phone,

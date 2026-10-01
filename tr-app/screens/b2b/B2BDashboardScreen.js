@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, RefreshControl, Dimensions, Platform, StatusBar, Modal,
+  ActivityIndicator, RefreshControl, Dimensions, Platform, StatusBar,
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';

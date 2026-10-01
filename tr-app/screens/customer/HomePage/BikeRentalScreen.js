@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { locationService } from '../../services';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toTimeString, combineDateAndTime } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
 const { width } = Dimensions.get('window');
@@ -73,8 +73,8 @@ export default function BikeRentalScreen() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Date states
-  const [pickupDate, setPickupDate] = useState(new Date());
-  const [dropDate, setDropDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000)); // Tomorrow
+  const [pickupDate, setPickupDate] = useState(() => getEarliestPickup());
+  const [dropDate, setDropDate] = useState(() => new Date(getEarliestPickup().getTime() + 24 * 60 * 60 * 1000)); // Day after pickup
 
   // iOS picker visibility
   const [showPickupDatePicker, setShowPickupDatePicker] = useState(false);
@@ -156,9 +156,19 @@ export default function BikeRentalScreen() {
       onChange: (event, date) => {
         if (event.type === 'dismissed' || !date) return;
 
+        let timeValue = combineDateAndTime(date, toTimeString(currentValue));
+        if (target === 'pickup') {
+          // Keep the chosen time unless it is now too soon on the new date.
+          timeValue = clampPickup(timeValue);
+          setPickupDate(timeValue);
+          if (dropDate <= timeValue) {
+            setDropDate(new Date(timeValue.getTime() + 24 * 60 * 60 * 1000));
+          }
+        }
+
         // After selecting date, open time picker
         DateTimePickerAndroid.open({
-          value: date,
+          value: timeValue,
           mode: 'time',
           is24Hour: false,
           onChange: (event2, time) => {
@@ -170,6 +180,12 @@ export default function BikeRentalScreen() {
 
             if (target === 'pickup') {
               if (isPickupTooSoon(finalDate)) {
+                // Too close to now for a driver to reach: snap to the earliest slot.
+                const earliest = getEarliestPickup();
+                setPickupDate(earliest);
+                if (dropDate <= earliest) {
+                  setDropDate(new Date(earliest.getTime() + 24 * 60 * 60 * 1000));
+                }
                 setShowBookingAlert(true);
                 return;
               }
@@ -191,6 +207,12 @@ export default function BikeRentalScreen() {
   const onPickupDateChange = (event, selectedDate) => {
     if (selectedDate) {
       if (isPickupTooSoon(selectedDate)) {
+        // Too close to now for a driver to reach: snap to the earliest slot.
+        const earliest = getEarliestPickup();
+        setPickupDate(earliest);
+        if (dropDate <= earliest) {
+          setDropDate(new Date(earliest.getTime() + 24 * 60 * 60 * 1000));
+        }
         setShowBookingAlert(true);
         return;
       }
