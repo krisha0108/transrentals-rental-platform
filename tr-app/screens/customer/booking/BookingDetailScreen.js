@@ -34,6 +34,8 @@ import {
 } from 'react-native-responsive-screen';
 import api, { BASE_URL, IMAGE_BASE_URL } from '../../api';
 import chatService from '../../services/chatService';
+import RefundStatusCard from '../../../components/RefundStatusCard';
+import CancelBookingAction, { formatCancelDate } from '../../../components/CancelBookingAction';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width } = Dimensions.get('window');
@@ -791,6 +793,11 @@ const BookingDetails = () => {
           </View>
         )}
 
+        {/* Refund progress for a cancelled car-with-driver booking */}
+        {bookingType === 'car' && booking?.id && ['CANCELLED', 'REFUNDED'].includes(String(booking.status).toUpperCase()) && (
+          <RefundStatusCard source="chauffeur_bookings" bookingId={booking.id} />
+        )}
+
         {/* Assigned vehicle & driver (only for ongoing) */}
         {booking?.status === 'Ongoing' && (assignedVehicle || assignedDriver) && (
           <View style={redesignStyles.assignedCardWrap}>
@@ -1473,6 +1480,22 @@ const BookingDetails = () => {
               </LinearGradient>
             </TouchableOpacity>
           )
+        )}
+
+        {/* Car with driver can be cancelled until the trip starts (same statuses the API accepts) */}
+        {bookingType === 'car' && booking?.id &&
+          ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'DRIVER_ASSIGNED'].includes(String(booking.status).toUpperCase()) && (
+          <CancelBookingAction
+            path={`/car-rental/bookings/${booking.id}`}
+            booking={{
+              title: booking.vehicle_name || 'Car with driver',
+              number: booking.booking_id,
+              when: formatCancelDate(booking.journey_date),
+              paid: booking.paid_amount || 0,
+            }}
+            onDone={fetchData}
+            style={{ marginBottom: hp('3%') }}
+          />
         )}
       </ScrollView>
     </SafeAreaView>

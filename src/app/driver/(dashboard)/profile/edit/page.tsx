@@ -90,7 +90,7 @@ function Field({
       </label>
       <input
         {...input}
-        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl bg-gray-50/60 focus:bg-white focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 outline-none text-sm text-gray-900 transition"
+        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl bg-gray-50/60 focus:bg-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none text-sm text-gray-900 transition"
       />
     </div>
   );
@@ -110,7 +110,7 @@ function Select({
       </label>
       <select
         {...select}
-        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl bg-gray-50/60 focus:bg-white focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 outline-none text-sm text-gray-900 transition"
+        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl bg-gray-50/60 focus:bg-white focus:ring-2 focus:ring-green-500/40 focus:border-green-500 outline-none text-sm text-gray-900 transition"
       >
         {children}
       </select>
@@ -215,7 +215,7 @@ export default function EditProfilePage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
       </div>
     );
   }
@@ -249,7 +249,7 @@ export default function EditProfilePage() {
         </div>
       )}
       {success && (
-        <div className="flex items-start gap-2.5 mb-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm">
+        <div className="flex items-start gap-2.5 mb-5 p-3.5 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
           <CheckCircle2 className="w-4.5 h-4.5 shrink-0 mt-0.5" />
           <span>{success}</span>
         </div>
@@ -259,8 +259,8 @@ export default function EditProfilePage() {
         {/* Row 1: Personal + License side by side */}
         <div className="grid gap-5 lg:grid-cols-2">
           <SectionCard
-            icon={<User className="w-5 h-5 text-emerald-600" />}
-            iconColor="bg-emerald-50"
+            icon={<User className="w-5 h-5 text-green-600" />}
+            iconColor="bg-green-50"
             title="Personal Info"
           >
             <Field label="Full Name" required value={form.name} onChange={e => set('name', e.target.value)} />
@@ -295,7 +295,7 @@ export default function EditProfilePage() {
                 type="checkbox"
                 checked={isOldLicense}
                 onChange={e => { setIsOldLicense(e.target.checked); setError(''); }}
-                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
               />
               My licence was issued before 2011 (old paper/booklet format)
             </label>
@@ -304,7 +304,7 @@ export default function EditProfilePage() {
             ) : (
               <p className="-mt-2 text-xs text-gray-400">
                 15-character format only. Don&apos;t have this? Check the box above, or look your number up for free on{' '}
-                <a href="https://parivahan.gov.in/" target="_blank" rel="noopener noreferrer" className="text-emerald-600 underline hover:text-emerald-700">
+                <a href="https://parivahan.gov.in/" target="_blank" rel="noopener noreferrer" className="text-green-600 underline hover:text-green-700">
                   parivahan.gov.in
                 </a>{' '}
                 (Driving Licence → DL Search).
@@ -323,7 +323,7 @@ export default function EditProfilePage() {
             subtitle="Where your trip earnings get paid out"
             badge={
               bankDetailsComplete ? (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full shrink-0">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full shrink-0">
                   <CheckCircle2 className="w-3.5 h-3.5" /> Complete
                 </span>
               ) : (
@@ -379,7 +379,7 @@ export default function EditProfilePage() {
         <button
           type="submit"
           disabled={isSaving}
-          className="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20"
+          className="w-full py-3.5 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm shadow-green-600/20"
         >
           {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <>Save Changes <ChevronRight className="w-4 h-4" /></>}
         </button>

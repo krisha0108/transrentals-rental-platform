@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { updateVendorRating, parseStarRating } from '@/lib/utils/update-vendor-rating';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,15 +148,66 @@ export async function PATCH(
 
     switch (action) {
       case 'cancel': {
-        const cancellable = ['PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED'];
+        // Up to driver assignment, matching the web page's Cancel button; once
+        // the trip is under way it can no longer be cancelled here.
+        const cancellable = ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'DRIVER_ASSIGNED'];
         if (!cancellable.includes(booking.status)) {
           return NextResponse.json({ success: false, error: 'Booking cannot be cancelled at this stage' }, { status: 400 });
         }
+        const reason: string | undefined = body.cancellationReason || body.reason;
+
+        // Same shape as the other services: the closer to pickup, the less comes back.
+        let refundAmount = 0;
+        if (booking.paidAmount > 0) {
+          const hoursUntilPickup = (new Date(booking.pickupDate).getTime() - Date.now()) / (1000 * 60 * 60);
+          if (hoursUntilPickup > 24) refundAmount = booking.paidAmount * 0.9;
+          else if (hoursUntilPickup > 6) refundAmount = booking.paidAmount * 0.5;
+        }
+
         const updated = await prisma.chauffeur_bookings.update({
           where: { id: booking.id },
-          data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: body.cancellationReason || 'Customer cancelled' },
+          data: {
+            status: 'CANCELLED',
+            cancelledAt: new Date(),
+            cancelledBy: 'CUSTOMER',
+            cancellationReason: reason || 'Customer cancelled',
+            refundAmount,
+          },
         });
-        return NextResponse.json({ success: true, message: 'Booking cancelled successfully', booking: { id: updated.id, status: updated.status } });
+
+        // Non-blocking: the vendor has a car and driver held for this trip.
+        const cancelledVendorId = booking.assignedVendorId || booking.acceptedVendorId;
+        if (cancelledVendorId) {
+          sendVendorDirectNotification({
+            vendorId: cancelledVendorId,
+            title: 'Booking cancelled by customer',
+            body: `Booking #${booking.bookingNumber} was cancelled. Reason: ${reason || 'not given'}.`,
+            type: 'booking_cancelled',
+            serviceType: 'chauffeur',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber,
+          }).catch((err: unknown) => console.error('[Cancel] vendor notification failed:', err));
+        }
+
+        // Money owed goes on the refunds queue and the desk is told. Never
+        // blocks the cancellation.
+        openRefundFollowup({
+          source: 'chauffeur_bookings',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceType: 'Car Rental',
+          customerId: booking.customerId,
+          customerName: booking.customerName,
+          amount: refundAmount,
+          reason,
+          paidAmount: booking.paidAmount || 0,
+        }).catch(() => {});
+
+        return NextResponse.json({
+          success: true,
+          message: 'Booking cancelled successfully',
+          booking: { id: updated.id, bookingNumber: updated.bookingNumber, status: updated.status, refundAmount },
+        });
       }
       case 'review':
       case 'rate': {
@@ -161,17 +215,23 @@ export async function PATCH(
           return NextResponse.json({ success: false, error: 'Only completed bookings can be rated' }, { status: 400 });
         }
         if (booking.rating) {
-          return NextResponse.json({ success: false, error: 'Already rated' }, { status: 400 });
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
         }
-        const { rating, review } = body;
-        if (!rating || rating < 1 || rating > 5) {
+        const { rating, review, driverRating } = body;
+        const stars = parseStarRating(rating);
+        if (!stars) {
           return NextResponse.json({ success: false, error: 'Rating must be 1-5' }, { status: 400 });
         }
-        const updated = await prisma.chauffeur_bookings.update({
-          where: { id: booking.id },
-          data: { rating: parseInt(rating), review: review || null },
+        // Only an unrated row is written, so a double submit cannot count twice.
+        const { count } = await prisma.chauffeur_bookings.updateMany({
+          where: { id: booking.id, rating: null },
+          data: { rating: stars, review: review || null, driverRating: parseStarRating(driverRating) ?? stars },
         });
-        return NextResponse.json({ success: true, message: 'Thank you for your feedback!', booking: { id: updated.id, rating: updated.rating } });
+        if (!count) {
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+        }
+        updateVendorRating(booking.acceptedVendorId, stars).catch(() => {});
+        return NextResponse.json({ success: true, message: 'Thank you for your feedback!', booking: { id: booking.id, rating: stars } });
       }
       default:
         return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });

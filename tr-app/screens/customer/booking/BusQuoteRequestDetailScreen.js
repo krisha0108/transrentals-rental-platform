@@ -8,10 +8,11 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  Modal,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -30,6 +31,8 @@ const STATUS_CONFIG = {
   EXPIRED: { label: 'Expired', color: '#EF4444', icon: 'close-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#6B7280', icon: 'close-circle' },
 };
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 export default function BusQuoteRequestDetailScreen() {
   const route = useRoute();
@@ -912,7 +915,7 @@ export default function BusQuoteRequestDetailScreen() {
 
               {/* Tabs */}
               <View style={styles.detailsTabs}>
-                {['overview', 'inclusions', 'exclusions', 'terms'].map((tab) => (
+                {DETAILS_TABS.map((tab) => (
                   <TouchableOpacity
                     key={tab}
                     style={[styles.detailsTab, detailsTab === tab && styles.detailsTabActive]}
@@ -926,7 +929,7 @@ export default function BusQuoteRequestDetailScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={styles.detailsTabContent}>
+              <SwipeTabsView style={styles.detailsTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
 
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
@@ -1179,11 +1182,11 @@ export default function BusQuoteRequestDetailScreen() {
                           </View>
                         );
                       }
-                      if (terms.length === 1 || viewingQuote.termsConditions) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.detailsTermsCard}>
                             <Text style={styles.detailsTermsText}>
-                              {terms.length === 1 ? terms[0] : viewingQuote.termsConditions}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1197,7 +1200,7 @@ export default function BusQuoteRequestDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               {/* Accept Button at bottom of modal */}
               {(() => {
@@ -1481,8 +1484,8 @@ const styles = StyleSheet.create({
   detailsTermsNumber: { fontSize: wp('2.8%'), fontWeight: '700', color: '#fff' },
   detailsTermsCard: { backgroundColor: '#F9FAFB', borderRadius: wp('3%'), padding: wp('4%') },
   detailsTermsText: { fontSize: wp('3.2%'), color: TEXT_SECONDARY, lineHeight: wp('5.5%') },
-  detailsEmptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: hp('5%') },
-  detailsEmptyText: { fontSize: wp('3.2%'), color: TEXT_MUTED, marginTop: hp('1.2%') },
+  detailsEmptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: hp('5%'), alignSelf: 'stretch', minHeight: hp('26%') },
+  detailsEmptyText: { fontSize: wp('3.2%'), color: TEXT_MUTED, marginTop: hp('1.2%'), textAlign: 'center' },
   detailsActions: { padding: wp('4%'), paddingBottom: hp('2.5%') },
   detailsAcceptBtn: { borderRadius: wp('3%'), overflow: 'hidden' },
   detailsAcceptBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('1.8%'), paddingHorizontal: wp('6%'), borderRadius: wp('3%'), gap: wp('2%') },

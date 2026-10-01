@@ -14,10 +14,14 @@ import {
   Alert,
   Linking,
   RefreshControl,
-  Modal,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import BookingStatusHero from '../../../components/BookingStatusHero';
+import RefundStatusCard from '../../../components/RefundStatusCard';
+import CancelBookingAction, { formatCancelDate } from '../../../components/CancelBookingAction';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -39,6 +43,21 @@ const STATUS_CONFIG = {
   COMPLETED: { label: 'Completed', color: '#10B981', icon: 'checkmark-done-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: 'close-circle-outline' },
   DROPPED: { label: 'Dropped', color: '#EF4444', icon: 'arrow-down-circle-outline' },
+};
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
+
+// "12 Oct 2026 · 10:30 am", or '' when the value is missing or not a date.
+const formatBookingDateTime = (value, time) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const day = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (time) return `${day} · ${time}`;
+  const hasClock = date.getHours() !== 0 || date.getMinutes() !== 0;
+  return hasClock
+    ? `${day} · ${date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+    : day;
 };
 
 export default function EquipmentBookingDetailScreen() {
@@ -261,20 +280,16 @@ export default function EquipmentBookingDetailScreen() {
 
         {/* Glass Status Badge inside header */}
         <View style={styles.glassCard}>
-          <View style={styles.glassStatusRow}>
-            <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
-            <Text style={styles.glassStatusLabel}>{statusConfig.label}</Text>
-          </View>
           <View style={styles.glassMetaRow}>
             <View style={styles.glassMetaItem}>
               <Ionicons name="construct-outline" size={wp('3.5%')} color="rgba(255,255,255,0.6)" />
               <Text style={styles.glassMetaText}>Equipment Rental</Text>
             </View>
-            {booking.pickupDate && (
+            {!!formatBookingDateTime(booking.pickupDate || booking.startDate) && (
               <View style={styles.glassMetaItem}>
                 <Ionicons name="calendar-outline" size={wp('3.5%')} color="rgba(255,255,255,0.6)" />
                 <Text style={styles.glassMetaText}>
-                  {new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  {formatBookingDateTime(booking.pickupDate || booking.startDate)}
                 </Text>
               </View>
             )}
@@ -287,6 +302,20 @@ export default function EquipmentBookingDetailScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />}
         showsVerticalScrollIndicator={false}
       >
+        {/* ===================== STATUS SUMMARY ===================== */}
+        <BookingStatusHero
+          statusConfig={statusConfig}
+          status={booking.status}
+          totalAmount={booking.totalAmount}
+          advanceAmount={booking.advanceAmount}
+          advancePaid={booking.advancePaid}
+          paymentStatus={booking.paymentStatus}
+        />
+        {/* Refund progress for a cancelled booking (renders nothing otherwise) */}
+        {['CANCELLED', 'REFUNDED'].includes(String(booking.status).toUpperCase()) && (
+          <RefundStatusCard source="equipment_bookings" bookingId={booking.id} />
+        )}
+
         {/* ===================== PAY NOW BUTTON ===================== */}
         {booking.status === 'PENDING_PAYMENT' && booking.advanceAmount > 0 && (
           <TouchableOpacity style={styles.payNowBtn} onPress={handlePayment}>
@@ -361,100 +390,87 @@ export default function EquipmentBookingDetailScreen() {
           </View>
         )}
 
-        {/* ===================== TRIP DETAILS CARD ===================== */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
-              <MaterialCommunityIcons name="bus" size={18} color={TEAL_MID} />
-            </View>
-            <Text style={styles.cardTitle}>Trip Details</Text>
-          </View>
-
-          <View style={styles.tripRow}>
-            <View style={styles.tripPoint}>
-              <View style={[styles.tripDot, { backgroundColor: TEAL }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tripLabel}>Pickup</Text>
-                <Text style={styles.tripValue}>{booking.pickupCity}</Text>
-                {booking.pickupAddress && (
-                  <Text style={styles.tripAddress}>{booking.pickupAddress}</Text>
-                )}
+        {/* ===================== RENTAL DETAILS CARD ===================== */}
+        {(() => {
+          // The equipment API returns delivery*/startDate/endDate; older
+          // payloads used pickup*/pickupDate/returnDate. Read either.
+          const siteCity = booking.pickupCity || booking.deliveryCity;
+          const siteAddress = booking.pickupAddress || booking.deliveryAddress;
+          const start = formatBookingDateTime(booking.pickupDate || booking.startDate, booking.pickupTime);
+          const end = formatBookingDateTime(booking.returnDate || booking.endDate, booking.returnTime);
+          const days = booking.rentalDays || booking.tripDays;
+          return (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
+                  <MaterialCommunityIcons name="crane" size={18} color={TEAL_MID} />
+                </View>
+                <Text style={styles.cardTitle}>Rental Details</Text>
               </View>
-            </View>
 
-            {booking.dropCity && (
-              <>
-                <View style={styles.tripLine} />
-                <View style={styles.tripPoint}>
-                  <View style={[styles.tripDot, { backgroundColor: '#EF4444' }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.tripLabel}>Drop</Text>
-                    <Text style={styles.tripValue}>{booking.dropCity}</Text>
-                    {booking.dropAddress && (
-                      <Text style={styles.tripAddress}>{booking.dropAddress}</Text>
-                    )}
+              {(!!siteCity || !!siteAddress) && (
+                <View style={styles.siteBox}>
+                  <View style={styles.siteIcon}>
+                    <Ionicons name="location" size={wp('4.2%')} color={TEAL_MID} />
+                  </View>
+                  <View style={styles.siteText}>
+                    <Text style={styles.tripLabel}>Delivery Site</Text>
+                    {!!siteCity && <Text style={styles.tripValue}>{siteCity}</Text>}
+                    {!!siteAddress && <Text style={styles.tripAddress}>{siteAddress}</Text>}
                   </View>
                 </View>
-              </>
-            )}
-          </View>
+              )}
 
-          <View style={styles.divider} />
+              {(!!start || !!end) && (
+                <View style={styles.dateStrip}>
+                  <View style={styles.dateCell}>
+                    <Text style={styles.dateCaption}>Start</Text>
+                    <Text style={styles.dateValue}>{start || 'To be confirmed'}</Text>
+                  </View>
+                  <View style={styles.dateArrow}>
+                    <Ionicons name="arrow-forward" size={wp('4%')} color={TEXT_MUTED} />
+                  </View>
+                  <View style={[styles.dateCell, styles.dateCellEnd]}>
+                    <Text style={styles.dateCaption}>End</Text>
+                    <Text style={[styles.dateValue, styles.dateValueEnd]}>{end || 'To be confirmed'}</Text>
+                  </View>
+                </View>
+              )}
 
-          {booking.equipmentCategory && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Equipment Category</Text>
-              <Text style={styles.detailValue}>{booking.equipmentCategory}</Text>
+              {!!booking.equipmentCategory && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Category</Text>
+                  <Text style={styles.detailValue}>{booking.equipmentCategory}</Text>
+                </View>
+              )}
+
+              {!!booking.equipmentType && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Type</Text>
+                  <Text style={styles.detailValue}>{booking.equipmentType}</Text>
+                </View>
+              )}
+
+              {booking.quantity > 0 && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Quantity</Text>
+                  <Text style={styles.detailValue}>
+                    {booking.quantity} {booking.quantity === 1 ? 'unit' : 'units'}
+                  </Text>
+                </View>
+              )}
+
+              {days > 0 && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Duration</Text>
+                  <Text style={styles.detailValue}>
+                    {days} {days === 1 ? 'day' : 'days'}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-
-          {booking.equipmentType && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Equipment Type</Text>
-              <Text style={styles.detailValue}>{booking.equipmentType}</Text>
-            </View>
-          )}
-
-          {booking.quantity > 1 && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Quantity</Text>
-              <Text style={styles.detailValue}>{booking.quantity} units</Text>
-            </View>
-          )}
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Pickup Date</Text>
-            <Text style={styles.detailValue}>
-              {new Date(booking.pickupDate).toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}{' '}
-              {'\u2022'} {booking.pickupTime || 'TBD'}
-            </Text>
-          </View>
-
-          {booking.returnDate && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Return Date</Text>
-              <Text style={styles.detailValue}>
-                {new Date(booking.returnDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}{' '}
-                {'\u2022'} {booking.returnTime || 'TBD'}
-              </Text>
-            </View>
-          )}
-
-          {booking.tripDays > 0 && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Trip Duration</Text>
-              <Text style={styles.detailValue}>{booking.tripDays} days</Text>
-            </View>
-          )}
-        </View>
+          );
+        })()}
 
         {/* ===================== VEHICLE & DRIVER DETAILS ===================== */}
         {(booking.vehicleNumber || booking.driverName) && (
@@ -753,6 +769,20 @@ export default function EquipmentBookingDetailScreen() {
           )
         )}
 
+        {/* Customer can cancel until the job starts (same statuses the API accepts) */}
+        {["PENDING_PAYMENT","ADVANCE_PAID","CONFIRMED"].includes(booking.status) && (
+          <CancelBookingAction
+            path={`/equipment-bookings/${booking.id}`}
+            booking={{
+              title: booking.equipmentName || booking.equipmentType || 'Equipment rental',
+              number: booking.bookingNumber,
+              when: formatCancelDate((booking.startDate || booking.pickupDate)),
+              paid: booking.advancePaid || 0,
+            }}
+            onDone={() => fetchBookingDetails(true)}
+          />
+        )}
+
         <View style={{ height: hp('3%') }} />
       </ScrollView>
 
@@ -816,7 +846,7 @@ export default function EquipmentBookingDetailScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={styles.quoteTabContent}>
+              <SwipeTabsView style={styles.quoteTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -1048,11 +1078,11 @@ export default function EquipmentBookingDetailScreen() {
                       }
 
                       // If single item or plain text, show as paragraph
-                      if (terms.length === 1 || booking.quote.termsConditions) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.quoteTermsCard}>
                             <Text style={styles.quoteTermsText}>
-                              {terms.length === 1 ? terms[0] : booking.quote.termsConditions}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1068,7 +1098,7 @@ export default function EquipmentBookingDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               <View style={{ height: hp('5%') }} />
             </ScrollView>
@@ -1259,14 +1289,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: hp('0.8%'),
   },
+  // The label takes the free width so Android never measures it tight and
+  // clips its last letter ("Quantit").
   detailLabel: {
+    flex: 1,
     fontSize: wp('3.2%'),
     color: TEXT_SECONDARY,
+    marginRight: wp('3%'),
   },
   detailValue: {
     fontSize: wp('3.2%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  siteBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('3%'),
+    padding: wp('3%'),
+    marginBottom: hp('1.2%'),
+  },
+  siteIcon: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: wp('3%'),
+  },
+  siteText: {
+    flex: 1,
+  },
+  dateStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EEF2F6',
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('3%'),
+    marginBottom: hp('0.8%'),
+  },
+  dateCell: {
+    flex: 1,
+  },
+  dateCellEnd: {
+    alignItems: 'flex-end',
+  },
+  dateArrow: {
+    paddingHorizontal: wp('2%'),
+  },
+  dateCaption: {
+    fontSize: wp('2.7%'),
+    color: TEXT_MUTED,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dateValue: {
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  dateValueEnd: {
+    textAlign: 'right',
   },
   totalLabel: {
     fontSize: wp('3.8%'),
@@ -1718,11 +1809,15 @@ const styles = StyleSheet.create({
     borderRadius: wp('4%'),
     alignItems: 'center',
     ...SHADOW_SM,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   quoteEmptyText: {
     fontSize: wp('3.3%'),
     color: TEXT_MUTED,
     marginTop: hp('1.5%'),
+    textAlign: 'center',
   },
   rateBtn: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), overflow: 'hidden' },
   rateBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('2%'), paddingHorizontal: wp('4%'), gap: wp('2%') },

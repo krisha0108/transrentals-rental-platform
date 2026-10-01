@@ -1,415 +1,335 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Star,
-  MessageSquare,
-  ThumbsUp,
-  Calendar,
-  User,
-  Car,
-  Filter,
-  TrendingUp,
-  Award,
-  AlertCircle,
-} from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Star, MessageSquare, Award, RefreshCw, Loader2, Calendar, Hash } from 'lucide-react';
 
-interface Review {
+type Review = {
   id: string;
-  customerName: string;
-  customerAvatar?: string;
-  bookingNumber: string;
-  vehicleName: string;
+  source: string;
+  serviceLabel: string;
+  bookingId: string;
+  bookingNumber: string | null;
   rating: number;
-  comment: string;
-  date: string;
-  reply?: string;
-  repliedAt?: string;
-  helpful: number;
-  verified: boolean;
+  review: string | null;
+  subRatings: Record<string, number>;
+  customerName: string | null;
+  tripDate: string | null;
+  reviewedAt: string | null;
+};
+
+type Summary = {
+  average: number;
+  total: number;
+  distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+};
+
+const PAGE_SIZE = 20;
+
+const SERVICES = [
+  { key: 'car', label: 'Car Rental' },
+  { key: 'self-drive', label: 'Self Drive' },
+  { key: 'bike', label: 'Bike Rental' },
+  { key: 'luxury', label: 'Luxury Cars' },
+  { key: 'bus', label: 'Bus & Tempo' },
+  { key: 'truck', label: 'Transporter' },
+  { key: 'packers', label: 'Packers & Movers' },
+  { key: 'equipment', label: 'Equipment Rental' },
+  { key: 'wander', label: 'Wander Tour' },
+];
+
+function fmt(date: string | null) {
+  if (!date) return '—';
+  return new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-interface ReviewStats {
-  averageRating: number;
-  totalReviews: number;
-  fiveStars: number;
-  fourStars: number;
-  threeStars: number;
-  twoStars: number;
-  oneStar: number;
-  responseRate: number;
+function StarRow({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
+  const sz = size === 'lg' ? 'w-5 h-5' : 'w-3.5 h-3.5';
+  return (
+    <span className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          className={`${sz} ${s <= Math.round(rating) ? 'fill-emerald-400 text-emerald-400' : 'fill-gray-100 text-gray-200'}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+function RatingBar({ rating, count, total }: { rating: number; count: number; total: number }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] font-bold text-slate-500 w-3 text-right">{rating}</span>
+      <Star className="w-3 h-3 fill-emerald-400 text-emerald-400 flex-shrink-0" />
+      <div className="flex-1 h-1.5 bg-slate-200/60 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+          style={{ width: `${Math.max(pct, pct > 0 ? 4 : 0)}%` }}
+        />
+      </div>
+      <span className="text-[11px] text-slate-500 w-5 text-right">{count}</span>
+    </div>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
+        active ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50 border border-gray-200'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ReviewSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-pulse">
+      <div className="flex items-start gap-4">
+        <div className="w-10 h-10 rounded-2xl bg-gray-100" />
+        <div className="flex-1 space-y-2.5">
+          <div className="h-3.5 w-1/3 bg-gray-100 rounded" />
+          <div className="h-3 w-1/4 bg-gray-100 rounded" />
+          <div className="h-3 w-full bg-gray-100 rounded" />
+          <div className="h-3 w-2/3 bg-gray-100 rounded" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function VendorReviewsPage() {
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [stats, setStats] = useState<ReviewStats | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [rating, setRating] = useState<number | null>(null);
+  const [service, setService] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(
+    async (nextPage: number) => {
+      const append = nextPage > 1;
+      append ? setLoadingMore(true) : setLoading(true);
+      setError(null);
+      try {
+        const qs = new URLSearchParams({ page: String(nextPage), limit: String(PAGE_SIZE) });
+        if (rating) qs.set('rating', String(rating));
+        if (service) qs.set('service', service);
+        const res = await fetch(`/api/vendor/reviews?${qs}`);
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load reviews');
+        setSummary(data.summary);
+        setReviews((prev) => (append ? [...prev, ...data.reviews] : data.reviews));
+        setPage(data.page);
+        setTotalPages(data.totalPages);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load reviews');
+        if (!append) setReviews([]);
+      } finally {
+        append ? setLoadingMore(false) : setLoading(false);
+      }
+    },
+    [rating, service]
+  );
 
   useEffect(() => {
-    fetchReviews();
-  }, []);
+    load(1);
+  }, [load]);
 
-  const fetchReviews = async () => {
-    // Simulated data
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    setStats({
-      averageRating: 4.7,
-      totalReviews: 156,
-      fiveStars: 98,
-      fourStars: 42,
-      threeStars: 12,
-      twoStars: 3,
-      oneStar: 1,
-      responseRate: 92,
-    });
-
-    setReviews([
-      {
-        id: '1',
-        customerName: 'Rahul Sharma',
-        bookingNumber: 'TR2024120001',
-        vehicleName: 'Toyota Fortuner',
-        rating: 5,
-        comment: 'Excellent service! The car was in perfect condition and the pickup was seamless. Driver was very professional and punctual. Highly recommended!',
-        date: '2024-12-10',
-        helpful: 12,
-        verified: true,
-        reply: 'Thank you for your kind words, Rahul! We are glad you had a great experience. Looking forward to serving you again!',
-        repliedAt: '2024-12-11',
-      },
-      {
-        id: '2',
-        customerName: 'Priya Patel',
-        bookingNumber: 'TR2024120002',
-        vehicleName: 'Honda City',
-        rating: 4,
-        comment: 'Good experience overall. Car was clean and well-maintained. Minor delay in pickup but customer support handled it well.',
-        date: '2024-12-09',
-        helpful: 8,
-        verified: true,
-      },
-      {
-        id: '3',
-        customerName: 'Amit Kumar',
-        bookingNumber: 'TR2024110045',
-        vehicleName: 'Maruti Swift',
-        rating: 5,
-        comment: 'Best self-drive experience! The car was exactly as described. Will definitely book again for my next trip.',
-        date: '2024-12-05',
-        helpful: 15,
-        verified: true,
-        reply: 'Thank you Amit! We appreciate your trust in our services. Safe travels!',
-        repliedAt: '2024-12-06',
-      },
-      {
-        id: '4',
-        customerName: 'Sneha Reddy',
-        bookingNumber: 'TR2024110032',
-        vehicleName: 'Mercedes E-Class',
-        rating: 5,
-        comment: 'Premium service with premium car. The chauffeur was extremely professional. Made our event very special. Thank you TransRentals!',
-        date: '2024-11-28',
-        helpful: 20,
-        verified: true,
-      },
-      {
-        id: '5',
-        customerName: 'Vikram Singh',
-        bookingNumber: 'TR2024110025',
-        vehicleName: 'Hyundai Creta',
-        rating: 3,
-        comment: 'Car was okay but AC was not cooling properly. Hope it gets fixed for future customers.',
-        date: '2024-11-20',
-        helpful: 5,
-        verified: true,
-        reply: 'We apologize for the inconvenience, Vikram. We have addressed the AC issue immediately. Thank you for your feedback.',
-        repliedAt: '2024-11-21',
-      },
-    ]);
-
-    setLoading(false);
-  };
-
-  const handleSubmitReply = async (reviewId: string) => {
-    if (!replyText.trim()) return;
-
-    // In production, this would call an API
-    setReviews(reviews.map(r =>
-      r.id === reviewId
-        ? { ...r, reply: replyText, repliedAt: new Date().toISOString() }
-        : r
-    ));
-    setReplyingTo(null);
-    setReplyText('');
-  };
-
-  const filteredReviews = reviews.filter(review => {
-    if (filter === 'all') return true;
-    if (filter === 'positive') return review.rating >= 4;
-    if (filter === 'negative') return review.rating < 4;
-    if (filter === 'unanswered') return !review.reply;
-    return true;
-  });
-
-  const getRatingDistribution = (stars: number) => {
-    if (!stats) return 0;
-    const counts: Record<number, number> = {
-      5: stats.fiveStars,
-      4: stats.fourStars,
-      3: stats.threeStars,
-      2: stats.twoStars,
-      1: stats.oneStar,
-    };
-    return (counts[stars] / stats.totalReviews) * 100;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-dvh">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const total = summary?.total ?? 0;
+  const filtered = rating !== null || service !== null;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="-mx-6 -mt-6 bg-slate-50 min-h-dvh">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Customer Reviews</h1>
-        <p className="text-gray-600 mt-1">See what customers are saying about your service</p>
+      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 overflow-hidden px-8 pt-8 pb-6">
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-emerald-200 mb-3">
+              <Star className="w-3 h-3 fill-emerald-400 text-emerald-400" /> Customer Feedback
+            </span>
+            <h1 className="text-[28px] font-black text-white tracking-tight leading-none mb-2">Customer Reviews</h1>
+            <p className="text-emerald-100/70 text-sm">What customers said after their trips with you</p>
+          </div>
+          <button
+            onClick={() => load(1)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/15 border border-white/10 text-white rounded-xl transition text-sm font-medium flex-shrink-0 mt-1"
+          >
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Stats Overview */}
-      {stats && (
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          {/* Rating Card */}
-          <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-start gap-6">
-              <div className="text-center">
-                <p className="text-5xl font-bold text-gray-900">{stats.averageRating}</p>
-                <div className="flex items-center justify-center gap-1 my-2">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star
-                      key={star}
-                      className={`w-5 h-5 ${
-                        star <= Math.round(stats.averageRating)
-                          ? 'text-yellow-400 fill-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-sm text-gray-500">{stats.totalReviews} reviews</p>
-              </div>
-              <div className="flex-1 space-y-2">
-                {[5, 4, 3, 2, 1].map(stars => (
-                  <div key={stars} className="flex items-center gap-2">
-                    <span className="w-3 text-sm text-gray-600">{stars}</span>
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-yellow-400 rounded-full"
-                        style={{ width: `${getRatingDistribution(stars)}%` }}
-                      />
-                    </div>
-                    <span className="w-8 text-sm text-gray-500 text-right">
-                      {Math.round(getRatingDistribution(stars))}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Response Rate */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Response Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.responseRate}%</p>
-              </div>
-            </div>
-            <p className="text-sm text-gray-600">
-              You respond to {stats.responseRate}% of reviews. Keep it up!
-            </p>
-          </div>
-
-          {/* Achievement */}
-          <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl p-6 text-white">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <Award className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm text-yellow-100">Top Rated</p>
-                <p className="text-2xl font-bold">Vendor</p>
-              </div>
-            </div>
-            <p className="text-sm text-yellow-100">
-              You're in the top 10% of vendors in your city!
-            </p>
-          </div>
+      {/* Filters */}
+      <div className="bg-white border-b border-gray-100 px-8 py-3 sticky top-[57px] z-20 shadow-sm space-y-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <Chip active={rating === null} onClick={() => setRating(null)}>All ratings</Chip>
+          {[5, 4, 3, 2, 1].map((r) => (
+            <Chip key={r} active={rating === r} onClick={() => setRating(r)}>
+              <span className="flex items-center gap-1">
+                {r} <Star className={`w-3 h-3 ${rating === r ? 'fill-white text-white' : 'fill-emerald-400 text-emerald-400'}`} />
+              </span>
+            </Chip>
+          ))}
         </div>
-      )}
-
-      {/* Filter Bar */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="flex gap-2">
-          {[
-            { id: 'all', label: 'All Reviews' },
-            { id: 'positive', label: 'Positive' },
-            { id: 'negative', label: 'Needs Attention' },
-            { id: 'unanswered', label: 'Unanswered' },
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {f.label}
-            </button>
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <Chip active={service === null} onClick={() => setService(null)}>All services</Chip>
+          {SERVICES.map((s) => (
+            <Chip key={s.key} active={service === s.key} onClick={() => setService(s.key)}>
+              {s.label}
+            </Chip>
           ))}
         </div>
       </div>
 
-      {/* Reviews List */}
-      <div className="space-y-4">
-        {filteredReviews.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900">No reviews found</h3>
-            <p className="text-gray-500">No reviews match your current filter.</p>
-          </div>
-        ) : (
-          filteredReviews.map(review => (
-            <div
-              key={review.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  {review.customerAvatar ? (
-                    <img
-                      src={review.customerAvatar}
-                      alt={review.customerName}
-                      className="w-12 h-12 rounded-full object-cover"
+      <div className="px-8 py-7">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+          {/* Reviews */}
+          <div className="space-y-4 order-2 lg:order-1">
+            {loading ? (
+              [0, 1, 2].map((i) => <ReviewSkeleton key={i} />)
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-white border border-dashed border-red-200 rounded-2xl">
+                <p className="font-bold text-gray-800 mb-1">{error}</p>
+                <button onClick={() => load(1)} className="text-sm text-emerald-600 font-semibold hover:underline">
+                  Try again
+                </button>
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-28 bg-white border border-dashed border-gray-200 rounded-2xl">
+                <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+                  <Star className="w-8 h-8 text-emerald-200" />
+                </div>
+                <p className="font-bold text-gray-800 mb-1 text-base">
+                  {filtered ? 'No reviews match these filters' : 'No reviews yet'}
+                </p>
+                <p className="text-sm text-gray-400">
+                  {filtered ? 'Try a different rating or service' : 'Ratings customers leave after completed trips will appear here'}
+                </p>
+              </div>
+            ) : (
+              <>
+                {reviews.map((review) => (
+                  <div key={review.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md overflow-hidden transition-all">
+                    <div
+                      className={`h-1 ${
+                        review.rating >= 4
+                          ? 'bg-gradient-to-r from-emerald-400 to-teal-400'
+                          : review.rating === 3
+                            ? 'bg-amber-400'
+                            : 'bg-red-400'
+                      }`}
                     />
-                  ) : (
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-blue-600" />
-                    </div>
-                  )}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-gray-900">{review.customerName}</h4>
-                      {review.verified && (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                          Verified
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Car className="w-4 h-4" />
-                      <span>{review.vehicleName}</span>
-                      <span>•</span>
-                      <span>#{review.bookingNumber}</span>
+                    <div className="p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center flex-shrink-0 text-white font-black text-base shadow-sm">
+                          {review.customerName?.[0]?.toUpperCase() || 'C'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-bold text-gray-900 text-sm">{review.customerName || 'Customer'}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
+                              {review.serviceLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap text-[11px] text-gray-400 mb-3">
+                            {review.bookingNumber && (
+                              <span className="flex items-center gap-1">
+                                <Hash className="w-3 h-3" /> {review.bookingNumber}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" /> Trip {fmt(review.tripDate)}
+                            </span>
+                            <span>Reviewed {fmt(review.reviewedAt)}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2 mb-2.5">
+                            <StarRow rating={review.rating} />
+                            <span className="text-sm font-black text-gray-700">{review.rating}/5</span>
+                          </div>
+
+                          {review.review ? (
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{review.review}</p>
+                          ) : (
+                            <p className="text-sm text-gray-400 italic">No written comment</p>
+                          )}
+
+                          {Object.keys(review.subRatings).length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {Object.entries(review.subRatings).map(([label, value]) => (
+                                <span
+                                  key={label}
+                                  className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-slate-600"
+                                >
+                                  {label}
+                                  <Star className="w-3 h-3 fill-emerald-400 text-emerald-400" />
+                                  {value}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <Star
-                        key={star}
-                        className={`w-4 h-4 ${
-                          star <= review.rating
-                            ? 'text-yellow-400 fill-yellow-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
+                ))}
+
+                {page < totalPages && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={() => load(page + 1)}
+                      disabled={loadingMore}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+                    >
+                      {loadingMore && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Load more
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Summary */}
+          <div className="space-y-4 lg:sticky lg:top-[160px] order-1 lg:order-2">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="font-black text-gray-900 text-sm flex items-center gap-2 mb-5">
+                <Award className="w-4 h-4 text-emerald-500" /> Rating Summary
+              </h3>
+              {!summary ? (
+                <div className="h-40 bg-gray-50 rounded-xl animate-pulse" />
+              ) : (
+                <>
+                  <div className="flex flex-col items-center py-4 mb-5 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                    <p className="text-5xl font-black text-emerald-500 leading-none">
+                      {total ? summary.average.toFixed(1) : '—'}
+                    </p>
+                    <div className="mt-2">
+                      <StarRow rating={summary.average} size="lg" />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2 font-medium flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3" /> {total} review{total !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="space-y-2.5">
+                    {([5, 4, 3, 2, 1] as const).map((r) => (
+                      <RatingBar key={r} rating={r} count={summary.distribution[String(r) as '1']} total={total} />
                     ))}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {new Date(review.date).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-gray-700 mb-4">{review.comment}</p>
-
-              {/* Reply Section */}
-              {review.reply ? (
-                <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-900">Your Response</span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(review.repliedAt!).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 text-sm">{review.reply}</p>
-                </div>
-              ) : replyingTo === review.id ? (
-                <div className="mt-4">
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Write your response..."
-                  />
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      onClick={() => {
-                        setReplyingTo(null);
-                        setReplyText('');
-                      }}
-                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => handleSubmitReply(review.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      Submit Reply
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setReplyingTo(review.id)}
-                  className="mt-4 flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Reply to this review
-                </button>
+                </>
               )}
-
-              {/* Helpful */}
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
-                <button className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>{review.helpful} found helpful</span>
-                </button>
-              </div>
             </div>
-          ))
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );

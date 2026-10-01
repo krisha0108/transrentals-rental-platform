@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
-import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { updateVendorRating, parseStarRating } from '@/lib/utils/update-vendor-rating';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
@@ -292,6 +292,7 @@ export async function PATCH(
           id: updatedBooking.id,
           bookingNumber: updatedBooking.bookingNumber,
           status: updatedBooking.status,
+          refundAmount: updatedBooking.refundAmount,
         },
       });
     }
@@ -304,29 +305,37 @@ export async function PATCH(
         );
       }
 
-      if (!rating || rating < 1 || rating > 5) {
+      if (booking.rating) {
+        return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+      }
+      const stars = parseStarRating(rating);
+      if (!stars) {
         return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
       }
 
-      const updatedBooking = await prisma.bike_bookings.update({
-        where: { id },
+      // Only an unrated row is written, so a double submit cannot count twice.
+      const { count } = await prisma.bike_bookings.updateMany({
+        where: { id, rating: null },
         data: {
-          rating,
+          rating: stars,
           review: review || null,
-          driverRating: driverRating || rating,
-          vehicleRating: vehicleRating || rating,
+          driverRating: parseStarRating(driverRating) ?? stars,
+          vehicleRating: parseStarRating(vehicleRating) ?? stars,
         },
       });
+      if (!count) {
+        return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+      }
 
-      updateVendorRating(booking.acceptedVendorId, rating).catch(() => {});
+      updateVendorRating(booking.acceptedVendorId, stars).catch(() => {});
 
       return NextResponse.json({
         success: true,
         message: 'Rating submitted successfully',
         booking: {
-          id: updatedBooking.id,
-          bookingNumber: updatedBooking.bookingNumber,
-          rating: updatedBooking.rating,
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          rating: stars,
         },
       });
     }

@@ -6,10 +6,15 @@ import { publishScheduledStories } from '@/lib/web-stories/publish-scheduled';
 export const dynamic = 'force-dynamic';
 
 // GET - Public list of published, non-archived, non-expired stories
-// Optional query params: service (slug), location (slug), featured (bool —
-// only admin-picked stories, for the homepage carousel rather than the full
-// /stories listing), limit (cap the result count, applied after targeting
-// filtering so it stays accurate for the homepage's untargeted request)
+// Optional query params: service (slug), location (slug), city (name or slug),
+// featured (bool — only admin-picked stories, for the homepage carousel
+// rather than the full /stories listing), limit (cap the result count,
+// applied after targeting filtering so it stays accurate for the homepage's
+// untargeted request)
+//
+// `location` also matches stories with no location targeting ("show
+// everywhere"). `city` is stricter, for "stories about this place" sections:
+// the story must target that city, or name it in its title or category.
 export async function GET(request: NextRequest) {
   try {
     await publishScheduledStories();
@@ -20,6 +25,8 @@ export async function GET(request: NextRequest) {
     const featuredOnly = searchParams.get('featured') === 'true';
     const limitParam = parseInt(searchParams.get('limit') || '', 10);
     const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : null;
+    const cityFilter = (searchParams.get('city') || '').trim().toLowerCase() || null;
+    const citySlug = cityFilter ? cityFilter.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : null;
 
     const stories = await prisma.web_stories.findMany({
       where: {
@@ -41,6 +48,7 @@ export async function GET(request: NextRequest) {
         publisherName: true,
         publisherLogo: true,
         category: true,
+        isFeatured: true,
         publishedAt: true,
         slides: { select: { id: true } },
         reactions: { select: { reactionType: true } },
@@ -79,8 +87,31 @@ export async function GET(request: NextRequest) {
       return serviceOk && locationOk;
     };
 
+    const matchesCity = (story: any) => {
+      if (!cityFilter) return true;
+      let locations: string[] = [];
+      try {
+        const raw = targetingMap[story.id]?.targetLocations;
+        if (raw) locations = JSON.parse(raw);
+      } catch {}
+      if (locations.some((slug) => String(slug).toLowerCase() === citySlug)) return true;
+      const text = `${story.title || ''} ${story.category || ''}`.toLowerCase();
+      const slug = String(story.slug || '').toLowerCase();
+      return text.includes(cityFilter) || (!!citySlug && `-${slug}-`.includes(`-${citySlug}-`));
+    };
+
+    const locationsOf = (storyId: string): string[] => {
+      try {
+        const raw = targetingMap[storyId]?.targetLocations;
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+
     const formatted = stories
-      .filter((s: any) => matchesTargeting(s.id))
+      .filter((s: any) => matchesTargeting(s.id) && matchesCity(s))
       .map((s: any) => ({
         id: s.id,
         title: s.title,
@@ -90,6 +121,8 @@ export async function GET(request: NextRequest) {
         publisherName: s.publisherName,
         publisherLogo: s.publisherLogo,
         category: s.category,
+        isFeatured: !!s.isFeatured,
+        locations: locationsOf(s.id),
         publishedAt: s.publishedAt?.toISOString() || null,
         slideCount: s.slides.length,
         totalReactions: s.reactions.length,

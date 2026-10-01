@@ -477,6 +477,7 @@ export default function DriverRegisterPage() {
           kicker="Create your account"
           title="Driver Sign Up"
           subtitle="Fill in your details to get started with TransRentals."
+          compactSubtitle
         />
 
         {error && (
@@ -488,7 +489,7 @@ export default function DriverRegisterPage() {
 
         {/* Paired rows, so the whole form is visible at once on a laptop
             screen rather than running off the bottom of the window. */}
-        <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
+        <form onSubmit={handleSubmit} className="space-y-2.5" noValidate>
           <div className="grid gap-3.5 sm:grid-cols-2">
             <Field
               id="name" label="Full Name" required
@@ -600,10 +601,6 @@ export default function DriverRegisterPage() {
           </div>
 
           <div>
-            <p className="da-upload-label">
-              <FileText className="h-[18px] w-[18px] text-[#8C97B3]" />
-              Upload Driving License
-            </p>
             <label className={`da-upload${licenseFile ? ' is-set' : ''}`}>
               <input
                 type="file"
@@ -644,7 +641,7 @@ export default function DriverRegisterPage() {
                   <UploadCloud className="h-7 w-7 shrink-0 text-[#8C97B3]" />
                   <span className="text-left">
                     <span className="block text-[13.5px] text-[#5A6684]">
-                      <b className="font-bold text-[#14203F]">Click to upload</b> or drag and drop
+                      <b className="font-bold text-[#14203F]">Upload Driving License</b> — click or drag
                     </span>
                     <span className="block text-[12px] text-[#98A2BA]">PDF, JPG, PNG (Max 5MB)</span>
                   </span>
@@ -694,15 +691,10 @@ export default function DriverRegisterPage() {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              .da-upload-label {
-                display: flex; align-items: center; gap: 9px;
-                margin-bottom: 7px; padding-left: 2px;
-                font-size: 12.5px; font-weight: 700; color: #26324F;
-              }
               .da-upload {
                 display: flex; align-items: center; justify-content: center; gap: 12px;
                 border: 1.5px dashed #CBD4EA; border-radius: 14px;
-                background: #FBFCFF; padding: 18px 16px; cursor: pointer;
+                background: #FBFCFF; padding: 12px 16px; cursor: pointer;
                 transition: border-color 0.2s ease, background 0.2s ease;
               }
               .da-upload:hover { border-color: #16A34A; background: #F3FAF5; }
@@ -725,6 +717,16 @@ export default function DriverRegisterPage() {
               }
               .da-agree-link { color: #15803D; font-weight: 600; }
               .da-agree-link:hover { text-decoration: underline; }
+
+              /* The same short-screen step the card takes, for the parts of
+                 the form that live on this page. */
+              @media (min-width: 1024px) and (max-height: 800px) {
+                .da-upload { padding: 8px 14px; border-radius: 12px; }
+                .da-upload svg { width: 22px; height: 22px; }
+                .da-agree { font-size: 12px; gap: 8px; padding-bottom: 0; }
+                .da-check { width: 16px; height: 16px; }
+                .da-back { margin-top: 12px; padding-top: 10px; font-size: 12.5px; }
+              }
 
               .da-back {
                 display: flex; align-items: center; justify-content: center; gap: 8px;

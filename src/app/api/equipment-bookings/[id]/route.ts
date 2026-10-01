@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
-import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { updateVendorRating, parseStarRating } from '@/lib/utils/update-vendor-rating';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
@@ -186,19 +186,27 @@ export async function PATCH(
         if (booking.status !== 'COMPLETED') {
           return NextResponse.json({ error: 'Can only rate completed bookings' }, { status: 400 });
         }
+        if (booking.rating) {
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+        }
         const { rating, review, equipmentRating } = data;
-        if (!rating || rating < 1 || rating > 5) {
+        const stars = parseStarRating(rating);
+        if (!stars) {
           return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
         }
 
-        const updatedBooking = await prisma.equipment_bookings.update({
-          where: { id },
-          data: { rating, review: review || null, equipmentRating: equipmentRating || rating },
+        // Only an unrated row is written, so a double submit cannot count twice.
+        const { count } = await prisma.equipment_bookings.updateMany({
+          where: { id, rating: null },
+          data: { rating: stars, review: review || null, equipmentRating: parseStarRating(equipmentRating) ?? stars },
         });
+        if (!count) {
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+        }
 
-        updateVendorRating(booking.vendorId, rating).catch(() => {});
+        updateVendorRating(booking.vendorId, stars).catch(() => {});
 
-        return NextResponse.json({ success: true, message: 'Rating submitted', booking: { id: updatedBooking.id, rating: updatedBooking.rating } });
+        return NextResponse.json({ success: true, message: 'Rating submitted', booking: { id: booking.id, rating: stars } });
       }
 
       case 'extend': {

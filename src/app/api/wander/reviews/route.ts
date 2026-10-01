@@ -74,10 +74,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { bookingId, customerId, rating, title, review } = body;
+    const { customerId, rating, title } = body;
+    // The customer app sends `comment` and the quote request id rather than
+    // `review` and the booking id; accept both shapes.
+    const review = body.review ?? body.comment;
+    let bookingId = body.bookingId;
+    if (!bookingId && body.quoteRequestId && customerId) {
+      const linked = await (prisma as any).wander_bookings.findFirst({
+        where: { quoteRequestId: body.quoteRequestId, customerId },
+        select: { id: true },
+      });
+      bookingId = linked?.id;
+    }
 
-    if (!bookingId) return NextResponse.json({ error: 'bookingId is required' }, { status: 400 });
     if (!customerId) return NextResponse.json({ error: 'customerId is required' }, { status: 400 });
+    if (!bookingId) return NextResponse.json({ error: 'Booking not found for this trip' }, { status: 400 });
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
     }

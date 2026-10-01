@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
-import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { updateVendorRating, parseStarRating } from '@/lib/utils/update-vendor-rating';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,27 +29,32 @@ export async function PATCH(
         return NextResponse.json({ success: false, error: 'Only completed bookings can be rated' }, { status: 400 });
       }
       if (booking.rating) {
-        return NextResponse.json({ success: false, error: 'Already rated' }, { status: 400 });
+        return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
       }
-      if (!rating || rating < 1 || rating > 5) {
+      const stars = parseStarRating(rating);
+      if (!stars) {
         return NextResponse.json({ success: false, error: 'Rating must be between 1 and 5' }, { status: 400 });
       }
 
-      const updated = await prisma.chauffeur_bookings.update({
-        where: { id: booking.id },
+      // Only an unrated row is written, so a double submit cannot count twice.
+      const { count } = await prisma.chauffeur_bookings.updateMany({
+        where: { id: booking.id, rating: null },
         data: {
-          rating: parseInt(rating),
+          rating: stars,
           review: review || null,
-          driverRating: driverRating || parseInt(rating),
+          driverRating: parseStarRating(driverRating) ?? stars,
         },
       });
+      if (!count) {
+        return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+      }
 
-      updateVendorRating(booking.acceptedVendorId, rating).catch(() => {});
+      updateVendorRating(booking.acceptedVendorId, stars).catch(() => {});
 
       return NextResponse.json({
         success: true,
         message: 'Thank you for your feedback!',
-        booking: { id: updated.id, rating: updated.rating },
+        booking: { id: booking.id, rating: stars },
       });
     }
 

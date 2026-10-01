@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db/prisma';
  *
  * Formula: newAvg = ((oldAvg * count) + newRating) / (count + 1)
  */
-export async function updateVendorRating(vendorId: string, newRating: number): Promise<void> {
+export async function updateVendorRating(vendorId: string | null | undefined, newRating: number): Promise<void> {
   if (!vendorId || !newRating || newRating < 1 || newRating > 5) return;
 
   try {
@@ -34,4 +34,10 @@ export async function updateVendorRating(vendorId: string, newRating: number): P
     // Non-critical — log but don't throw
     console.error('[updateVendorRating] Failed to update vendor rating:', err);
   }
+}
+
+/** A whole star rating 1-5 from a request body (number or numeric string), else null. */
+export function parseStarRating(value: unknown): number | null {
+  const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
 }

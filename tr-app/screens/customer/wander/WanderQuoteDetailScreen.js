@@ -5,9 +5,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, Linking, Image, Modal,
+  ActivityIndicator, Alert, Linking, Image,
   Dimensions, TextInput, FlatList,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -17,6 +18,7 @@ import wanderService from '../../services/wanderService';
 import paymentService from '../../services/paymentService';
 import { BASE_URL } from '../../api';
 import api from '../../api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import RazorpayCheckout from 'react-native-razorpay';
 
 const { width } = Dimensions.get('window');
@@ -377,10 +379,15 @@ function ReviewCard({ requestId, existingReview }) {
     if (rating === 0) return Alert.alert('Rating needed', 'Please select a star rating.');
     setSubmitting(true);
     try {
-      await api.post(`/wander/reviews`, { quoteRequestId: requestId, rating, title, comment: review });
+      let customerId = null;
+      try {
+        const raw = await AsyncStorage.getItem('customer');
+        customerId = raw ? JSON.parse(raw)?.id || null : null;
+      } catch (_) {}
+      await api.post(`/wander/reviews`, { quoteRequestId: requestId, customerId, rating, title, comment: review });
       setSubmitted(true);
-    } catch {
-      Alert.alert('Error', 'Could not submit review. Try again.');
+    } catch (error) {
+      Alert.alert('Error', error?.response?.data?.error || 'Could not submit review. Try again.');
     } finally {
       setSubmitting(false);
     }

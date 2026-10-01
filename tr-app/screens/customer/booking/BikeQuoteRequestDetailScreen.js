@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Modal,
   Alert,
   Image,
   Dimensions,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
@@ -32,6 +33,8 @@ const STATUS_CONFIG = {
   EXPIRED: { label: 'Expired', color: '#EF4444', icon: 'close-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#6B7280', icon: 'close-circle' },
 };
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 export default function BikeQuoteRequestDetailScreen() {
   const route = useRoute();
@@ -1056,7 +1059,7 @@ export default function BikeQuoteRequestDetailScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={styles.detailsTabContent}>
+              <SwipeTabsView style={styles.detailsTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -1420,11 +1423,11 @@ export default function BikeQuoteRequestDetailScreen() {
                       }
 
                       // If single item or plain text, show as paragraph
-                      if (terms.length === 1 || viewingQuote.termsConditions) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.detailsTermsCard}>
                             <Text style={styles.detailsTermsText}>
-                              {terms.length === 1 ? terms[0] : viewingQuote.termsConditions}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1440,7 +1443,7 @@ export default function BikeQuoteRequestDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               {/* Bottom Actions */}
               <View style={styles.detailsActions}>
@@ -2882,11 +2885,15 @@ const styles = StyleSheet.create({
     borderRadius: wp('3.5%'),
     alignItems: 'center',
     ...SHADOW_SM,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   detailsEmptyText: {
     fontSize: wp('3.2%'),
     color: TEXT_MUTED,
     marginTop: hp('1.2%'),
+    textAlign: 'center',
   },
 
   // Bottom Actions

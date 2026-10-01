@@ -56,7 +56,7 @@ function docStatus(expiry?: string) {
 }
 
 const MAINT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  SERVICE:    { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-l-emerald-500' },
+  SERVICE:    { bg: 'bg-green-100', text: 'text-green-700', border: 'border-l-green-500' },
   REPAIR:     { bg: 'bg-red-100',     text: 'text-red-700',     border: 'border-l-red-500' },
   FUEL:       { bg: 'bg-blue-100',    text: 'text-blue-700',    border: 'border-l-blue-500' },
   INSURANCE:  { bg: 'bg-purple-100',  text: 'text-purple-700',  border: 'border-l-purple-500' },
@@ -164,13 +164,13 @@ export default function VehicleDetailPage() {
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+      <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
     </div>
   );
   if (!vehicle) return (
     <div className="text-center py-12">
       <p className="text-red-600 font-medium">Vehicle not found</p>
-      <Link href="/driver/fleet" className="text-emerald-600 mt-3 inline-block text-sm">← Back to Fleet</Link>
+      <Link href="/driver/fleet" className="text-green-600 mt-3 inline-block text-sm">← Back to Fleet</Link>
     </div>
   );
 
@@ -195,7 +195,7 @@ export default function VehicleDetailPage() {
 
       {/* Hero Gradient Header */}
       <div className="relative mb-14">
-      <div className={`rounded-2xl overflow-hidden shadow-lg ${isVendor ? 'bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-500 shadow-blue-200' : 'bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-500 shadow-emerald-200'}`}>
+      <div className={`rounded-2xl overflow-hidden shadow-lg ${isVendor ? 'bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-500 shadow-blue-200' : 'bg-gradient-to-r from-green-700 via-green-600 to-teal-500 shadow-green-200'}`}>
         <div className="px-5 pt-5 pb-14">
           {/* Top row */}
           <div className="flex items-center justify-between mb-4">
@@ -238,7 +238,7 @@ export default function VehicleDetailPage() {
         <div className="absolute bottom-0 left-4 right-4 translate-y-1/2">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 grid grid-cols-4 divide-x divide-gray-100">
             {[
-              { icon: Gauge, label: 'Odometer', value: vehicle.currentOdometer ? `${vehicle.currentOdometer.toLocaleString()} km` : '—', color: 'text-emerald-600' },
+              { icon: Gauge, label: 'Odometer', value: vehicle.currentOdometer ? `${vehicle.currentOdometer.toLocaleString()} km` : '—', color: 'text-green-600' },
               { icon: Car, label: 'Category', value: vehicle.category || '—', color: 'text-blue-600' },
               { icon: Fuel, label: 'Fuel', value: vehicle.fuelType || '—', color: 'text-orange-500' },
               { icon: Users, label: 'Seats', value: vehicle.seatingCapacity ? `${vehicle.seatingCapacity}` : '—', color: 'text-purple-600' },
@@ -317,7 +317,7 @@ export default function VehicleDetailPage() {
                     <div key={slot.key} className="flex flex-col items-center gap-1.5">
                       <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
                         {isUploading ? (
-                          <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                          <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
                         ) : url ? (
                           <>
                             <img src={url} alt={slot.label} className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxUrl(url)} />
@@ -349,11 +349,11 @@ export default function VehicleDetailPage() {
         {/* Service Info */}
         {(vehicle.currentOdometer || vehicle.lastServiceDate || vehicle.nextServiceDate) && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <SectionHeader icon={Wrench} label="Service Info" iconBg="bg-emerald-50 border-emerald-100" iconColor="text-emerald-600" labelColor="text-emerald-800" />
+            <SectionHeader icon={Wrench} label="Service Info" iconBg="bg-green-50 border-green-100" iconColor="text-green-600" labelColor="text-green-800" />
             <div className="p-4 grid grid-cols-3 gap-3">
               {vehicle.currentOdometer != null && (
-                <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                  <Gauge className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+                <div className="bg-green-50 rounded-xl p-3 text-center">
+                  <Gauge className="w-5 h-5 text-green-600 mx-auto mb-1" />
                   <p className="text-sm font-bold text-gray-800">{vehicle.currentOdometer.toLocaleString()}</p>
                   <p className="text-xs text-gray-500">km</p>
                 </div>
@@ -414,7 +414,7 @@ export default function VehicleDetailPage() {
                         </div>
                         {log.description && <p className="text-sm text-gray-600 mt-1 leading-snug">{log.description}</p>}
                         <div className="flex items-center gap-3 mt-2 flex-wrap">
-                          {log.cost > 0 && <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-700"><IndianRupee className="w-3 h-3" />{log.cost.toLocaleString()}</span>}
+                          {log.cost > 0 && <span className="flex items-center gap-0.5 text-xs font-bold text-green-700"><IndianRupee className="w-3 h-3" />{log.cost.toLocaleString()}</span>}
                           {log.odometer && <span className="flex items-center gap-1 text-xs text-gray-500"><Gauge className="w-3 h-3" />{log.odometer.toLocaleString()} km</span>}
                           {log.nextDueDate && <span className="flex items-center gap-1 text-xs text-amber-600"><Clock className="w-3 h-3" />Next: {new Date(log.nextDueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
                         </div>
@@ -468,7 +468,7 @@ export default function VehicleDetailPage() {
                         </div>
                         {log.fuelStation && <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" />{log.fuelStation}</p>}
                         <div className="flex items-center gap-3 mt-2 flex-wrap">
-                          <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-700"><IndianRupee className="w-3 h-3" />{log.totalAmount.toLocaleString()}</span>
+                          <span className="flex items-center gap-0.5 text-xs font-bold text-green-700"><IndianRupee className="w-3 h-3" />{log.totalAmount.toLocaleString()}</span>
                           {log.pricePerLiter && <span className="text-xs text-gray-500">₹{log.pricePerLiter}/L</span>}
                           {log.odometer && <span className="flex items-center gap-1 text-xs text-gray-500"><Gauge className="w-3 h-3" />{log.odometer.toLocaleString()} km</span>}
                         </div>

@@ -14,7 +14,6 @@ import {
   ScrollView,
   Image,
   TextInput,
-  Modal,
   FlatList,
   Animated,
   Dimensions,
@@ -28,6 +27,9 @@ import {
   BackHandler,
   KeyboardAvoidingView
 } from 'react-native';
+import Modal from '../../components/SafeModal';
+import WanderToursPreview from '../../components/WanderToursPreview';
+import StoriesRail from '../../components/StoriesRail';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -71,6 +73,50 @@ const CARD_BORDER = '#F0F2F5';
 const CARD_WIDTH = wp('42%');
 const height = wp('100%');
 const CATEGORY_TILE = (wp('100%') - wp('5%') * 2) / 4 - wp('2%');
+
+// ────── UPCOMING BOOKING HELPERS ──────
+
+// Payment state for an upcoming booking card. The list API reports raw
+// payment statuses for bookings (equipment maps both unpaid states to "Open").
+const upcomingPaymentState = (b) => {
+  const status = String(b.raw_status || b.status || '').toUpperCase();
+  if (b.is_quote_request) {
+    return { label: 'Quote accepted', icon: 'document-text-outline', color: '#2563EB', bg: '#EFF6FF' };
+  }
+  if (status === 'PENDING_PAYMENT' || status === 'OPEN') {
+    return { label: 'Advance pending', icon: 'wallet-outline', color: '#B45309', bg: '#FEF3C7' };
+  }
+  if (status === 'PAYMENT_SUBMITTED') {
+    return { label: 'Payment verifying', icon: 'hourglass-outline', color: '#2563EB', bg: '#EFF6FF' };
+  }
+  if (['ADVANCE_PAID', 'PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(status)) {
+    return { label: 'Advance paid', icon: 'checkmark-circle', color: '#059669', bg: '#D1FAE5' };
+  }
+  return { label: 'Confirmed', icon: 'checkmark-circle', color: '#059669', bg: '#D1FAE5' };
+};
+
+// Same routing as My Bookings, keyed on the normalised service type.
+const openUpcomingBooking = (navigation, item, typeKey) => {
+  const quote = item.isQuoteRequest;
+  const byType = {
+    'self-drive': quote ? ['SelfDriveQuoteRequestDetail', 'requestId'] : ['SelfDriveBookingDetail', 'bookingId'],
+    bike: quote ? ['BikeQuoteRequestDetail', 'requestId'] : ['BikeBookingDetail', 'bookingId'],
+    luxury: quote ? ['LuxuryQuoteDetail', 'requestId'] : ['LuxuryBookingDetail', 'bookingId'],
+    bus: quote ? ['BusQuoteRequestDetail', 'requestId'] : ['BusBookingDetail', 'bookingId'],
+    truck: quote ? ['TruckQuoteRequestDetail', 'requestId'] : ['TruckBookingDetail', 'bookingId'],
+    packers: quote ? ['PackersQuoteRequestDetail', 'requestId'] : ['PackersBookingDetail', 'bookingId'],
+    equipment: quote ? ['EquipmentQuoteRequestDetail', 'requestId'] : ['EquipmentBookingDetail', 'bookingId'],
+    bulk: ['BulkBookingDetail', 'bookingId'],
+  };
+  const target = byType[typeKey];
+  if (target) {
+    navigation.navigate(target[0], { [target[1]]: item.id });
+  } else if (typeKey === 'car') {
+    navigation.navigate('BookingDetail', { bookingId: item.bookingNumber || item.id, bookingType: 'car' });
+  } else {
+    navigation.navigate('BookingDetail', { bookingId: item.id });
+  }
+};
 
 // ────── MOCK DATA ──────
 
@@ -626,11 +672,25 @@ export default function CustomerDashboard() {
 // console.log(`[fetchUpcomingBookings] Bookings received: ${bookings.length}`);
 // console.log('[fetchUpcomingBookings] 📋 All Bookings:', JSON.stringify(bookings, null, 2));
 
-        const formatted = bookings.slice(0, 5).map((b, index) => {
-          // console.log(`[fetchUpcomingBookings] 🔍 Booking ${index + 1}:`, b);
-
-          return {
+        // "Confirmed" from the API means pre-trip, which includes bookings
+        // whose advance is still unpaid, and it is grouped by service rather
+        // than by date. Keep today-or-later trips, soonest first.
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const formatted = bookings
+          .filter((b) => {
+            const when = b.journey_datetime ? new Date(b.journey_datetime) : null;
+            return !when || Number.isNaN(when.getTime()) || when >= startOfToday;
+          })
+          .sort((a, c) => {
+            const ta = a.journey_datetime ? new Date(a.journey_datetime).getTime() : Infinity;
+            const tc = c.journey_datetime ? new Date(c.journey_datetime).getTime() : Infinity;
+            return ta - tc;
+          })
+          .slice(0, 5)
+          .map((b) => ({
             id: b.id?.toString() || b.booking_number,
+            bookingNumber: b.booking_number || null,
             from: b.location_name || b.locationName || b.location?.name || b.pickupAddress || 'N/A',
             to: b.destination || 'N/A',
             date: b.journey_datetime
@@ -639,11 +699,12 @@ export default function CustomerDashboard() {
                 month: 'short',
               })
               : 'N/A',
-            status: b.service_name || 'Booking',
+            serviceName: b.service_name || 'Booking',
+            serviceType: b.service_type || '',
+            isQuoteRequest: !!b.is_quote_request,
+            payment: upcomingPaymentState(b),
             driver: b.vendor?.name || 'Pending',
-            type: b.service_type || 'Unknown',
-          };
-        });
+          }));
 
 // console.log('[fetchUpcomingBookings] 📦 Formatted Trips:', JSON.stringify(formatted, null, 2));
         setUpcomingTrips(formatted);
@@ -943,8 +1004,8 @@ export default function CustomerDashboard() {
           <View style={styles.catFrameImageWrap}>
             <Image source={c.image} style={styles.catFrameImage} resizeMode="cover" />
             <LinearGradient
-              colors={['transparent', 'rgba(10,20,16,0.05)', 'rgba(8,16,13,0.82)']}
-              locations={[0, 0.35, 1]}
+              colors={['transparent', 'rgba(8,16,13,0.45)', 'rgba(8,16,13,0.9)']}
+              locations={[0, 0.4, 1]}
               style={styles.catFrameScrim}
             />
             {isB2BCustomer && c.b2bEligible && (
@@ -1184,6 +1245,9 @@ export default function CustomerDashboard() {
             </TouchableOpacity>
           </View>
 
+          {/* WANDER TOURS: a couple of tours, "View more" opens Wander */}
+          <WanderToursPreview />
+
           {/* QUICK STATS */}
           <QuickStats />
 
@@ -1200,7 +1264,9 @@ export default function CustomerDashboard() {
 
               <View style={styles.bookingsList}>
                 {upcomingTrips.map(item => {
-                  const typeKey = (item.type || '').toLowerCase();
+                  // The API calls self-drive "car" and the driven car "chauffeur".
+                  const rawType = (item.serviceType || '').toLowerCase();
+                  const typeKey = rawType === 'car' ? 'self-drive' : rawType === 'chauffeur' ? 'car' : rawType;
                   const svcMeta = {
                     bike:        { icon: 'bicycle',    color: '#3B82F6', bg: '#EFF6FF' },
                     car:         { icon: 'car-sport',  color: '#8B5CF6', bg: '#F5F3FF' },
@@ -1215,10 +1281,10 @@ export default function CustomerDashboard() {
 
                   return (
                     <TouchableOpacity
-                      key={item.id}
+                      key={`${typeKey}-${item.id}`}
                       style={styles.upcomingCard}
                       activeOpacity={0.7}
-                      onPress={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
+                      onPress={() => openUpcomingBooking(navigation, item, typeKey)}
                     >
                       {/* Icon */}
                       <View style={[styles.upcomingIcon, { backgroundColor: m.bg }]}>
@@ -1236,13 +1302,13 @@ export default function CustomerDashboard() {
                           <Ionicons name="time-outline" size={13} color={TEXT_LIGHT} />
                           <Text style={styles.upcomingDate}>{item.date}</Text>
                           <View style={styles.upcomingDot} />
-                          <Text style={[styles.upcomingTypeTxt, { color: m.color }]}>{item.type}</Text>
+                          <Text style={[styles.upcomingTypeTxt, { color: m.color }]} numberOfLines={1}>{item.serviceName}</Text>
                         </View>
                         <View style={styles.upcomingBadgeRow}>
-                          <LinearGradient colors={['#ECFDF5', '#D1FAE5']} style={styles.confirmedBadge}>
-                            <Ionicons name="checkmark-circle" size={14} color="#059669" />
-                            <Text style={styles.confirmedTxt}>{item.status}</Text>
-                          </LinearGradient>
+                          <View style={[styles.confirmedBadge, { backgroundColor: item.payment.bg }]}>
+                            <Ionicons name={item.payment.icon} size={14} color={item.payment.color} />
+                            <Text style={[styles.confirmedTxt, { color: item.payment.color }]}>{item.payment.label}</Text>
+                          </View>
                         </View>
                       </View>
 
@@ -1338,6 +1404,9 @@ export default function CustomerDashboard() {
             </View>
           )}
           {/* HOW IT WORKS */}
+          {/* TRAVEL STORIES */}
+          <StoriesRail title="Travel Stories" subtitle="Places to visit, trip ideas and travel guides" popularFirst />
+
           <HowItWorksSection />
 
           {/* POPULAR ROUTES */}
@@ -1370,8 +1439,16 @@ export default function CustomerDashboard() {
           <View style={{ height: hp('10%') }} />
         </Animated.ScrollView>
       )}
-      {/* FAB */}
-
+      {/* FAB: AI help assistant */}
+      <TouchableOpacity
+        style={styles.assistantFab}
+        onPress={() => navigation.navigate('HelpAssistant')}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Ask TransRentals Assistant"
+      >
+        <Ionicons name="chatbubble-ellipses" size={wp('6.5%')} color="#fff" />
+      </TouchableOpacity>
 
       {/* BOTTOM NAV - Handled by App.js Tab.Navigator */}
 
@@ -2007,10 +2084,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  // The photos have light backgrounds and mostly white vehicles, so the
+  // scrim reaches well above the text and the text carries a soft shadow.
   catFrameScrim: {
     position: 'absolute',
     left: 0, right: 0, bottom: 0,
-    height: '60%',
+    height: '70%',
   },
   catFrameTextOnPhoto: {
     position: 'absolute',
@@ -2029,6 +2108,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 0.2,
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   catFrameSub: {
     fontSize: wp('2.3%'),
@@ -2042,7 +2124,10 @@ const styles = StyleSheet.create({
     color: '#A9F0D1',
     fontWeight: '700',
     marginTop: hp('0.15%'),
-    lineHeight: hp('1.4%'),
+    lineHeight: wp('3.1%'),
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   catTile: {
     width: CATEGORY_TILE,
@@ -2352,6 +2437,13 @@ const styles = StyleSheet.create({
 
   // FAB
   fab: { position: 'absolute', bottom: hp('10%'), alignSelf: 'center' },
+  // Sits above the tab bar, which overlays the bottom 70px of the screen.
+  assistantFab: {
+    position: 'absolute', right: wp('5%'), bottom: 70 + hp('2.5%'),
+    width: wp('14%'), height: wp('14%'), borderRadius: wp('7%'),
+    backgroundColor: BRAND_TEAL, justifyContent: 'center', alignItems: 'center',
+    elevation: 8, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+  },
   fabBtn: { backgroundColor: BRAND_TEAL, flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp('6%'), paddingVertical: hp('1.8%'), borderRadius: 40, elevation: 8 },
   fabTxt: { color: '#fff', fontSize: wp('4.2%'), fontWeight: 'bold', marginLeft: wp('2%') },
 
@@ -2506,13 +2598,16 @@ const styles = StyleSheet.create({
     lineHeight: hp('2.3%'),
   },
 
+  // Runs from the bottom of this step's icon to the top of the next one:
+  // it starts under the icon and reaches through the card's bottom margin.
   connectingLine: {
     position: 'absolute',
     top: wp('9%'),
-    left: wp('4%'),
-    width: 1,
-    height: '110%',
-    backgroundColor: CARD_BORDER,
+    bottom: -hp('3%'),
+    left: wp('4.5%') - 1,
+    width: 2,
+    borderRadius: 1,
+    backgroundColor: `${BRAND_TEAL}66`,
     zIndex: 1,
   },
 

@@ -25,6 +25,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import api from '../api';
+import RefundsList from '../../components/RefundsList';
 import { BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../theme';
 
 /* ── Color Palette ───────────────────────── */
@@ -280,7 +281,10 @@ export default function ExpensesScreen() {
     }
   };
 
+  const [refundsKey, setRefundsKey] = useState(0);
+
   const onRefresh = () => {
+    setRefundsKey((k) => k + 1);
     setRefreshing(true);
     setLoading(true);
     fetchExpenses();
@@ -443,6 +447,9 @@ export default function ExpensesScreen() {
                   </Text>
                 </View>
               )}
+
+              {/* Refunds on cancelled bookings, above the payments */}
+              {!searchQuery ? <RefundsList refreshKey={refundsKey} /> : null}
 
               {/* Section header */}
               {!loading && filteredExpenses.length > 0 && (

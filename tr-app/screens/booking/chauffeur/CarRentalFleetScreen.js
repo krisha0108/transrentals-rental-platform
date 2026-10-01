@@ -10,13 +10,13 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  Modal,
   Dimensions,
   Linking,
   BackHandler,
   KeyboardAvoidingView,
   Keyboard,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -26,7 +26,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { locationService, bookingService } from '../../services';
 import { BASE_URL } from '../../api';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toTimeString, combineDateAndTime, toLocalDateString } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 // Phase 7 — TA Personal/Company toggle (renders only for TA-linked customers).
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
@@ -76,9 +76,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   const [selectedPackage, setSelectedPackage] = useState(null);
 
   // Dates
-  const [pickupDate, setPickupDate] = useState(new Date());
-  const [returnDate, setReturnDate] = useState(new Date(Date.now() + 24 * 60 * 60 * 1000));
-  const [pickupTime, setPickupTime] = useState('10:00');
+  const [pickupDate, setPickupDate] = useState(() => getEarliestPickup());
+  const [returnDate, setReturnDate] = useState(() => new Date(getEarliestPickup().getTime() + 24 * 60 * 60 * 1000));
+  const [pickupTime, setPickupTime] = useState(() => toTimeString(getEarliestPickup()));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState('pickup');
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -234,7 +234,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                           vehicleCategory: category.id,
                           from: leg.from,
                           to: leg.to,
-                          startDate: pickupDate.toISOString().split('T')[0],
+                          startDate: toLocalDateString(pickupDate),
                           pickupTime,
                         });
                         return legRes.success ? legRes : null;
@@ -294,9 +294,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               // Normal single-leg pricing
               params.from = fromLocation?.id;
               params.to = toLocation?.id;
-              params.startDate = pickupDate.toISOString().split('T')[0];
+              params.startDate = toLocalDateString(pickupDate);
               if (tripType === 'round_trip') {
-                params.endDate = returnDate.toISOString().split('T')[0];
+                params.endDate = toLocalDateString(returnDate);
               }
             }
 
@@ -395,13 +395,16 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         onChange: (event, date) => {
           if (event.type === 'set' && date) {
             if (target === 'pickup') {
-              setPickupDate(date);
-              if (returnDate < date) {
-                setReturnDate(new Date(date.getTime() + 24 * 60 * 60 * 1000));
+              // Keep the chosen time unless it is now too soon on the new date.
+              const pickup = clampPickup(combineDateAndTime(date, pickupTime));
+              setPickupDate(pickup);
+              setPickupTime(toTimeString(pickup));
+              if (returnDate < pickup) {
+                setReturnDate(new Date(pickup.getTime() + 24 * 60 * 60 * 1000));
               }
               // Auto-open time picker after pickup date selection
               DateTimePickerAndroid.open({
-                value: new Date(),
+                value: pickup,
                 mode: 'time',
                 is24Hour: false,
                 onChange: (eventTime, time) => {
@@ -412,6 +415,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                     finalDateTime.setHours(parseInt(hours, 10));
                     finalDateTime.setMinutes(parseInt(mins, 10));
                     if (isPickupTooSoon(finalDateTime)) {
+                      const earliest = getEarliestPickup();
+                      setPickupDate(earliest);
+                      setPickupTime(toTimeString(earliest));
                       setShowBookingAlert(true);
                       return;
                     }
@@ -434,7 +440,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   const openTimePicker = () => {
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
-        value: new Date(),
+        value: combineDateAndTime(pickupDate, pickupTime),
         mode: 'time',
         is24Hour: false,
         onChange: (event, time) => {
@@ -445,6 +451,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             finalDateTime.setHours(parseInt(hours, 10));
             finalDateTime.setMinutes(parseInt(mins, 10));
             if (isPickupTooSoon(finalDateTime)) {
+              const earliest = getEarliestPickup();
+              setPickupDate(earliest);
+              setPickupTime(toTimeString(earliest));
               setShowBookingAlert(true);
               return;
             }
@@ -526,7 +535,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         vehicleCategoryId: selectedVehicle.id,
         pickupCity: fromLocation?.name,
         pickupAddress: fromLocation?.name,
-        pickupDate: pickupDate.toISOString().split('T')[0],
+        pickupDate: toLocalDateString(pickupDate),
         pickupTime,
         withAC: true,
         pickupLocationId: fromLocation?.id,
@@ -569,7 +578,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           );
         }
         if (tripType === 'round_trip') {
-          bookingData.returnDate = returnDate.toISOString().split('T')[0];
+          bookingData.returnDate = toLocalDateString(returnDate);
         }
         if (tripType === 'airport') {
           bookingData.airportType = airportDirection;
@@ -1466,7 +1475,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                 onChange={(event, date) => {
                   if (date) {
                     if (datePickerTarget === 'pickup') {
-                      setPickupDate(date);
+                      const pickup = clampPickup(combineDateAndTime(date, pickupTime));
+                      setPickupDate(pickup);
+                      setPickupTime(toTimeString(pickup));
                     } else {
                       setReturnDate(date);
                     }

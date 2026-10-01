@@ -356,7 +356,7 @@ function StageStyles() {
 
       /* Laptops at 720–768px tall. Nothing is dropped, the rhythm just
          tightens, so the panel still ends above the fold. */
-      @media (min-width: 1024px) and (max-height: 830px) {
+      @media (min-width: 1024px) and (max-height: 910px) {
         .da-left-inner { padding: 28px 44px 26px; }
         .da-logo { width: 176px; }
         .da-copy { padding-top: 22px; }
