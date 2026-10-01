@@ -25,6 +25,7 @@ import {
   Truck,
   Navigation,
   MessageSquare,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
@@ -509,10 +510,23 @@ function ManagerBookingDetailPageInner() {
 
       {/* Customer Details */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <User className="w-5 h-5 text-gray-400" />
-          Customer Details
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <User className="w-5 h-5 text-gray-400" />
+            Customer Details
+          </h2>
+          {booking.customer?.id && (
+            <Link
+              href={`/admin/customers/${booking.customer.id}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800"
+              title="See every booking and quote request this customer has ever made"
+            >
+              View all bookings by this customer
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
         <div className="grid md:grid-cols-3 gap-4">
           <div>
             <p className="text-sm text-gray-500">Name</p>

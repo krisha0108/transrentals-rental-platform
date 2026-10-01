@@ -9,6 +9,18 @@ export { getPresenceStatus, type PresenceStatus };
 
 export type DateFilterObj = { createdAt: { gte?: Date; lte?: Date; lt?: Date } } | {};
 
+// Whether `date` falls inside the selected period — `{}` (All Time) matches
+// everything, since there's no "before the period" when the period is all of
+// time.
+function inDateRange(date: Date, dateFilterObj: DateFilterObj): boolean {
+  if (!('createdAt' in dateFilterObj)) return true;
+  const { gte, lte, lt } = dateFilterObj.createdAt;
+  if (gte && date < gte) return false;
+  if (lte && date > lte) return false;
+  if (lt && date >= lt) return false;
+  return true;
+}
+
 type ManagerWithAssignments = {
   id: string;
   manager_locations: { locationId: string; locations: { name: string | null } | null }[];
@@ -17,8 +29,14 @@ type ManagerWithAssignments = {
 
 export interface ManagerStats {
   vendors: { created: number; approved: number };
-  inquiries: { total: number; actioned: number; coveragePct: number | null };
-  bookings: { total: number; actioned: number; coveragePct: number | null };
+  // `actioned` only counts inquiries CREATED inside the selected period — so
+  // coveragePct (actioned/total) can never exceed 100%. `actionedBacklog` is
+  // the separate, additional credit for inquiries created BEFORE the period
+  // but worked during it (e.g. clearing yesterday's backlog today) — real
+  // coverage, just not comparable against this period's own `total`, so it's
+  // reported alongside rather than folded into the same ratio.
+  inquiries: { total: number; actioned: number; actionedBacklog: number; coveragePct: number | null };
+  bookings: { total: number; actioned: number; actionedBacklog: number; coveragePct: number | null };
   // contact_inquiries has no location/service scoping (the public /contact
   // form is fully anonymous — see QuotePaymentSafetyNotice work) — every
   // manager can act on the same shared, unscoped queue, so there's no
@@ -42,8 +60,8 @@ export async function computeManagerStats(
 
   const empty: ManagerStats = {
     vendors: { created: 0, approved: 0 },
-    inquiries: { total: 0, actioned: 0, coveragePct: null },
-    bookings: { total: 0, actioned: 0, coveragePct: null },
+    inquiries: { total: 0, actioned: 0, actionedBacklog: 0, coveragePct: null },
+    bookings: { total: 0, actioned: 0, actionedBacklog: 0, coveragePct: null },
     contactInquiries: { actioned: 0 },
     callReports: { logged: 0, converted: 0 },
     actionBreakdown: {},
@@ -92,64 +110,73 @@ export async function computeManagerStats(
   const isAssigned = (slug: string, alts: string[]) =>
     assignedServiceSlugs.some((s) => s === slug || alts.includes(s));
 
-  const locationIdFilter = { locationId: { in: assignedLocationIds }, ...dateFilterObj };
-  const pickupCityFilter = { pickupCity: { in: assignedLocationNames }, ...dateFilterObj };
-  const deliveryCityFilter = { deliveryCity: { in: assignedLocationNames }, ...dateFilterObj };
+  // Scope only — NOT date-filtered. Fetching the manager's whole current
+  // scope (with createdAt) and partitioning by date in JS, instead of
+  // filtering at the query level, is what lets "actioned" distinguish
+  // in-period work from backlog: both need to know whether an id was
+  // created inside the period or just happens to be in scope.
+  const locationIdFilter = { locationId: { in: assignedLocationIds } };
+  const pickupCityFilter = { pickupCity: { in: assignedLocationNames } };
+  const deliveryCityFilter = { deliveryCity: { in: assignedLocationNames } };
 
   // ── Inquiries (quote requests) ──
   const [bikeQ, busQ, selfDriveQ, equipmentQ, luxuryQ, packersQ, truckQ] = await Promise.all([
     isAssigned('bike-rental', ['bike', 'bike-on-rent'])
-      ? prisma.bike_quote_requests.findMany({ where: locationIdFilter, select: { id: true } }).catch(() => [])
+      ? prisma.bike_quote_requests.findMany({ where: locationIdFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('bus-rental', ['bus'])
-      ? prisma.bus_quote_requests.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.bus_quote_requests.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('self-drive', ['self-drive-car-rentals', 'self-drive-car-rental'])
-      ? prisma.self_drive_quote_requests.findMany({ where: locationIdFilter, select: { id: true } }).catch(() => [])
+      ? prisma.self_drive_quote_requests.findMany({ where: locationIdFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('equipment-rental', ['equipment'])
-      ? prisma.equipment_quote_requests.findMany({ where: deliveryCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.equipment_quote_requests.findMany({ where: deliveryCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('luxury-car-rental', ['luxury'])
-      ? prisma.luxury_quote_requests.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.luxury_quote_requests.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('packers-and-movers', ['packers-movers'])
-      ? prisma.packers_quote_requests.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.packers_quote_requests.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('truck-transport', ['truck', 'transporter'])
-      ? prisma.truck_quote_requests.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.truck_quote_requests.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
   ]);
-  const inquiryIds = [...bikeQ, ...busQ, ...selfDriveQ, ...equipmentQ, ...luxuryQ, ...packersQ, ...truckQ].map((r) => r.id);
+  const allScopedInquiries = [...bikeQ, ...busQ, ...selfDriveQ, ...equipmentQ, ...luxuryQ, ...packersQ, ...truckQ];
+  const inquiryIds = allScopedInquiries.filter((r) => inDateRange(r.createdAt, dateFilterObj)).map((r) => r.id);
+  const inquiryIdsAllScope = allScopedInquiries.map((r) => r.id);
 
   // ── Bookings ──
   const [bikeB, busB, carB, chauffeurB, equipmentB, luxuryB, packersB, truckB] = await Promise.all([
     isAssigned('bike-rental', ['bike', 'bike-on-rent'])
-      ? prisma.bike_bookings.findMany({ where: locationIdFilter, select: { id: true } }).catch(() => [])
+      ? prisma.bike_bookings.findMany({ where: locationIdFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('bus-rental', ['bus'])
-      ? prisma.bus_bookings.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.bus_bookings.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('self-drive-car-rental', ['self-drive'])
-      ? prisma.car_bookings.findMany({ where: locationIdFilter, select: { id: true } }).catch(() => [])
+      ? prisma.car_bookings.findMany({ where: locationIdFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('chauffeur-driven-car-rental', ['car-rental', 'chauffeur'])
-      ? prisma.chauffeur_bookings.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.chauffeur_bookings.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('equipment-rental', ['equipment'])
-      ? prisma.equipment_bookings.findMany({ where: deliveryCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.equipment_bookings.findMany({ where: deliveryCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('luxury-car-rental', ['luxury'])
-      ? prisma.luxury_bookings.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.luxury_bookings.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('packers-and-movers', ['packers-movers'])
-      ? prisma.packers_bookings.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.packers_bookings.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
     isAssigned('truck-transport', ['truck'])
-      ? prisma.truck_bookings.findMany({ where: pickupCityFilter, select: { id: true } }).catch(() => [])
+      ? prisma.truck_bookings.findMany({ where: pickupCityFilter, select: { id: true, createdAt: true } }).catch(() => [])
       : Promise.resolve([]),
   ]);
-  const bookingIds = [...bikeB, ...busB, ...carB, ...chauffeurB, ...equipmentB, ...luxuryB, ...packersB, ...truckB].map((r) => r.id);
+  const allScopedBookings = [...bikeB, ...busB, ...carB, ...chauffeurB, ...equipmentB, ...luxuryB, ...packersB, ...truckB];
+  const bookingIds = allScopedBookings.filter((r) => inDateRange(r.createdAt, dateFilterObj)).map((r) => r.id);
+  const bookingIdsAllScope = allScopedBookings.map((r) => r.id);
 
   // "Actioned" is scored by when the manager LOGGED the action (createdAt on the
   // log row), not when the inquiry/booking itself was created — a manager
@@ -172,21 +199,50 @@ export async function computeManagerStats(
     }).catch(() => []),
   ]);
 
+  // A manager's action-log history outlives their CURRENT assignment — if
+  // their locations/services were ever reassigned, the log still has rows
+  // for records no longer in scope at all; those are dropped entirely (never
+  // counted — there's no current "total" they could sensibly belong to).
+  //
+  // Of what IS in current scope, a logged action lands in one of two buckets:
+  //  - the record was also CREATED in this period  -> `actioned` (makes
+  //    coveragePct = actioned/total a true, never-over-100% ratio)
+  //  - the record predates the period (backlog cleared during it)  ->
+  //    `actionedBacklog` — real, additional work, reported alongside rather
+  //    than folded into the same ratio since it's a different denominator.
+  const inquiryIdSet = new Set(inquiryIds);
+  const inquiryAllScopeSet = new Set(inquiryIdsAllScope);
+  const bookingIdSet = new Set(bookingIds);
+  const bookingAllScopeSet = new Set(bookingIdsAllScope);
+
   const inquiriesTotal = inquiryIds.length;
-  const inquiriesActioned = inquiryActionGroups.length;
+  let inquiriesActioned = 0;
+  let inquiriesActionedBacklog = 0;
+  for (const g of inquiryActionGroups) {
+    if (inquiryIdSet.has(g.recordId)) inquiriesActioned++;
+    else if (inquiryAllScopeSet.has(g.recordId)) inquiriesActionedBacklog++;
+  }
+
   const bookingsTotal = bookingIds.length;
-  const bookingsActioned = bookingActionGroups.length;
+  let bookingsActioned = 0;
+  let bookingsActionedBacklog = 0;
+  for (const g of bookingActionGroups) {
+    if (bookingIdSet.has(g.recordId)) bookingsActioned++;
+    else if (bookingAllScopeSet.has(g.recordId)) bookingsActionedBacklog++;
+  }
 
   return {
     vendors: { created: vendorsCreated, approved: vendorsApproved },
     inquiries: {
       total: inquiriesTotal,
       actioned: inquiriesActioned,
+      actionedBacklog: inquiriesActionedBacklog,
       coveragePct: inquiriesTotal > 0 ? Math.round((inquiriesActioned / inquiriesTotal) * 100) : null,
     },
     bookings: {
       total: bookingsTotal,
       actioned: bookingsActioned,
+      actionedBacklog: bookingsActionedBacklog,
       coveragePct: bookingsTotal > 0 ? Math.round((bookingsActioned / bookingsTotal) * 100) : null,
     },
     contactInquiries: { actioned: contactInquiriesActioned },

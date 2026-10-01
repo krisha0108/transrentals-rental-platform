@@ -278,12 +278,20 @@ export async function PATCH(
         }
         const { reason } = data;
         let refundAmount = 0;
+        let refundPolicyNote: string | null = null;
         const advancePaid = booking.advancePaid || 0;
 
         if (advancePaid > 0) {
           const hoursUntilPickup = (new Date(booking.pickupDate).getTime() - Date.now()) / (1000 * 60 * 60);
-          if (hoursUntilPickup > 24) refundAmount = advancePaid * 0.9;
-          else if (hoursUntilPickup > 6) refundAmount = advancePaid * 0.5;
+          if (hoursUntilPickup > 24) {
+            refundAmount = advancePaid * 0.9;
+            refundPolicyNote = '90% refund — cancelled more than 24h before pickup.';
+          } else if (hoursUntilPickup > 6) {
+            refundAmount = advancePaid * 0.5;
+            refundPolicyNote = '50% refund — cancelled 6–24h before pickup.';
+          } else {
+            refundPolicyNote = 'no refund — cancelled within 6h of pickup.';
+          }
         }
 
         const updatedBooking = await prisma.luxury_bookings.update({
@@ -321,6 +329,7 @@ export async function PATCH(
           customerId: booking.customerId,
           customerName: booking.customerName,
           amount: refundAmount,
+          policyNote: refundPolicyNote,
           reason,
           paidAmount: booking.advancePaid || 0,
         }).catch(() => {});

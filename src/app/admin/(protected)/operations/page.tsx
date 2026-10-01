@@ -175,8 +175,8 @@ interface IdleVendorRow { locationName: string; serviceName: string; vendorCount
 interface IdleLocationSummary { locationName: string; total: number; serviceCount: number; services: { serviceName: string; vendorCount: number }[] }
 interface ManagerRow {
   id: string; name: string; email: string;
-  inquiries: { total: number; actioned: number; coveragePct: number | null };
-  bookings: { total: number; actioned: number; coveragePct: number | null };
+  inquiries: { total: number; actioned: number; actionedBacklog: number; coveragePct: number | null };
+  bookings: { total: number; actioned: number; actionedBacklog: number; coveragePct: number | null };
   vendors: { created: number; approved: number };
   // Outbound vendor/travel-agent calls the manager logged. Optional because
   // a page left open across the deploy that added it still holds rows
@@ -257,9 +257,11 @@ const rowsForManagers = (items: ManagerRow[]) => items.map((m) => ({
   'Email': m.email,
   'Inquiries Total': m.inquiries.total,
   'Inquiries Actioned': m.inquiries.actioned,
+  'Inquiries Backlog Cleared': m.inquiries.actionedBacklog,
   'Inquiries Coverage %': m.inquiries.coveragePct ?? '—',
   'Bookings Total': m.bookings.total,
   'Bookings Actioned': m.bookings.actioned,
+  'Bookings Backlog Cleared': m.bookings.actionedBacklog,
   'Bookings Coverage %': m.bookings.coveragePct ?? '—',
   'Vendors Created': m.vendors.created,
   'Vendors Approved': m.vendors.approved,
@@ -371,8 +373,20 @@ const VENDOR_STATUS_STYLE: Record<string, string> = {
 
 const MANAGER_PAGE_LIMIT = 15;
 
+// Reads a deep link's starting point once on first render — e.g. a dashboard
+// card linking straight to `?tab=idle&filter=lastMonth&search=Bijapur` so
+// clicking through lands exactly where that number came from, not on a blank
+// Overview tab with no idea what "Bijapur" or "lastMonth" referred to.
+function readInitialParam<T extends string>(name: string, allowed: readonly T[], fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  const v = new URLSearchParams(window.location.search).get(name);
+  return (v && (allowed as readonly string[]).includes(v)) ? (v as T) : fallback;
+}
+
 export default function AdminOperationsTrackerPage() {
-  const [filter, setFilter] = useState<DatePreset>('today');
+  const [filter, setFilter] = useState<DatePreset>(() =>
+    readInitialParam('filter', DATE_PRESETS.map((p) => p.key), 'today')
+  );
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
@@ -382,9 +396,25 @@ export default function AdminOperationsTrackerPage() {
     filter === 'custom' && customFrom && customTo
       ? `&dateFrom=${customFrom}&dateTo=${customTo}`
       : '';
-  const [tab, setTab] = useState<TabKey>('overview');
-  const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<TabKey>(() =>
+    readInitialParam('tab', TABS.map((t) => t.key), 'overview')
+  );
+  const [search, setSearch] = useState(() =>
+    typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('search') || ''
+  );
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Keeps the URL bar in sync with the active tab so it's shareable/
+  // refreshable — not required for the deep-link-in case above, but without
+  // it every in-page tab click would silently drop the `?tab=` a deep link
+  // arrived with the moment the admin switched tabs once.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (tab === 'overview') params.delete('tab'); else params.set('tab', tab);
+    const qs = params.toString();
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   // State/Location filter — accurate (id-backed) alternative to typing a city
   // into the search box. Applies to every tab that lists or breaks down
@@ -433,7 +463,7 @@ export default function AdminOperationsTrackerPage() {
   const [demandCoverage, setDemandCoverage] = useState<Paginated<DemandCoverageItem> | null>(null);
   const [demandCoveragePage, setDemandCoveragePage] = useState(1);
 
-  const [idle, setIdle] = useState<Paginated<IdleVendorRow> & { byLocation: IdleLocationSummary[] } | null>(null);
+  const [idle, setIdle] = useState<Paginated<IdleVendorRow> & { byLocation: IdleLocationSummary[]; idleVendorCount: number } | null>(null);
   const [idlePage, setIdlePage] = useState(1);
 
   const [managers, setManagers] = useState<ManagerRow[]>([]);
@@ -993,7 +1023,7 @@ export default function AdminOperationsTrackerPage() {
           <button onClick={() => setTab('idle')} className="text-left rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-slate-300 transition">
             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center mb-2"><UserX className="w-4 h-4 text-slate-600" /></div>
             <p className="text-xl font-bold text-slate-900">{summary.idleVendorCoverage}</p>
-            <p className="text-xs text-slate-500">Idle Vendor Coverage</p>
+            <p className="text-xs text-slate-500">Vendors With No Inquiries</p>
           </button>
           <button onClick={() => setTab('managers')} className="text-left rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-emerald-200 transition">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center mb-2"><Users className="w-4 h-4 text-emerald-600" /></div>
@@ -1313,11 +1343,21 @@ export default function AdminOperationsTrackerPage() {
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${coverageColor(m.inquiries.coveragePct)}`}>
                                 {m.inquiries.actioned}/{m.inquiries.total} {m.inquiries.coveragePct !== null ? `(${m.inquiries.coveragePct}%)` : ''}
                               </span>
+                              {m.inquiries.actionedBacklog > 0 && (
+                                <p className="text-[11px] text-slate-400 mt-0.5" title="Older inquiries (from before this period) that this manager cleared during it — real work, just not counted against this period's own total.">
+                                  +{m.inquiries.actionedBacklog} backlog cleared
+                                </p>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${coverageColor(m.bookings.coveragePct)}`}>
                                 {m.bookings.actioned}/{m.bookings.total} {m.bookings.coveragePct !== null ? `(${m.bookings.coveragePct}%)` : ''}
                               </span>
+                              {m.bookings.actionedBacklog > 0 && (
+                                <p className="text-[11px] text-slate-400 mt-0.5" title="Older bookings (from before this period) that this manager cleared during it — real work, just not counted against this period's own total.">
+                                  +{m.bookings.actionedBacklog} backlog cleared
+                                </p>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-slate-600">{m.vendors.created}</td>
                             <td className="px-4 py-3 text-slate-600">{m.vendors.approved}</td>
@@ -1529,7 +1569,8 @@ export default function AdminOperationsTrackerPage() {
                         <PeriodNote selected={filter} effective={idleFilter} />
                       </div>
                       <p className="text-xs text-slate-500 mb-3">
-                        <span className="font-bold text-amber-700">{idle.total}</span> location + service combo{idle.total === 1 ? '' : 's'} idle this period — approved vendor-slots summed per location below
+                        <span className="font-bold text-amber-700">{idle.idleVendorCount}</span> vendor{idle.idleVendorCount === 1 ? '' : 's'} with zero inquiries anywhere they're approved
+                        {' '}(<span className="font-semibold text-slate-600">{idle.total}</span> location + service combo{idle.total === 1 ? '' : 's'} idle this period — a vendor approved for many locations/services shows up in many combos below)
                       </p>
                       <div style={{ height: Math.max(160, idleChartData.length * 34) }}>
                         <ResponsiveContainer width="100%" height="100%">

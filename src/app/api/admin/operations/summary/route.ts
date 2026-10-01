@@ -64,7 +64,10 @@ export async function GET(request: NextRequest) {
       bookings: { total: bookings.total, actioned: bookings.actioned, untouched: bookings.untouchedTotal, previousTotal: prevBookings?.total ?? null },
       vendorsNeedingAction: vendorsNeedingAction.total,
       coverageGaps: { total: coverageGaps.total, locations: coverageGaps.groupsTotal },
-      idleVendorCoverage: idleVendors.total,
+      // The distinct-vendor headcount, not the (location x service) combo
+      // count — a vendor approved for many locations/services would
+      // otherwise inflate this into a number far larger than the vendor base.
+      idleVendorCoverage: idleVendors.idleVendorCount,
       paymentFailures: paymentFailures.total,
       paymentFailuresPrevious: prevPaymentFailures?.total ?? null,
     });

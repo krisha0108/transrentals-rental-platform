@@ -30,6 +30,12 @@ export interface OpenRefundFollowupInput {
   /** What the customer had actually paid. Decides whether a zero refund is
    *  worth recording at all. */
   paidAmount?: number;
+  /** How `amount` was worked out — e.g. "90% refund — cancelled more than
+   *  24h before pickup." Each service's cancellation policy differs (some by
+   *  hours, some by days, one flat), so the cancel handler that knows which
+   *  tier fired passes the human-readable explanation through here rather
+   *  than the desk having to reverse-engineer a percentage from two numbers. */
+  policyNote?: string | null;
 }
 
 /** Active admins. Managers come from getAllActiveManagers. */
@@ -49,7 +55,7 @@ async function getAllActiveAdmins(): Promise<string[]> {
  * cannot raise a second refund or a second alert.
  */
 export async function openRefundFollowup(input: OpenRefundFollowupInput): Promise<void> {
-  const { source, bookingId, bookingNumber, serviceType, customerId, customerName, amount, reason, paidAmount } =
+  const { source, bookingId, bookingNumber, serviceType, customerId, customerName, amount, reason, paidAmount, policyNote } =
     input;
 
   // A cancellation that owes nothing still has to be recorded when the
@@ -78,6 +84,7 @@ export async function openRefundFollowup(input: OpenRefundFollowupInput): Promis
         status: owesNothing ? 'NOT_REQUIRED' : 'PENDING',
         notes: [
           reason ? `Cancellation reason: ${reason}` : null,
+          policyNote ? `Refund policy: ${policyNote}` : null,
           owesNothing
             ? `Nothing refundable under the policy — customer had paid ₹${Math.round(
                 paidAmount || 0

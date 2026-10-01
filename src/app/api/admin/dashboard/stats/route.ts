@@ -331,6 +331,10 @@ export async function GET(request: Request) {
       coverageGapLocations: coverageGaps.groupsTotal,
       topCoverageGap: coverageGaps.items[0] || null,
       // Vendors with capacity but zero inquiries in the period — unused supply.
+      // The real vendor headcount — `idleVendors.total` counts (location x
+      // service) combos, which balloons for any vendor approved across many
+      // locations/services and is NOT how many vendors this is.
+      idleVendorCount: idleVendors.idleVendorCount,
       idleVendorPairs: idleVendors.total,
       topIdleLocation: idleVendors.byLocation[0] || null,
     });

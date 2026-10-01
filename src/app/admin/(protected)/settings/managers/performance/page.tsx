@@ -25,7 +25,7 @@ const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   lastMonth: 'Last Month', all: 'All Time', custom: 'Custom Range',
 };
 
-interface CoverageStat { total: number; actioned: number; coveragePct: number | null }
+interface CoverageStat { total: number; actioned: number; actionedBacklog: number; coveragePct: number | null }
 
 interface ManagerPerf {
   id: string;
@@ -404,10 +404,16 @@ export default function ManagerPerformancePage() {
                         <td className="px-5 py-3.5 text-sm">
                           <span className="font-semibold text-slate-900">{m.inquiries.actioned}</span>
                           <span className="text-slate-400"> / {m.inquiries.total}</span>
+                          {m.inquiries.actionedBacklog > 0 && (
+                            <p className="text-[11px] text-slate-400" title="Older inquiries cleared during this period, on top of this period's own total.">+{m.inquiries.actionedBacklog} backlog</p>
+                          )}
                         </td>
                         <td className="px-5 py-3.5 text-sm">
                           <span className="font-semibold text-slate-900">{m.bookings.actioned}</span>
                           <span className="text-slate-400"> / {m.bookings.total}</span>
+                          {m.bookings.actionedBacklog > 0 && (
+                            <p className="text-[11px] text-slate-400" title="Older bookings cleared during this period, on top of this period's own total.">+{m.bookings.actionedBacklog} backlog</p>
+                          )}
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="inline-flex items-center gap-1 text-xs font-medium bg-purple-50 text-purple-700 ring-1 ring-purple-200 px-2 py-1 rounded-full">
@@ -490,13 +496,19 @@ export default function ManagerPerformancePage() {
                       />
                     </div>
                     <div className="grid grid-cols-5 gap-1.5 text-center">
-                      <div className="bg-slate-50 rounded-lg py-2">
+                      <div className="bg-slate-50 rounded-lg py-2" title={m.inquiries.actionedBacklog > 0 ? `+${m.inquiries.actionedBacklog} older inquiries also cleared this period` : undefined}>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Inq</p>
-                        <p className="text-xs font-semibold text-slate-800">{m.inquiries.actioned}/{m.inquiries.total}</p>
+                        <p className="text-xs font-semibold text-slate-800">
+                          {m.inquiries.actioned}/{m.inquiries.total}
+                          {m.inquiries.actionedBacklog > 0 && <span className="text-slate-400">+{m.inquiries.actionedBacklog}</span>}
+                        </p>
                       </div>
-                      <div className="bg-slate-50 rounded-lg py-2">
+                      <div className="bg-slate-50 rounded-lg py-2" title={m.bookings.actionedBacklog > 0 ? `+${m.bookings.actionedBacklog} older bookings also cleared this period` : undefined}>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide">Book</p>
-                        <p className="text-xs font-semibold text-slate-800">{m.bookings.actioned}/{m.bookings.total}</p>
+                        <p className="text-xs font-semibold text-slate-800">
+                          {m.bookings.actioned}/{m.bookings.total}
+                          {m.bookings.actionedBacklog > 0 && <span className="text-slate-400">+{m.bookings.actionedBacklog}</span>}
+                        </p>
                       </div>
                       <div className="bg-purple-50 rounded-lg py-2">
                         <p className="text-[10px] text-purple-400 uppercase tracking-wide">Vendor</p>
