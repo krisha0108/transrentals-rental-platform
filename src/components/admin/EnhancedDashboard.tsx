@@ -35,8 +35,9 @@ interface DashboardStats {
   coverageGapEvents: number;
   coverageGapLocations: number;
   topCoverageGap: { locationName: string; serviceType: string; count: number } | null;
+  idleVendorCount: number;
   idleVendorPairs: number;
-  topIdleLocation: { locationName: string; total: number; serviceCount: number } | null;
+  topIdleLocation: { locationName: string; total: number; uniqueVendors: number; serviceCount: number } | null;
 }
 
 type FilterType = 'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
@@ -458,7 +459,10 @@ export default function EnhancedDashboard() {
           idle with no demand. Admin-wide (not scoped to the location/state
           filter above), full drill-down lives on Operations Tracker. */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link href="/admin/operations" className="group bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:border-red-300 hover:shadow-md transition">
+        <Link
+          href={`/admin/operations?tab=gaps&filter=${filter}${stats?.topCoverageGap ? `&search=${encodeURIComponent(stats.topCoverageGap.locationName)}` : ''}`}
+          className="group bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:border-red-300 hover:shadow-md transition"
+        >
           <div className="flex items-center gap-2 mb-4">
             <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
               <AlertTriangle className="w-4.5 h-4.5 text-red-600" />
@@ -483,7 +487,10 @@ export default function EnhancedDashboard() {
           </div>
         </Link>
 
-        <Link href="/admin/operations" className="group bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:border-amber-300 hover:shadow-md transition">
+        <Link
+          href={`/admin/operations?tab=idle&filter=${filter}${stats?.topIdleLocation ? `&search=${encodeURIComponent(stats.topIdleLocation.locationName)}` : ''}`}
+          className="group bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:border-amber-300 hover:shadow-md transition"
+        >
           <div className="flex items-center gap-2 mb-4">
             <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
               <Clock className="w-4.5 h-4.5 text-amber-600" />
@@ -495,14 +502,17 @@ export default function EnhancedDashboard() {
           </div>
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-3xl font-bold text-amber-700">{stats?.idleVendorPairs ?? 0}</p>
-              <p className="text-xs text-gray-500 mt-0.5">location+service combos with zero demand</p>
+              <p className="text-3xl font-bold text-amber-700">{stats?.idleVendorCount ?? 0}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                vendors with zero inquiries anywhere they're approved
+                {typeof stats?.idleVendorPairs === 'number' ? ` (${stats.idleVendorPairs} location+service combos)` : ''}
+              </p>
             </div>
             {stats?.topIdleLocation && (
               <div className="text-right">
                 <p className="text-xs font-bold uppercase tracking-wide text-amber-500">Most idle</p>
                 <p className="text-sm font-bold text-gray-900 truncate max-w-[160px]">{stats.topIdleLocation.locationName}</p>
-                <p className="text-xs text-gray-500">{stats.topIdleLocation.total} vendors · {stats.topIdleLocation.serviceCount} services</p>
+                <p className="text-xs text-gray-500">{stats.topIdleLocation.uniqueVendors} vendors · {stats.topIdleLocation.serviceCount} services</p>
               </div>
             )}
           </div>

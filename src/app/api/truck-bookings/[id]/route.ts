@@ -194,10 +194,18 @@ export async function PATCH(
         }
         const { reason } = data;
         let refundAmount = 0;
+        let refundPolicyNote: string | null = null;
         if (booking.advancePaid > 0) {
           const daysUntilTrip = Math.ceil((new Date(booking.pickupDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          if (daysUntilTrip > 3) refundAmount = booking.advancePaid * 0.8;
-          else if (daysUntilTrip > 1) refundAmount = booking.advancePaid * 0.5;
+          if (daysUntilTrip > 3) {
+            refundAmount = booking.advancePaid * 0.8;
+            refundPolicyNote = '80% refund — cancelled more than 3 days before the trip.';
+          } else if (daysUntilTrip > 1) {
+            refundAmount = booking.advancePaid * 0.5;
+            refundPolicyNote = '50% refund — cancelled 1–3 days before the trip.';
+          } else {
+            refundPolicyNote = 'no refund — cancelled within 1 day of the trip.';
+          }
         }
 
         const updatedBooking = await prisma.truck_bookings.update({
@@ -229,6 +237,7 @@ export async function PATCH(
           customerId: booking.customerId,
           customerName: booking.customerName,
           amount: refundAmount,
+          policyNote: refundPolicyNote,
           reason,
           paidAmount: booking.advancePaid || 0,
         }).catch(() => {});

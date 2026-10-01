@@ -241,6 +241,9 @@ export async function PATCH(
         customerId: booking.customerId,
         customerName: booking.customerName,
         amount: refundEligibleAmount,
+        policyNote: refundEligibleAmount > 0
+          ? 'full refund — this service refunds 100% of the paid amount regardless of when it was cancelled.'
+          : null,
         reason,
         paidAmount: booking.paidAmount || 0,
       }).catch(() => {});

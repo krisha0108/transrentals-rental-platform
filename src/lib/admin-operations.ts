@@ -331,7 +331,10 @@ export async function getCoverageGaps(dateFilterObj: DateFilterObj, page: PagePa
 
 export interface IdleLocationSummary {
   locationName: string;
+  /** Sum of per-service vendor counts — a vendor offering 3 idle services here counts 3 times. Kept for the chart's bar length. */
   total: number;
+  /** Distinct vendors idle at this location in at least one service — the honest headcount. */
+  uniqueVendors: number;
   serviceCount: number;
   services: { serviceName: string; vendorCount: number }[];
 }
@@ -341,13 +344,29 @@ interface VendorCoverageEntry { locationName: string; serviceName: string; servi
 // Shared by getIdleVendorCoverage (supply side) and getDemandCoverage (demand
 // side) — every (location, service) combo with at least one active approved
 // vendor, and how many vendors cover it.
-async function getVendorCoverageCounts(): Promise<Map<string, VendorCoverageEntry>> {
+//
+// `vendorPairs` is the same data keyed the other way round — which
+// (location, service) pairs each individual vendor covers. Location
+// approvals and service approvals are independent grants (a vendor can be
+// approved for 500 locations and 8 services as two separate decisions), so
+// `coverageCount` is a full cross-product: one vendor with broad location +
+// service approval contributes to hundreds of pair rows on its own. That's
+// correct for "how many vendors could in principle serve this exact pair",
+// but it means `coverageCount.size` / a per-pair idle count is NOT a vendor
+// headcount — `vendorPairs` exists so callers that need an actual distinct
+// vendor count (not a pair count) can compute one instead of silently
+// reporting the inflated pair total as if it were vendors.
+async function getVendorCoverageCounts(): Promise<{
+  coverageCount: Map<string, VendorCoverageEntry>;
+  vendorPairs: Map<string, Set<string>>;
+}> {
   const approvedLinks = await prisma.vendor_approved_locations.findMany({
     where: { isActive: true, vendors: { status: 'APPROVED' } },
     select: { vendorId: true, locationId: true, locations: { select: { name: true } } },
   });
   const coverageCount = new Map<string, VendorCoverageEntry>();
-  if (approvedLinks.length === 0) return coverageCount;
+  const vendorPairs = new Map<string, Set<string>>();
+  if (approvedLinks.length === 0) return { coverageCount, vendorPairs };
 
   const vendorIds = [...new Set(approvedLinks.map((l) => l.vendorId))];
   const serviceLinks = await prisma.vendor_approved_services.findMany({
@@ -368,13 +387,15 @@ async function getVendorCoverageCounts(): Promise<Map<string, VendorCoverageEntr
       const key = `${locationName}::${service.slug}`;
       if (!coverageCount.has(key)) coverageCount.set(key, { locationName, serviceName: service.name, serviceSlug: service.slug, vendorCount: 0 });
       coverageCount.get(key)!.vendorCount += 1;
+      if (!vendorPairs.has(link.vendorId)) vendorPairs.set(link.vendorId, new Set());
+      vendorPairs.get(link.vendorId)!.add(key);
     }
   }
-  return coverageCount;
+  return { coverageCount, vendorPairs };
 }
 
 export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: PageParams = {}) {
-  const [coverageCount, inquiries] = await Promise.all([
+  const [{ coverageCount, vendorPairs }, inquiries] = await Promise.all([
     getVendorCoverageCounts(),
     getAllInquiries(dateFilterObj),
   ]);
@@ -386,12 +407,35 @@ export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: 
     const key = `${item.locationName}::${item.serviceSlug}`;
     inquiryCounts.set(key, (inquiryCounts.get(key) || 0) + 1);
   }
+  const hasDemand = (key: string) => (inquiryCounts.get(key) || 0) > 0;
 
   let idle: { locationName: string; serviceName: string; vendorCount: number }[] = [];
   for (const [key, entry] of coverageCount.entries()) {
-    if (!inquiryCounts.has(key) || inquiryCounts.get(key) === 0) idle.push({ locationName: entry.locationName, serviceName: entry.serviceName, vendorCount: entry.vendorCount });
+    if (!hasDemand(key)) idle.push({ locationName: entry.locationName, serviceName: entry.serviceName, vendorCount: entry.vendorCount });
   }
   idle.sort((a, b) => b.vendorCount - a.vendorCount);
+
+  // The actual headcount: a vendor only counts as "idle" if EVERY pair
+  // they're approved for has zero demand — not if they merely show up in one
+  // idle pair row (which, with broad multi-location/service approval, nearly
+  // every vendor would).
+  let idleVendorCount = 0;
+  // Per-location version of the same idea — which distinct vendors have at
+  // least one idle service AT this specific location (a looser bar than the
+  // global headcount above, which requires ALL of a vendor's pairs anywhere
+  // to be idle; this one is scoped to one location so a vendor busy in
+  // Mumbai but idle in Pune still counts toward Pune's number).
+  const idleVendorsByLocation = new Map<string, Set<string>>();
+  for (const [vendorId, pairs] of vendorPairs.entries()) {
+    if ([...pairs].every((key) => !hasDemand(key))) idleVendorCount += 1;
+    for (const key of pairs) {
+      if (!hasDemand(key)) {
+        const locationName = key.split('::')[0];
+        if (!idleVendorsByLocation.has(locationName)) idleVendorsByLocation.set(locationName, new Set());
+        idleVendorsByLocation.get(locationName)!.add(vendorId);
+      }
+    }
+  }
 
   const q = page.search?.trim().toLowerCase();
   if (q) idle = idle.filter((row) => row.locationName.toLowerCase().includes(q) || row.serviceName.toLowerCase().includes(q));
@@ -405,15 +449,23 @@ export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: 
   // actually asking. Built from the same (searched) `idle` rows.
   const byLocationMap = new Map<string, IdleLocationSummary>();
   for (const row of idle) {
-    if (!byLocationMap.has(row.locationName)) byLocationMap.set(row.locationName, { locationName: row.locationName, total: 0, serviceCount: 0, services: [] });
+    if (!byLocationMap.has(row.locationName)) {
+      byLocationMap.set(row.locationName, {
+        locationName: row.locationName,
+        total: 0,
+        uniqueVendors: idleVendorsByLocation.get(row.locationName)?.size || 0,
+        serviceCount: 0,
+        services: [],
+      });
+    }
     const entry = byLocationMap.get(row.locationName)!;
     entry.total += row.vendorCount;
     entry.serviceCount += 1;
     entry.services.push({ serviceName: row.serviceName, vendorCount: row.vendorCount });
   }
-  const byLocation = [...byLocationMap.values()].sort((a, b) => b.total - a.total).slice(0, 8);
+  const byLocation = [...byLocationMap.values()].sort((a, b) => b.uniqueVendors - a.uniqueVendors).slice(0, 8);
 
-  return { ...paginate(idle, page.page, page.limit), byLocation };
+  return { ...paginate(idle, page.page, page.limit), byLocation, idleVendorCount };
 }
 
 // ── Demand coverage (the flip side of idle vendor coverage) — every
@@ -433,7 +485,7 @@ export interface DemandCoverageItem {
 }
 
 export async function getDemandCoverage(dateFilterObj: DateFilterObj, page: PageParams & { maxVendors?: number } = {}) {
-  const [coverageCount, inquiries] = await Promise.all([
+  const [{ coverageCount }, inquiries] = await Promise.all([
     getVendorCoverageCounts(),
     getAllInquiries(dateFilterObj),
   ]);

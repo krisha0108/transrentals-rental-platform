@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   IndianRupee,
   Search,
@@ -14,6 +15,7 @@ import {
   ClipboardCheck,
   UserCheck,
   ArrowRight,
+  ExternalLink,
 } from 'lucide-react';
 
 interface Refund {
@@ -33,6 +35,8 @@ interface Refund {
   createdAt: string;
   /** Whether this service stores a gateway payment id we can refund against. */
   gateway: boolean;
+  /** The booking's own service slug — for linking straight to it. Null if unmapped. */
+  serviceSlug: string | null;
   /** The manager's call — null until reviewed. */
   customerRefundApproved: boolean | null;
   approvedAmount: number | null;
@@ -283,6 +287,15 @@ export default function RefundsQueue() {
               ['PENDING', 'MANAGER_REVIEWED', 'PROCESSING', 'FAILED'].includes(r.status) &&
               (isSuperAdmin || !!r.reviewedAt);
             const declinedByManager = r.status === 'MANAGER_REVIEWED' && r.customerRefundApproved === false;
+            // Admins and managers land on different booking-detail routes —
+            // this is the one thing on the card that lets whoever's reading
+            // it actually open the booking and see the full picture (dates,
+            // vehicle, payment, cancellation reason) instead of just a number.
+            const bookingHref = isManager
+              ? `/manager/bookings/${r.bookingId}`
+              : r.serviceSlug
+                ? `/admin/services/${r.serviceSlug}/bookings/${r.bookingId}`
+                : null;
 
             return (
               <article
@@ -298,9 +311,21 @@ export default function RefundsQueue() {
                           <span className="text-[15px] font-bold text-gray-900">
                             {r.customerName || 'Customer'}
                           </span>
-                          <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-600">
-                            {r.bookingNumber}
-                          </span>
+                          {bookingHref ? (
+                            <Link
+                              href={bookingHref}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100 hover:text-blue-800"
+                              title="Open this booking in a new tab"
+                            >
+                              {r.bookingNumber}
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          ) : (
+                            <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-[11px] text-gray-600">
+                              {r.bookingNumber}
+                            </span>
+                          )}
                           <span className="rounded-md bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-100">
                             {r.serviceType}
                           </span>

@@ -107,10 +107,18 @@ export async function PATCH(
         }
         const { reason } = data;
         let refundAmount = 0;
+        let refundPolicyNote: string | null = null;
         if (booking.advancePaid > 0) {
           const daysUntilMove = Math.ceil((new Date(booking.scheduledDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          if (daysUntilMove > 5) refundAmount = booking.advancePaid * 0.9;
-          else if (daysUntilMove > 2) refundAmount = booking.advancePaid * 0.5;
+          if (daysUntilMove > 5) {
+            refundAmount = booking.advancePaid * 0.9;
+            refundPolicyNote = '90% refund — cancelled more than 5 days before the move.';
+          } else if (daysUntilMove > 2) {
+            refundAmount = booking.advancePaid * 0.5;
+            refundPolicyNote = '50% refund — cancelled 2–5 days before the move.';
+          } else {
+            refundPolicyNote = 'no refund — cancelled within 2 days of the move.';
+          }
         }
 
         const updatedBooking = await prisma.packers_bookings.update({
@@ -142,6 +150,7 @@ export async function PATCH(
           customerId: booking.customerId,
           customerName: booking.customerName,
           amount: refundAmount,
+          policyNote: refundPolicyNote,
           reason,
           paidAmount: booking.advancePaid || 0,
         }).catch(() => {});

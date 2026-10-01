@@ -271,6 +271,7 @@ export async function PATCH(
 
         // Calculate refund if advance was paid
         let refundAmount = 0;
+        let refundPolicyNote: string | null = null;
         if (booking.advancePaid > 0) {
           // Simple refund logic - can be customized based on cancellation policy
           const daysUntilTrip = Math.ceil(
@@ -278,10 +279,13 @@ export async function PATCH(
           );
           if (daysUntilTrip > 7) {
             refundAmount = booking.advancePaid * 0.9; // 90% refund
+            refundPolicyNote = '90% refund — cancelled more than 7 days before the trip.';
           } else if (daysUntilTrip > 3) {
             refundAmount = booking.advancePaid * 0.5; // 50% refund
+            refundPolicyNote = '50% refund — cancelled 3–7 days before the trip.';
           } else {
             refundAmount = 0; // No refund for last-minute cancellations
+            refundPolicyNote = 'no refund — cancelled within 3 days of the trip.';
           }
         }
 
@@ -320,6 +324,7 @@ export async function PATCH(
           customerId: booking.customerId,
           customerName: booking.customerName,
           amount: refundAmount,
+          policyNote: refundPolicyNote,
           reason,
           paidAmount: booking.advancePaid || 0,
         }).catch(() => {});

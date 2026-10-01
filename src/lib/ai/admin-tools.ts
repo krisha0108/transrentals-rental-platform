@@ -275,7 +275,7 @@ export const ADMIN_TOOLS = [
     function: {
       name: 'get_manager_performance',
       description:
-        "Manager performance / accountability: inquiries and bookings each manager has actioned vs the total in their assigned locations+services (coverage %), plus vendors they've created/approved. Use for questions like 'which manager is underperforming', 'how is <name> doing this week', 'manager coverage today'. Omit managerName to get ALL managers, sorted worst-inquiry-coverage first.",
+        "Manager performance / accountability: inquiries and bookings each manager has actioned vs the total in their assigned locations+services (coverage %), plus vendors they've created/approved. Use for questions like 'which manager is underperforming', 'how is <name> doing this week', 'manager coverage today'. Omit managerName to get ALL managers, sorted worst-inquiry-coverage first. Each inquiries/bookings object also has `actionedBacklog` — older records (from before the picked period) the manager cleared during it. That's real additional work, but a DIFFERENT number from `actioned`/`total` (which are both scoped to the period) — report it separately ('+N backlog cleared'), never add it into the coverage percentage or imply it could push coverage over 100%.",
       parameters: {
         type: 'object',
         properties: {
@@ -350,7 +350,7 @@ export const ADMIN_TOOLS = [
     function: {
       name: 'get_idle_vendor_coverage',
       description:
-        "Supply without demand: locations/services with active, approved vendors but ZERO customer inquiries in the period — vendor capacity sitting unused. The opposite of get_coverage_gaps. Use for 'which vendors are getting no leads', 'idle coverage'.",
+        "Supply without demand: locations/services with active, approved vendors but ZERO customer inquiries in the period — vendor capacity sitting unused. The opposite of get_coverage_gaps. Use for 'which vendors are getting no leads', 'idle coverage'. The result has TWO different counts — idleVendorCount (actual number of vendors with zero inquiries anywhere they're approved — use this for 'how many vendors') and idleLocationServiceCombos (a much larger number counting every idle location+service pairing, since one vendor approved for many locations/services appears in many pairs — never state this one as a vendor count).",
       parameters: {
         type: 'object',
         properties: {
@@ -1082,7 +1082,17 @@ async function getIdleVendorCoverageTool({ period = 'thisMonth' }: ToolInput) {
   // byLocation (summed per location) is the more useful signal — the raw
   // per-service rows are almost always tied at the same small count, which
   // reads as noise rather than "which location most needs demand".
-  return { period, total: result.total, topLocations: result.byLocation, idle: result.items };
+  // `idleLocationServiceCombos` is NOT a vendor count — a vendor approved for
+  // many locations/services shows up in many combo rows. `idleVendorCount` is
+  // the real distinct-vendor headcount; always answer a "how many vendors"
+  // question with that one, not the combo total.
+  return {
+    period,
+    idleVendorCount: result.idleVendorCount,
+    idleLocationServiceCombos: result.total,
+    topLocations: result.byLocation,
+    idle: result.items,
+  };
 }
 
 async function getPaymentFailuresTool({ period = 'today' }: ToolInput) {

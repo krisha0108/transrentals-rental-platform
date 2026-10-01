@@ -79,6 +79,8 @@ export async function GET(request: NextRequest) {
         ...r,
         // Whether this service can be refunded through the gateway from here.
         gateway: sourceFor(r.source)?.gateway ?? false,
+        // The booking's own service slug — lets the UI link straight to it.
+        serviceSlug: sourceFor(r.source)?.slug ?? null,
       })),
       counts: {
         pending,
