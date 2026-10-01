@@ -443,16 +443,6 @@ const adminItems: NavItem[] = [
     ],
   },
   {
-    name: 'Payments',
-    href: '/admin/payments',
-    icon: CreditCard,
-    children: [
-      { name: 'All Payments', href: '/admin/payments', icon: CreditCard },
-      { name: 'Payments Tally', href: '/admin/payments-tally', icon: Receipt },
-      { name: 'Refunds', href: '/admin/refunds', icon: IndianRupee },
-    ],
-  },
-  {
     name: 'Analytics',
     href: '/admin/analytics',
     icon: BarChart3,
@@ -464,6 +454,20 @@ const adminItems: NavItem[] = [
     ],
   },
 ];
+
+// Rendered as its own section right below Operations Tracker, not buried in
+// the Management group — payments and refunds get checked often enough to
+// want them one click from the top of the sidebar.
+const paymentsItem: NavItem = {
+  name: 'Payments',
+  href: '/admin/payments',
+  icon: CreditCard,
+  children: [
+    { name: 'All Payments', href: '/admin/payments', icon: CreditCard },
+    { name: 'Payments Tally', href: '/admin/payments-tally', icon: Receipt },
+    { name: 'Refunds', href: '/admin/refunds', icon: IndianRupee },
+  ],
+};
 
 // Website Controls (Global site management)
 const websiteItems: NavItem[] = [
@@ -609,6 +613,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     !query ||
     nameMatches('Dashboard') ||
     nameMatches('Operations Tracker') ||
+    itemMatchesSearch(paymentsItem) ||
     missionControls.some(itemMatchesSearch) ||
     itemMatchesSearch(aiContentManagerItem) ||
     itemMatchesSearch(tourManagementItem) ||
@@ -847,6 +852,13 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     <span className="font-medium">Operations Tracker</span>
                   </Link>
                 )}
+              </div>
+            )}
+
+            {/* Payments & Refunds — one click below Operations Tracker */}
+            {(!query || itemMatchesSearch(paymentsItem)) && (
+              <div className="space-y-1">
+                {renderNavItem(paymentsItem)}
               </div>
             )}
 
