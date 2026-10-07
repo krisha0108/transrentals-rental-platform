@@ -408,8 +408,8 @@ export default function BusBookingDetailScreen({ route, navigation }) {
         }
       >
         {/* Identity card — booking # + customer, now a body panel */}
-        <View style={s.identityCard}>
-          <View style={s.identityBlock}>
+        <View style={[s.identityCard, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+          <View style={[s.identityBlock, { flex: 1, minWidth: 0 }]}>
             <View style={s.identityIcon}>
               <MaterialCommunityIcons name="bus" size={24} color={C.g700} />
             </View>
@@ -421,7 +421,7 @@ export default function BusBookingDetailScreen({ route, navigation }) {
           </View>
 
           {booking.tripType ? (
-            <View style={s.tripTypeChip}>
+            <View style={[s.tripTypeChip, { marginTop: 0, marginLeft: 10 }]}>
               <Ionicons name="navigate-outline" size={11} color={C.muted} />
               <Text style={s.tripTypeChipTxt}>{booking.tripType?.replace(/_/g, ' ')}</Text>
             </View>
@@ -991,7 +991,7 @@ const s = StyleSheet.create({
 
   // ── Ticket summary card — status, created date, grand total ──
   ticketWrap: {
-    marginTop: -TICKET_OVERLAP, backgroundColor: C.card,
+    backgroundColor: C.card,
     borderRadius: rs(16), overflow: 'hidden', borderWidth: 1, borderColor: C.border,
     marginBottom: 12, ...cardShadow,
   },

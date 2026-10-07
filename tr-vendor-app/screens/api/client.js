@@ -534,6 +534,14 @@ export async function getVendorProfile() {
   return res.data;
 }
 
+// AI Help Assistant — public, unauthenticated FAQ/how-to endpoint (no vendor
+// data access, only IP rate-limited). Mirrors sendTravelAgentHelpChat in
+// travelAgentClient.js.
+export async function sendVendorHelpChat(messages, language = 'auto') {
+  const res = await apiPost('/vendor/help-chat', { messages, language });
+  return res.data; // { reply } | { error }
+}
+
 // ==================== DOCUMENT APIs ====================
 
 /**

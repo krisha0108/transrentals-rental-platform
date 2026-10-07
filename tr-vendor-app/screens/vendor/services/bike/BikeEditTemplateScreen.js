@@ -65,7 +65,8 @@ export default function BikeEditTemplateScreen({ navigation, route }) {
 
   const loadTemplate = useCallback(async () => {
     try {
-      const t = await getTemplateById('bike', templateId);
+      const data = await getTemplateById('bike', templateId);
+      const t = data.template || data;
       setTemplateName(t.name);
       setName(t.name);
       setCategory(t.category);
