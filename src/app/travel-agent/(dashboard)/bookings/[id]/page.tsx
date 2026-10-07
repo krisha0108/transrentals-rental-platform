@@ -30,6 +30,7 @@ import {
   IndianRupee,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 // Strips an existing 91/+91 country-code prefix before re-adding it, so a
 // number already saved as "+919876543210" doesn't become "919919876543210".
@@ -175,6 +176,11 @@ export default function BookingDetailPage({ params }: { params: { id: string } }
       router.push('/travel-agent/bookings');
     }
   };
+
+  useTravelAgentPageHeader(
+    booking ? booking.customerName : 'Booking Details',
+    booking ? booking.bookingNumber : undefined,
+  );
 
   if (loading) {
     return (

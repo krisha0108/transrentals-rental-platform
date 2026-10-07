@@ -13,6 +13,7 @@ import {
 import TourDescriptionEditor, { type TourDescriptionEditorRef } from '@/components/admin/wander/TourDescriptionEditor';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -753,6 +754,8 @@ export default function CreateTravelAgentTourPage() {
       setSaving(false);
     }
   }
+
+  useTravelAgentPageHeader('Create New Tour', `Step ${step} of ${STEPS.length} — ${STEPS[step - 1].label}`);
 
   return (
     <div className="p-6 max-w-3xl mx-auto">

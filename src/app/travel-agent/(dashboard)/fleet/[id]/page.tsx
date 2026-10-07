@@ -18,6 +18,7 @@ import {
   Star,
   MapPin,
 } from 'lucide-react';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface FleetVehicle {
   id: string;
@@ -112,6 +113,23 @@ export default function FleetVehicleDetailPage({ params }: { params: { id: strin
     load();
   }, [id]);
 
+  useTravelAgentPageHeader(
+    vehicle ? vehicle.vehicleName : 'Vehicle Details',
+    vehicle ? TYPE_LABELS[vehicle.vehicleType] || vehicle.vehicleType : undefined,
+    vehicle ? (
+      <Link
+        key="edit"
+        href={`/travel-agent/fleet/${id}/edit`}
+        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg"
+      >
+        <Edit2 className="w-3.5 h-3.5" /> Edit
+      </Link>
+    ) : undefined,
+    <Link key="back" href="/travel-agent/fleet" className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600">
+      <ArrowLeft className="w-4 h-4" /> All Vehicles
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -123,9 +141,6 @@ export default function FleetVehicleDetailPage({ params }: { params: { id: strin
   if (!vehicle) {
     return (
       <div className="max-w-4xl mx-auto">
-        <Link href="/travel-agent/fleet" className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600 mb-4">
-          <ArrowLeft className="w-4 h-4" /> All Vehicles
-        </Link>
         <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center text-gray-500">
           {error || 'Vehicle not found'}
         </div>
@@ -157,18 +172,6 @@ export default function FleetVehicleDetailPage({ params }: { params: { id: strin
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
-        <Link href="/travel-agent/fleet" className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600">
-          <ArrowLeft className="w-4 h-4" /> All Vehicles
-        </Link>
-        <Link
-          href={`/travel-agent/fleet/${id}/edit`}
-          className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2 rounded-xl"
-        >
-          <Edit2 className="w-3.5 h-3.5" /> Edit
-        </Link>
-      </div>
-
       {/* Header */}
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl p-6">
         <div className="inline-flex items-center gap-1.5 bg-white/15 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full mb-2">

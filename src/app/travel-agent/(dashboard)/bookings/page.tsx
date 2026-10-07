@@ -27,6 +27,7 @@ import {
   Car,
   FileText,
 } from 'lucide-react';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Booking {
   id: string;
@@ -199,6 +200,8 @@ export default function BookingsListPage() {
   };
 
   const activeFilters = [typeFilter !== 'ALL'].filter(Boolean).length;
+
+  useTravelAgentPageHeader('Bookings', 'All your confirmed trips in one place');
 
   if (loading && bookings.length === 0 && !stats) {
     return (

@@ -21,6 +21,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Fleet {
   id: string;
@@ -144,41 +145,33 @@ export default function FleetListPage() {
     }
   };
 
+  useTravelAgentPageHeader(
+    'Fleet Management',
+    `${stats.total} total • ${stats.active} active • ${stats.available} available`,
+    <div key="actions" className="flex items-center gap-1.5">
+      <Link
+        href="/travel-agent/fleet/calendar"
+        className="inline-flex items-center gap-1.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs px-2.5 py-2 rounded-lg"
+      >
+        <CalendarDays className="w-3.5 h-3.5 text-emerald-600" /> <span className="hidden sm:inline">Calendar</span>
+      </Link>
+      <Link
+        href="/travel-agent/fleet/insurance"
+        className="inline-flex items-center gap-1.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs px-2.5 py-2 rounded-lg"
+      >
+        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> <span className="hidden sm:inline">Insurance</span>
+      </Link>
+      <Link
+        href="/travel-agent/fleet/add"
+        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg"
+      >
+        <Plus className="w-3.5 h-3.5" /> Add Vehicle
+      </Link>
+    </div>,
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Car className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Fleet Management</h1>
-            <p className="text-sm text-gray-500">
-              {stats.total} total • {stats.active} active • {stats.available} available
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            href="/travel-agent/fleet/calendar"
-            className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm px-4 py-2.5 rounded-xl"
-          >
-            <CalendarDays className="w-4 h-4 text-emerald-600" /> Calendar
-          </Link>
-          <Link
-            href="/travel-agent/fleet/insurance"
-            className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm px-4 py-2.5 rounded-xl"
-          >
-            <ShieldCheck className="w-4 h-4 text-emerald-600" /> Insurance
-          </Link>
-          <Link
-            href="/travel-agent/fleet/add"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl"
-          >
-            <Plus className="w-4 h-4" /> Add Vehicle
-          </Link>
-        </div>
-      </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
         <div className="flex flex-col sm:flex-row gap-3">

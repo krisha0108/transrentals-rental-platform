@@ -20,6 +20,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface FAQ { question: string; answer: string; }
 interface SupportTicket {
@@ -160,12 +161,10 @@ export default function TravelAgentSupportPage() {
     }
   };
 
+  useTravelAgentPageHeader('Help & Support', 'Get help with your travel agent account');
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Help & Support</h1>
-        <p className="text-gray-600">Get help with your travel agent account</p>
-      </div>
 
       {/* Quick Contact Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

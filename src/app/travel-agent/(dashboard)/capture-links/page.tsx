@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface CaptureLink {
   id: string;
@@ -154,35 +155,28 @@ export default function CaptureLinksPage() {
     }
   };
 
+  useTravelAgentPageHeader(
+    'Lead Capture Links',
+    'Share a public form link — customer fills it, lead lands in your pipeline',
+    <button
+      key="create"
+      onClick={() => {
+        if (!isApproved) {
+          openVerificationModal();
+          return;
+        }
+        setEditingId(null);
+        setForm({ title: '', description: '', defaultTripType: '' });
+        setShowForm((v) => !v);
+      }}
+      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors"
+    >
+      <Plus className="w-3.5 h-3.5" /> Create Link
+    </button>,
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Link2 className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lead Capture Links</h1>
-            <p className="text-sm text-gray-500">
-              Share a public form link — customer fills it, lead lands in your pipeline
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            if (!isApproved) {
-              openVerificationModal();
-              return;
-            }
-            setEditingId(null);
-            setForm({ title: '', description: '', defaultTripType: '' });
-            setShowForm((v) => !v);
-          }}
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Create Link
-        </button>
-      </div>
 
       {!isApproved && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">

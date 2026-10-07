@@ -20,6 +20,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface PaymentItem {
   id: string;
@@ -161,21 +162,10 @@ export default function TravelAgentPaymentsPage() {
     setTimeout(() => setCopiedId(''), 1200);
   };
 
+  useTravelAgentPageHeader('Payments', 'Advance payments from leads — verify, track, and manage');
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-white">
-            <Wallet className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
-            <p className="text-sm text-gray-500">
-              Advance payments from leads — verify, track, and manage
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

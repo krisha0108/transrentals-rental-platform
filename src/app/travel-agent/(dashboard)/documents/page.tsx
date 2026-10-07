@@ -9,6 +9,7 @@ import {
   ArrowLeft, Plane, Building2,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Document {
   id: string;
@@ -292,6 +293,8 @@ export default function TravelAgentDocumentsPage() {
   const totalRejected = documents.filter((d) => d.status === 'REJECTED').length;
   const requiredDone  = DOC_TYPES.filter((dt) => dt.required).every((dt) => getDoc(dt.type)?.status !== undefined && getDoc(dt.type)?.status !== 'REJECTED');
   const selectedDocInfo = DOC_TYPES.find((d) => d.type === uploadModal.docType);
+
+  useTravelAgentPageHeader('Agency Documents', 'Upload and manage your documents for account verification');
 
   if (loading) {
     return (

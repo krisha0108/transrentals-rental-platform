@@ -44,13 +44,22 @@ export async function GET(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    // Resolve source tour if tourId is set
-    const sourceTour = lead.tourId
-      ? await prisma.travel_agent_tours.findUnique({
-          where: { id: lead.tourId },
-          select: { id: true, title: true, slug: true, coverImage: true },
-        }).catch(() => null)
-      : null;
+    // Resolve source tour / property so the UI can show exactly which
+    // listing this enquiry came from, not just the generic trip type.
+    const [sourceTour, sourceProperty] = await Promise.all([
+      lead.tourId
+        ? prisma.travel_agent_tours.findUnique({
+            where: { id: lead.tourId },
+            select: { id: true, title: true, slug: true, coverImage: true },
+          }).catch(() => null)
+        : null,
+      lead.propertyId
+        ? prisma.travel_agent_properties.findUnique({
+            where: { id: lead.propertyId },
+            select: { id: true, name: true, slug: true, coverImage: true },
+          }).catch(() => null)
+        : null,
+    ]);
 
     const { travel_agent_lead_notes, capture_link, ...rest } = lead;
     return NextResponse.json({
@@ -58,6 +67,7 @@ export async function GET(
       notes: travel_agent_lead_notes,
       captureLink: capture_link,
       sourceTour,
+      sourceProperty,
     });
   } catch (error: any) {
     logger.error('Get travel agent lead error', error);

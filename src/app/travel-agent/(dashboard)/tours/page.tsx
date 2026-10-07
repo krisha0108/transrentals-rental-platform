@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Tour {
   id: string;
@@ -171,6 +172,8 @@ export default function ToursListPage() {
       ? `/travel-agent/tours/${tour.id}/edit/quick`
       : `/travel-agent/tours/${tour.id}/edit`;
   }
+
+  useTravelAgentPageHeader('My Tours', 'Manage your tour packages');
 
   if (loading && tours.length === 0) {
     return (

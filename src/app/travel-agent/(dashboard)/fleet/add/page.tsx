@@ -1,37 +1,84 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Loader2,
   ArrowLeft,
   Save,
-  Car,
   UploadCloud,
   X,
   ImagePlus,
   FileText,
+  Car,
+  CarFront,
+  CarTaxiFront,
+  Bus,
+  Gem,
+  Bike,
+  Caravan,
+  Info,
+  UserRound,
+  IndianRupee,
+  Sparkles,
+  AlignLeft,
+  Plus,
+  ChevronDown,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 const VEHICLE_TYPES = [
-  { value: 'SEDAN', label: 'Sedan', icon: '🚗' },
-  { value: 'SUV', label: 'SUV', icon: '🚙' },
-  { value: 'MUV', label: 'MUV', icon: '🚐' },
-  { value: 'HATCHBACK', label: 'Hatchback', icon: '🚗' },
-  { value: 'TEMPO_TRAVELLER', label: 'Tempo Traveller', icon: '🚐' },
-  { value: 'MINI_BUS', label: 'Mini Bus', icon: '🚌' },
-  { value: 'BUS', label: 'Bus', icon: '🚌' },
-  { value: 'LUXURY_CAR', label: 'Luxury Car', icon: '🏎️' },
-  { value: 'BIKE', label: 'Bike', icon: '🏍️' },
-  { value: 'SCOOTER', label: 'Scooter', icon: '🛵' },
-  { value: 'CAMPER_VAN', label: 'Camper Van', icon: '🚐' },
-  { value: 'OTHER', label: 'Other', icon: '🚗' },
+  { value: 'SEDAN', label: 'Sedan', icon: Car },
+  { value: 'SUV', label: 'SUV', icon: CarFront },
+  { value: 'MUV', label: 'MUV', icon: CarTaxiFront },
+  { value: 'HATCHBACK', label: 'Hatchback', icon: Car },
+  { value: 'TEMPO_TRAVELLER', label: 'Tempo Traveller', icon: Bus },
+  { value: 'MINI_BUS', label: 'Mini Bus', icon: Bus },
+  { value: 'BUS', label: 'Bus', icon: Bus },
+  { value: 'LUXURY_CAR', label: 'Luxury Car', icon: Gem },
+  { value: 'BIKE', label: 'Bike', icon: Bike },
+  { value: 'SCOOTER', label: 'Scooter', icon: Bike },
+  { value: 'CAMPER_VAN', label: 'Camper Van', icon: Caravan },
+  { value: 'OTHER', label: 'Other', icon: Car },
 ];
 
 const FUEL_TYPES = ['PETROL', 'DIESEL', 'CNG', 'LPG', 'EV', 'HYBRID', 'OTHER'];
 const TRANSMISSIONS = ['MANUAL', 'AUTOMATIC'];
+
+const BRANDS = [
+  'Maruti Suzuki', 'Hyundai', 'Tata', 'Mahindra', 'Toyota', 'Honda', 'Kia', 'MG',
+  'Renault', 'Nissan', 'Ford', 'Volkswagen', 'Skoda', 'Force Motors',
+  'Ashok Leyland', 'Eicher', 'Volvo', 'Scania', 'BMW', 'Mercedes-Benz', 'Audi',
+  'Royal Enfield', 'Bajaj', 'TVS', 'Hero', 'Yamaha',
+];
+
+const MODELS_BY_BRAND: Record<string, string[]> = {
+  'Maruti Suzuki': ['Swift Dzire', 'Ertiga', 'XL6', 'Eeco', 'Omni', 'Wagon R'],
+  'Toyota': ['Innova Crysta', 'Innova Hycross', 'Fortuner', 'Etios', 'Glanza', 'Camry'],
+  'Hyundai': ['Aura', 'Verna', 'Creta', 'Alcazar', 'Tucson', 'Xcent'],
+  'Mahindra': ['Xylo', 'Marazzo', 'Scorpio', 'XUV700', 'Bolero', 'Bolero Camper'],
+  'Tata': ['Winger', 'Indica', 'Nexon', 'Harrier', 'Safari', 'Indigo'],
+  'Force Motors': ['Tempo Traveller', 'Trax', 'Urbania'],
+  'Kia': ['Carens', 'Carnival', 'Seltos'],
+  'MG': ['Hector', 'Gloster'],
+  'Honda': ['City', 'Amaze', 'WR-V'],
+  'Ashok Leyland': ['Viking', 'Falcon', 'Oyster'],
+  'Eicher': ['Skyline Pro', 'Starline'],
+  'Volvo': ['9400', 'B11R', 'Multi-Axle'],
+  'Scania': ['Metrolink', 'Touring'],
+  'Royal Enfield': ['Classic 350', 'Bullet', 'Himalayan'],
+  'Bajaj': ['Pulsar', 'Avenger', 'Platina'],
+  'TVS': ['Apache', 'Jupiter', 'Ntorq'],
+  'Hero': ['Splendor', 'Passion', 'Glamour'],
+  'Yamaha': ['FZ', 'R15', 'Fascino'],
+};
+
+const FALLBACK_MODELS = [
+  'Innova Crysta', 'Ertiga', 'Swift Dzire', 'XL6', 'Tempo Traveller',
+  'Winger', 'Xylo', 'Urbania', 'Force Traveller',
+];
 
 const COMMON_AMENITIES = [
   'Air Conditioning',
@@ -145,7 +192,7 @@ export default function AddFleetPage() {
     setCoverUploading(false);
   };
 
-  const uploadGallery = async (files: FileList) => {
+  const uploadGallery = async (files: FileList | File[]) => {
     setGalleryUploading(true);
     const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
     const fd = new FormData();
@@ -214,48 +261,64 @@ export default function AddFleetPage() {
     }
   };
 
+  useTravelAgentPageHeader(
+    'Add Vehicle',
+    undefined,
+    undefined,
+    <Link
+      key="back"
+      href="/travel-agent/fleet"
+      className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
+    >
+      <ArrowLeft className="w-4 h-4" /> All Vehicles
+    </Link>,
+  );
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Link
-        href="/travel-agent/fleet"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
-      >
-        <ArrowLeft className="w-4 h-4" /> All Vehicles
-      </Link>
+    <div className="max-w-6xl mx-auto">
+      <div className="lg:grid lg:grid-cols-[200px_1fr] lg:gap-8 lg:items-start">
+        {/* ── section quick-nav ── */}
+        <nav className="hidden lg:block lg:sticky lg:top-6 space-y-0.5">
+          {NAV_SECTIONS.map((s, i) => (
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-emerald-700"
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-bold text-gray-500">
+                {i + 1}
+              </span>
+              {s.label}
+            </a>
+          ))}
+        </nav>
 
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-          <Car className="w-5 h-5 text-emerald-600" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">Add Vehicle</h1>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-5">
+        <form id="add-fleet-form" onSubmit={handleSubmit} className="min-w-0 space-y-6 pb-24">
         {/* Vehicle Type */}
-        <Section title="Vehicle Type">
+        <FormSection id="type" icon={<Car className="w-4 h-4" />} title="Vehicle Type" color="emerald">
           <div className="sm:col-span-2">
             <label className={labelCls}>Type *</label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
               {VEHICLE_TYPES.map((t) => (
                 <button
                   key={t.value}
                   type="button"
                   onClick={() => update('vehicleType', t.value)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition ${
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition ${
                     form.vehicleType === t.value
                       ? 'border-emerald-500 bg-emerald-50'
                       : 'border-gray-200 hover:border-emerald-200'
                   }`}
                 >
-                  <span className="text-2xl">{t.icon}</span>
+                  <t.icon className={`w-6 h-6 ${form.vehicleType === t.value ? 'text-emerald-600' : 'text-gray-500'}`} />
                   <span className="text-xs font-medium text-gray-700">{t.label}</span>
                 </button>
               ))}
             </div>
           </div>
-        </Section>
+        </FormSection>
 
-        <Section title="Basic Info">
+        <FormSection id="basics" icon={<Info className="w-4 h-4" />} title="Basic Info" color="blue">
           <Field label="Vehicle Name *" required>
             <input
               type="text"
@@ -267,21 +330,19 @@ export default function AddFleetPage() {
             />
           </Field>
           <Field label="Brand">
-            <input
-              type="text"
+            <AutocompleteField
               value={form.brand}
-              onChange={(e) => update('brand', e.target.value)}
-              placeholder="e.g. Toyota"
-              className={inputCls}
+              onChange={(v) => update('brand', v)}
+              options={BRANDS}
+              placeholder="e.g. Toyota — or type your own"
             />
           </Field>
           <Field label="Model">
-            <input
-              type="text"
+            <AutocompleteField
               value={form.model}
-              onChange={(e) => update('model', e.target.value)}
-              placeholder="e.g. Innova Crysta"
-              className={inputCls}
+              onChange={(v) => update('model', v)}
+              options={MODELS_BY_BRAND[form.brand] || FALLBACK_MODELS}
+              placeholder="e.g. Innova Crysta — or type your own"
             />
           </Field>
           <Field label="Registration Number">
@@ -370,9 +431,9 @@ export default function AddFleetPage() {
               className={inputCls}
             />
           </Field>
-        </Section>
+        </FormSection>
 
-        <Section title="Driver / Chauffeur">
+        <FormSection id="driver" icon={<UserRound className="w-4 h-4" />} title="Driver / Chauffeur" color="purple">
           <label className="sm:col-span-2 flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -415,9 +476,9 @@ export default function AddFleetPage() {
               </div>
             </>
           )}
-        </Section>
+        </FormSection>
 
-        <Section title="Pricing">
+        <FormSection id="pricing" icon={<IndianRupee className="w-4 h-4" />} title="Pricing" color="amber">
           <Field label="Rate per Day (₹)">
             <input
               type="number"
@@ -449,9 +510,9 @@ export default function AddFleetPage() {
               className={inputCls}
             />
           </Field>
-        </Section>
+        </FormSection>
 
-        <Section title="Amenities">
+        <FormSection id="amenities" icon={<Sparkles className="w-4 h-4" />} title="Amenities" color="teal">
           <div className="sm:col-span-2">
             <label className={labelCls}>What this vehicle offers</label>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -474,6 +535,31 @@ export default function AddFleetPage() {
                 );
               })}
             </div>
+
+            {/* Custom amenities the user has added — not in the common list above */}
+            {form.amenities.filter((a) => !COMMON_AMENITIES.includes(a)).length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {form.amenities
+                  .filter((a) => !COMMON_AMENITIES.includes(a))
+                  .map((a) => (
+                    <span
+                      key={a}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border-2 border-emerald-500 bg-emerald-50 text-emerald-700"
+                    >
+                      ✓ {a}
+                      <button
+                        type="button"
+                        onClick={() => toggleAmenity(a)}
+                        className="hover:text-red-600"
+                        title="Remove"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <input
                 type="text"
@@ -491,15 +577,16 @@ export default function AddFleetPage() {
               <button
                 type="button"
                 onClick={addCustomAmenity}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 rounded-xl"
+                disabled={!form.customAmenity.trim()}
+                className="inline-flex items-center gap-1.5 shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-3 rounded-xl"
               >
-                Add
+                <Plus className="w-4 h-4" /> Add
               </button>
             </div>
           </div>
-        </Section>
+        </FormSection>
 
-        <Section title="Images">
+        <FormSection id="photos" icon={<ImagePlus className="w-4 h-4" />} title="Images" color="pink">
           {/* Cover image */}
           <div className="sm:col-span-2">
             <label className={labelCls}>Cover Image</label>
@@ -507,10 +594,15 @@ export default function AddFleetPage() {
               ref={coverInputRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) uploadCover(f);
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                  const arr = Array.from(files);
+                  uploadCover(arr[0]);
+                  if (arr.length > 1) uploadGallery(arr.slice(1));
+                }
                 if (coverInputRef.current) coverInputRef.current.value = '';
               }}
             />
@@ -555,9 +647,11 @@ export default function AddFleetPage() {
                   <UploadCloud className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                 )}
                 <p className="text-sm font-semibold text-gray-700">
-                  {coverUploading ? 'Uploading…' : 'Click to upload cover image'}
+                  {coverUploading ? 'Uploading…' : 'Click to upload photos'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">JPG / PNG / WebP — up to 5 MB</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  JPG / PNG / WebP — up to 5 MB each. Select multiple — the first becomes the cover, the rest go to the gallery.
+                </p>
               </button>
             )}
           </div>
@@ -630,9 +724,9 @@ export default function AddFleetPage() {
               </div>
             )}
           </div>
-        </Section>
+        </FormSection>
 
-        <Section title="Vehicle Documents">
+        <FormSection id="documents" icon={<FileText className="w-4 h-4" />} title="Vehicle Documents" color="green">
           <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(
               [
@@ -686,9 +780,9 @@ export default function AddFleetPage() {
               className={inputCls}
             />
           </Field>
-        </Section>
+        </FormSection>
 
-        <Section title="Description">
+        <FormSection id="description" icon={<AlignLeft className="w-4 h-4" />} title="Description" color="gray">
           <div className="sm:col-span-2">
             <label className={labelCls}>About this vehicle</label>
             <textarea
@@ -699,17 +793,20 @@ export default function AddFleetPage() {
               className={inputCls}
             />
           </div>
-        </Section>
+        </FormSection>
 
-        <div className="flex justify-end gap-2">
-          <Link
-            href="/travel-agent/fleet"
-            className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-4 py-2.5"
-          >
+        </form>
+      </div>
+
+      {/* ── sticky action bar ── */}
+      <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-gray-200 bg-white/90 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
+        <div className="flex justify-end gap-3">
+          <Link href="/travel-agent/fleet" className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-4 py-2.5">
             Cancel
           </Link>
           <button
             type="submit"
+            form="add-fleet-form"
             disabled={saving}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white font-semibold text-sm px-6 py-3 rounded-xl"
           >
@@ -724,19 +821,50 @@ export default function AddFleetPage() {
             )}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
+
+const NAV_SECTIONS = [
+  { id: 'type', label: 'Vehicle Type' },
+  { id: 'basics', label: 'Basic Info' },
+  { id: 'driver', label: 'Driver / Chauffeur' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'amenities', label: 'Amenities' },
+  { id: 'photos', label: 'Images' },
+  { id: 'documents', label: 'Vehicle Documents' },
+  { id: 'description', label: 'Description' },
+];
 
 const inputCls =
   'w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white';
 const labelCls = 'block text-sm font-semibold text-gray-700 mb-1.5';
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+const SECTION_COLORS: Record<string, string> = {
+  emerald: 'bg-emerald-50 text-emerald-700',
+  blue: 'bg-blue-50 text-blue-700',
+  purple: 'bg-purple-50 text-purple-700',
+  pink: 'bg-pink-50 text-pink-700',
+  teal: 'bg-teal-50 text-teal-700',
+  green: 'bg-green-50 text-green-700',
+  amber: 'bg-amber-50 text-amber-700',
+  gray: 'bg-gray-100 text-gray-700',
+};
+
+function FormSection({
+  id, icon, title, color, children,
+}: {
+  id: string; icon: React.ReactNode; title: string; color: string; children: React.ReactNode;
+}) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 p-6">
-      <h2 className="text-base font-bold text-gray-900 mb-4">{title}</h2>
+    <section id={id} className="scroll-mt-20 bg-white rounded-2xl border border-gray-200 p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${SECTION_COLORS[color] || 'bg-gray-100 text-gray-700'}`}>
+          {icon}
+        </div>
+        <h2 className="text-base font-bold text-gray-900">{title}</h2>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>
     </section>
   );
@@ -758,6 +886,80 @@ function Field({
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       {children}
+    </div>
+  );
+}
+
+function AutocompleteField({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  const q = value.trim().toLowerCase();
+  const filtered = q ? options.filter((o) => o.toLowerCase().includes(q)) : options;
+  const exactMatch = options.some((o) => o.toLowerCase() === q);
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          autoComplete="off"
+          className={`${inputCls} pr-9`}
+        />
+        <ChevronDown
+          onClick={() => setOpen((o) => !o)}
+          className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 cursor-pointer transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </div>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg py-1">
+          {filtered.length > 0 ? (
+            filtered.map((o) => (
+              <button
+                key={o}
+                type="button"
+                onClick={() => { onChange(o); setOpen(false); }}
+                className="w-full text-left px-3.5 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                {o}
+              </button>
+            ))
+          ) : (
+            <p className="px-3.5 py-2 text-xs text-gray-400">No matches — your typed value will be used</p>
+          )}
+          {q && !exactMatch && (
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="w-full text-left px-3.5 py-2 text-sm font-semibold text-emerald-700 border-t border-gray-100 flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> Use "{value.trim()}"
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

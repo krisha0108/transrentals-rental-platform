@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { AMENITY_GROUPS, CANCELLATION_POLICIES } from '@/lib/property-amenities';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 const PROPERTY_TYPES = [
   { value: 'RESORT', label: 'Resort', desc: 'Beach, hill station or destination resort' },
@@ -165,22 +166,17 @@ export default function AddPropertyPage() {
     finally { setSaving(false); }
   };
 
+  useTravelAgentPageHeader(
+    'Add New Property',
+    'Fill in the details below to list your property',
+    undefined,
+    <Link key="back" href="/travel-agent/properties" className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600">
+      <ArrowLeft className="w-4 h-4" /> All Properties
+    </Link>,
+  );
+
   return (
     <div className="max-w-6xl mx-auto">
-      <Link href="/travel-agent/properties" className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600">
-        <ArrowLeft className="w-4 h-4" /> All Properties
-      </Link>
-
-      <div className="flex items-center gap-3 mt-4 mb-6">
-        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-          <Building2 className="w-5 h-5 text-emerald-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add New Property</h1>
-          <p className="text-sm text-gray-500">Fill in the details below to list your property</p>
-        </div>
-      </div>
-
       <div className="lg:grid lg:grid-cols-[200px_1fr] lg:gap-8 lg:items-start">
         {/* ── section quick-nav — this form runs 8 sections long, so a jump
              list earns its keep on desktop; mobile just scrolls ── */}
