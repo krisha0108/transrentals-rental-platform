@@ -35,9 +35,11 @@ export async function GET(request: NextRequest) {
     // seeing NEW (unclaimed) requests — their own quote history stays
     // visible below, so this only zeroes out the "open" location filter.
     const selfDriveActive = await isVendorServiceActive(vendorId, 'self-drive');
-    const openLocationFilter = !selfDriveActive
-      ? { in: [] }
-      : (approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined);
+    // Bug fix: an empty approvedLocationIds array used to fall through to
+    // `undefined`, which Prisma treats as "no filter" — a vendor approved
+    // for zero locations would then see every location's requests. `{ in: [] }`
+    // correctly matches nothing instead.
+    const openLocationFilter = selfDriveActive ? { in: approvedLocationIds } : { in: [] };
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'open', 'quoted', 'won', 'lost'

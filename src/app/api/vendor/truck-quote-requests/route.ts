@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
     const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
     // A vendor who's deactivated Truck Transport on /vendor/services must
     // stop seeing NEW (unclaimed) requests — their own quote history stays
-    // visible below. Note: this file's location filter is separately
-    // disabled (see TODO below, pre-existing/unrelated) — this kill-switch
-    // is a standalone AND condition so it works regardless of that.
-    const truckActive = await isVendorServiceActive(vendorId, 'truck');
+    // visible below, so this only zeroes out the "open" location match.
+    const openLocationOr = (await isVendorServiceActive(vendorId, 'truck'))
+      ? [{ locationId: { in: approvedLocationIds } }, { locationId: null }]
+      : [{ locationId: { in: [] } }];
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const page = parseInt(searchParams.get('page') || '1');
@@ -60,14 +60,12 @@ export async function GET(request: NextRequest) {
     let whereClause: any = {};
 
     if (type === 'open') {
-      // Show all open requests (location filter relaxed for development)
-      // TODO: Re-enable location filter for production: OR: [{ locationId: { in: approvedLocationIds } }, { locationId: null }],
       whereClause = {
         ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
+        OR: openLocationOr,
         truck_quotes: { none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } } },
-        ...(truckActive ? {} : { id: { in: [] } }),
       };
     } else if (type === 'quoted') {
       whereClause = {
@@ -99,14 +97,16 @@ export async function GET(request: NextRequest) {
         truck_quotes: { some: { vendorId: vendorId } },
       };
     } else {
-      // Show all requests (location filter relaxed for development)
+      // Show all requests: open ones in the vendor's approved locations,
+      // plus every request the vendor has already quoted on regardless of
+      // location (so quote history isn't hidden if coverage changes later).
       whereClause = {
         OR: [
           {
             ...dateFilter,
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
-            ...(truckActive ? {} : { id: { in: [] } }),
+            OR: openLocationOr,
           },
           {
             ...dateFilter,

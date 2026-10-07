@@ -72,9 +72,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // For now, show all requests if vendor has approved locations
-    // The city filter was causing issues, so we'll just check if vendor serves the area
-    // In production, you might want more strict filtering
+    // approvedCityNames was computed but never applied here, so every vendor
+    // saw equipment requests for every city regardless of coverage. MySQL's
+    // default collation on this column is already case-insensitive, so a
+    // plain `in` match works without a Postgres-only `mode: 'insensitive'`.
+    whereClause.deliveryCity = { in: approvedCityNames };
 
     if (category) {
       whereClause.equipmentCategory = category;
