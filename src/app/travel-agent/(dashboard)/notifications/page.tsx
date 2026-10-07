@@ -2,14 +2,15 @@
 
 // Travel agent notifications inbox. Backed by the proper
 // travel_agent_notifications table — no settings-blob hack. Supports filter
-// tabs, mark-as-read (single + all), delete (single + all), cursor pagination,
-// and 30s background polling so the unread count stays fresh.
+// tabs (with live per-type counts), mark-as-read (single + all), delete
+// (single + all), cursor pagination, date-grouped list, and 30s background
+// polling so the unread count stays fresh.
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Bell, CheckCheck, Trash2, Loader2, Inbox, Target, Wallet, Compass,
-  MessageSquare, Settings, ChevronRight, X, MoreHorizontal,
+  MessageSquare, Settings, ChevronRight, MoreHorizontal,
 } from 'lucide-react';
 
 type NotificationType = 'LEAD' | 'PAYMENT' | 'BOOKING' | 'CHAT' | 'SYSTEM';
@@ -58,6 +59,28 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+// Buckets a already-sorted (newest-first) list into Today / Yesterday / This
+// week / Earlier sections, without reshuffling order within a bucket.
+function groupByDate(items: Notification[]): { label: string; items: Notification[] }[] {
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = startOfDay(now);
+  const yesterday = today - 86400000;
+  const weekAgo = today - 7 * 86400000;
+
+  const buckets: Record<string, Notification[]> = { Today: [], Yesterday: [], 'This week': [], Earlier: [] };
+  for (const n of items) {
+    const t = startOfDay(new Date(n.createdAt));
+    if (t === today) buckets.Today.push(n);
+    else if (t === yesterday) buckets.Yesterday.push(n);
+    else if (t > weekAgo) buckets['This week'].push(n);
+    else buckets.Earlier.push(n);
+  }
+  return Object.entries(buckets)
+    .filter(([, list]) => list.length > 0)
+    .map(([label, list]) => ({ label, items: list }));
+}
+
 function NotificationRow({
   n,
   onMarkRead,
@@ -76,18 +99,18 @@ function NotificationRow({
   };
 
   const inner = (
-    <div className="flex items-start gap-3 w-full">
+    <div className="flex items-start gap-3 w-full min-w-0">
       <div className={`p-2 rounded-xl ${meta.cls} flex-shrink-0 ${!n.isRead ? `ring-2 ${meta.ring}` : ''}`}>
         <Icon className="h-4 w-4" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-sm leading-tight ${n.isRead ? 'text-gray-700 font-medium' : 'text-gray-900 font-bold'}`}>
+          <p className={`text-sm leading-tight break-words ${n.isRead ? 'text-gray-700 font-medium' : 'text-gray-900 font-bold'}`}>
             {n.title}
           </p>
           <span className="text-[11px] text-gray-400 flex-shrink-0 whitespace-nowrap">{timeAgo(n.createdAt)}</span>
         </div>
-        <p className={`text-xs mt-1 leading-relaxed line-clamp-2 ${n.isRead ? 'text-gray-400' : 'text-gray-600'}`}>
+        <p className={`text-xs mt-1 leading-relaxed line-clamp-2 break-words ${n.isRead ? 'text-gray-400' : 'text-gray-600'}`}>
           {n.body}
         </p>
         {n.link && (
@@ -117,11 +140,12 @@ function NotificationRow({
         </button>
       )}
 
-      {/* Per-row actions */}
+      {/* Per-row actions — always visible on touch screens (no hover there
+          to reveal them), hover-reveal only once a pointer device is likely. */}
       <div className="absolute right-2 top-3 flex items-center gap-1">
         <div className="relative">
           <button onClick={() => setMenuOpen(o => !o)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors opacity-0 group-hover/row:opacity-100 focus:opacity-100"
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors opacity-100 sm:opacity-0 sm:group-hover/row:opacity-100 focus:opacity-100"
             aria-label="More">
             <MoreHorizontal className="h-4 w-4" />
           </button>
@@ -152,6 +176,7 @@ export default function TravelAgentNotificationsPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [typeCounts, setTypeCounts] = useState<Record<string, number>>({});
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -169,6 +194,7 @@ export default function TravelAgentNotificationsPage() {
       }
       const data = await res.json();
       setUnreadCount(data.unreadCount ?? 0);
+      setTypeCounts(data.typeCounts ?? {});
       setNextCursor(data.nextCursor ?? null);
       setItems(prev => opts.replace ? data.items : [...prev, ...data.items]);
       setError(null);
@@ -259,41 +285,44 @@ export default function TravelAgentNotificationsPage() {
     setBulkBusy(false);
   };
 
+  const grouped = groupByDate(items);
+
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-start sm:items-center justify-between gap-3 mb-5 flex-col sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Bell className="h-6 w-6 text-emerald-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
             Notifications
             {unreadCount > 0 && (
-              <span className="ml-1 bg-emerald-600 text-white text-xs font-bold rounded-full min-w-[22px] h-[22px] inline-flex items-center justify-center px-1.5">
+              <span className="bg-emerald-600 text-white text-xs font-bold rounded-full min-w-[22px] h-[22px] inline-flex items-center justify-center px-1.5">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Updates about your leads, payments, bookings and chats</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
           <button onClick={markAllRead} disabled={unreadCount === 0 || bulkBusy}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             <CheckCheck className="h-3.5 w-3.5" />
-            Mark all read
+            <span className="sm:inline">Mark all read</span>
           </button>
           <button onClick={clearAll} disabled={items.length === 0 || bulkBusy}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-red-600 hover:border-red-400 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-red-600 hover:border-red-400 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             <Trash2 className="h-3.5 w-3.5" />
-            Clear all
+            <span className="sm:inline">Clear all</span>
           </button>
         </div>
       </div>
 
-      {/* Filter tabs */}
+      {/* Filter tabs — live counts per type */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
         {FILTERS.map(f => {
           const isActive = filter === f.key;
-          const showBadge = f.key === 'unread' && unreadCount > 0;
+          const count = f.key === 'unread' ? unreadCount : typeCounts[f.key];
+          const showBadge = typeof count === 'number' && count > 0;
           return (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
@@ -306,7 +335,7 @@ export default function TravelAgentNotificationsPage() {
                 <span className={`text-[10px] font-bold rounded-full min-w-[18px] h-[18px] inline-flex items-center justify-center px-1 ${
                   isActive ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-700'
                 }`}>
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                  {count > 99 ? '99+' : count}
                 </span>
               )}
             </button>
@@ -315,53 +344,56 @@ export default function TravelAgentNotificationsPage() {
       </div>
 
       {/* Body */}
-      <div className="mt-4 bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
-        {loading ? (
-          <div className="py-16 flex justify-center">
-            <Loader2 className="h-7 w-7 text-emerald-600 animate-spin" />
+      {loading ? (
+        <div className="py-16 flex justify-center bg-white rounded-2xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <Loader2 className="h-7 w-7 text-emerald-600 animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="py-16 text-center bg-white rounded-2xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <p className="text-sm text-rose-600 font-semibold">{error}</p>
+          <button onClick={() => fetchPage({ replace: true })}
+            className="mt-3 text-xs font-semibold text-emerald-600 hover:text-emerald-700">
+            Try again
+          </button>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="py-16 flex flex-col items-center justify-center text-center px-6 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3">
+            <Inbox className="h-8 w-8 text-emerald-400" />
           </div>
-        ) : error ? (
-          <div className="py-16 text-center">
-            <p className="text-sm text-rose-600 font-semibold">{error}</p>
-            <button onClick={() => fetchPage({ replace: true })}
-              className="mt-3 text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-              Try again
-            </button>
-          </div>
-        ) : items.length === 0 ? (
-          <div className="py-16 flex flex-col items-center justify-center text-center px-6">
-            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3">
-              <Inbox className="h-8 w-8 text-emerald-400" />
-            </div>
-            <p className="text-gray-700 font-semibold">No notifications</p>
-            <p className="text-sm text-gray-400 mt-1 max-w-xs">
-              {filter === 'unread'
-                ? 'You\'re all caught up'
-                : 'Updates from your leads, payments and bookings will show up here'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="divide-y divide-gray-50">
-              {items.map(n => (
-                <NotificationRow key={n.id} n={n} onMarkRead={markRead} onDelete={deleteOne} />
-              ))}
-            </div>
-            {nextCursor && (
-              <div className="px-5 py-3 border-t border-gray-50">
-                <button onClick={loadMore} disabled={loadingMore}
-                  className="w-full py-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50 transition-colors">
-                  {loadingMore ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Loading...
-                    </span>
-                  ) : 'Load more'}
-                </button>
+          <p className="text-gray-700 font-semibold">No notifications</p>
+          <p className="text-sm text-gray-400 mt-1 max-w-xs">
+            {filter === 'unread'
+              ? 'You\'re all caught up'
+              : 'Updates from your leads, payments and bookings will show up here'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {grouped.map(({ label, items: groupItems }) => (
+            <div key={label}>
+              <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-gray-400">{label}</p>
+              <div className="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-50">
+                {groupItems.map(n => (
+                  <NotificationRow key={n.id} n={n} onMarkRead={markRead} onDelete={deleteOne} />
+                ))}
               </div>
-            )}
-          </>
-        )}
-      </div>
+            </div>
+          ))}
+          {nextCursor && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] px-5 py-3">
+              <button onClick={loadMore} disabled={loadingMore}
+                className="w-full py-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 disabled:opacity-50 transition-colors">
+                {loadingMore ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+                  </span>
+                ) : 'Load more'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

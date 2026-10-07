@@ -10,6 +10,7 @@ import {
   Phone,
   Calendar,
   IndianRupee,
+  Star,
 } from 'lucide-react';
 
 interface BookingData {
@@ -32,6 +33,8 @@ interface BookingData {
   paymentStatus: string;
   status: string;
   customerFilledAt: string | null;
+  referenceId: string | null;
+  review: { rating: number; comment: string | null; createdAt: string } | null;
   agency: { name: string; logo: string | null; phone: string };
 }
 
@@ -49,6 +52,11 @@ export default function CustomerBookingFillPage({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState('');
 
   const [form, setForm] = useState({
     customerName: '',
@@ -119,6 +127,36 @@ export default function CustomerBookingFillPage({
       setSubmitError('Network error. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitReview = async () => {
+    if (reviewRating < 1) {
+      setReviewError('Pick a star rating first.');
+      return;
+    }
+    setReviewSubmitting(true);
+    setReviewError('');
+    try {
+      const res = await fetch(`/api/travel-agent/booking-share/${token}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+      });
+      const j = await res.json();
+      if (res.ok) {
+        setBooking((prev) =>
+          prev
+            ? { ...prev, review: { rating: reviewRating, comment: reviewComment || null, createdAt: new Date().toISOString() } }
+            : prev,
+        );
+      } else {
+        setReviewError(j.error || 'Could not submit your review.');
+      }
+    } catch {
+      setReviewError('Network error. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -238,6 +276,70 @@ export default function CustomerBookingFillPage({
                 </a>
                 .
               </p>
+
+              {isProperty && booking.referenceId && booking.status === 'COMPLETED' && (
+                <div className="mt-6 border-t border-gray-100 pt-6 text-left">
+                  {booking.review ? (
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 mb-1.5">Your rating</p>
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={`w-5 h-5 ${n <= booking.review!.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                          />
+                        ))}
+                      </div>
+                      {booking.review.comment && (
+                        <p className="mt-2 text-sm text-gray-600">{booking.review.comment}</p>
+                      )}
+                      <p className="mt-2 text-xs text-gray-400">Thanks for rating your stay!</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 mb-2 text-center">How was your stay?</p>
+                      <div className="flex justify-center gap-1 mb-3">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setReviewRating(n)}
+                            aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                          >
+                            <Star
+                              className={`w-8 h-8 transition-colors ${n <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="Tell other travellers about your stay (optional)"
+                        rows={3}
+                        className={inputCls}
+                      />
+                      {reviewError && (
+                        <p className="mt-2 text-sm text-red-600">{reviewError}</p>
+                      )}
+                      <button
+                        type="button"
+                        disabled={reviewSubmitting}
+                        onClick={submitReview}
+                        className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm"
+                      >
+                        {reviewSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Submitting…
+                          </>
+                        ) : (
+                          'Submit review'
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={submit} className="p-6 space-y-4">

@@ -72,6 +72,23 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Enquiry/quote-request counts per property — every lead captured from a
+    // property's public listing page carries propertyId (see the public
+    // enquiry endpoint), so this is a simple group-by over this agent's leads.
+    const enquiryCountRows = await prisma.travel_agent_leads.groupBy({
+      by: ['propertyId'],
+      where: { travelAgentId: auth.travelAgentId, propertyId: { not: null } },
+      _count: { _all: true },
+    });
+    const enquiryCountByProperty: Record<string, number> = {};
+    for (const row of enquiryCountRows) {
+      if (row.propertyId) enquiryCountByProperty[row.propertyId] = row._count._all;
+    }
+    const propertiesWithCounts = properties.map((p) => ({
+      ...p,
+      enquiryCount: enquiryCountByProperty[p.id] || 0,
+    }));
+
     const ratedProps = properties.filter((p) => (p.totalRatings || 0) > 0);
     const stats = {
       total: properties.length,
@@ -80,9 +97,10 @@ export async function GET(request: NextRequest) {
       avgRating: ratedProps.length > 0
         ? Number((ratedProps.reduce((s, p) => s + (p.rating || 0), 0) / ratedProps.length).toFixed(1))
         : null,
+      totalEnquiries: enquiryCountRows.reduce((s, r) => s + r._count._all, 0),
     };
 
-    return NextResponse.json({ properties, stats });
+    return NextResponse.json({ properties: propertiesWithCounts, stats });
   } catch (error: any) {
     logger.error('List travel agent properties error', error);
     return NextResponse.json(

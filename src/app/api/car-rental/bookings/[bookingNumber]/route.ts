@@ -36,6 +36,17 @@ export async function GET(
     const acceptedVendor = (booking as any).vendors_chauffeur_bookings_acceptedVendorIdTovendors;
     const acceptedDriver = (booking as any).accepted_driver;
 
+    // Only a cancelled booking ever has a refund_followups row (see
+    // openRefundFollowup). The customer sees "in process" until a manager
+    // has actually decided on an amount — no made-up number before that.
+    const refundFollowup =
+      booking.status === 'CANCELLED'
+        ? await prisma.refund_followups.findUnique({
+            where: { source_bookingId: { source: 'chauffeur_bookings', bookingId: booking.id } },
+            select: { status: true, amount: true, approvedAmount: true, customerRefundApproved: true },
+          })
+        : null;
+
     let intermediateStops: any[] = [];
     try {
       if (booking.intermediateStops) {
@@ -119,6 +130,18 @@ export async function GET(
         bookingMode:     booking.bookingMode,
         createdAt:       booking.createdAt,
         updatedAt:       booking.updatedAt,
+        refund: refundFollowup && {
+          status: refundFollowup.status,
+          // Null until a manager has actually reviewed it — the page must
+          // not show the original owed amount as if it were decided.
+          decidedAmount:
+            refundFollowup.customerRefundApproved === null
+              ? null
+              : refundFollowup.customerRefundApproved
+                ? (refundFollowup.approvedAmount ?? refundFollowup.amount)
+                : 0,
+          customerRefundApproved: refundFollowup.customerRefundApproved,
+        },
       },
     });
   } catch (error: any) {

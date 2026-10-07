@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   CalendarDays,
   Smile,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
@@ -56,6 +57,7 @@ interface NavItem {
 const approvedNavigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/travel-agent/dashboard', icon: LayoutDashboard },
   { name: 'Customer Chats', href: '/travel-agent/chats', icon: MessageSquare },
+  { name: 'Notifications', href: '/travel-agent/notifications', icon: Bell },
   {
     name: 'Lead Management',
     href: '/travel-agent/leads',
@@ -120,11 +122,6 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Messages',    href: '/travel-agent/social/messages',   icon: MessageSquare   },
     ],
   },
-  {
-    name: 'Notifications',
-    href: '/travel-agent/notifications',
-    icon: Bell,
-  },
   { name: 'Help & Support', href: '/travel-agent/support', icon: HelpCircle },
   { name: 'Get Started', href: '/travel-agent/get-started', icon: Sparkles },
 ];
@@ -133,6 +130,7 @@ const approvedNavigationItems: NavItem[] = [
 const pendingNavigationItems: NavItem[] = [
   { name: 'Dashboard', href: '/travel-agent/dashboard', icon: LayoutDashboard },
   { name: 'Customer Chats', href: '/travel-agent/chats', icon: MessageSquare },
+  { name: 'Notifications', href: '/travel-agent/notifications', icon: Bell },
   {
     name: 'Lead Management',
     href: '/travel-agent/leads',
@@ -193,7 +191,6 @@ const pendingNavigationItems: NavItem[] = [
       { name: 'Messages',    href: '/travel-agent/social/messages',   icon: MessageSquare   },
     ],
   },
-  { name: 'Notifications', href: '/travel-agent/notifications', icon: Bell },
   { name: 'Help & Support', href: '/travel-agent/support', icon: HelpCircle },
 ];
 
@@ -208,9 +205,45 @@ export function TravelAgentSidebar({ isOpen, onClose, agentStatus }: TravelAgent
   const { data: session } = useSession();
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [profileExpanded, setProfileExpanded] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [navSearch, setNavSearch] = useState('');
 
   const isApproved = agentStatus === 'APPROVED';
   const navigationItems = isApproved ? approvedNavigationItems : pendingNavigationItems;
+
+  const searchQuery = navSearch.trim().toLowerCase();
+  const searchActive = searchQuery.length > 0;
+  const visibleItems = searchActive
+    ? navigationItems.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchQuery) ||
+          (item.children?.some((c) => c.name.toLowerCase().includes(searchQuery)) ?? false),
+      )
+    : navigationItems;
+
+  // Poll unread notification count for the "Notifications" sidebar badge —
+  // the API already existed for this (built for a bell that was never
+  // wired up), so this just connects it. Same cadence as vendor's sidebar.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/travel-agent/notifications/unread-count', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setUnreadNotifCount(Number(data?.count) || 0);
+      } catch { /* network blip — keep last value */ }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchCount(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -250,7 +283,19 @@ export function TravelAgentSidebar({ isOpen, onClose, agentStatus }: TravelAgent
     const Icon = item.icon;
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);
-    const isExpanded = expandedSections.includes(item.name);
+    const selfMatches = item.name.toLowerCase().includes(searchQuery);
+    const matchingChildren = hasChildren
+      ? item.children!.filter((c) => c.name.toLowerCase().includes(searchQuery))
+      : [];
+    // While searching, force groups with a matching child open so the match
+    // is visible without an extra click — manual toggles still work once the
+    // search is cleared.
+    const isExpanded = expandedSections.includes(item.name) || (searchActive && matchingChildren.length > 0);
+    const childrenToRender = searchActive && !selfMatches ? matchingChildren : item.children;
+    const dynamicBadge =
+      item.href === '/travel-agent/notifications' && unreadNotifCount > 0
+        ? (unreadNotifCount > 99 ? '99+' : String(unreadNotifCount))
+        : item.badge;
 
     if (hasChildren) {
       return (
@@ -273,7 +318,7 @@ export function TravelAgentSidebar({ isOpen, onClose, agentStatus }: TravelAgent
 
           {isExpanded && (
             <div className="ml-4 pl-4 border-l border-gray-700 space-y-1">
-              {item.children!.map((child) => {
+              {(childrenToRender || []).map((child) => {
                 const ChildIcon = child.icon;
                 const isExact = pathname === child.href;
                 const isPrefix = pathname.startsWith(child.href + '/');
@@ -321,9 +366,9 @@ export function TravelAgentSidebar({ isOpen, onClose, agentStatus }: TravelAgent
       >
         <Icon className="w-5 h-5" />
         <span className="font-medium">{item.name}</span>
-        {item.badge && (
+        {dynamicBadge && (
           <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-            {item.badge}
+            {dynamicBadge}
           </span>
         )}
       </Link>
@@ -390,8 +435,36 @@ export function TravelAgentSidebar({ isOpen, onClose, agentStatus }: TravelAgent
             </div>
           )}
 
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto sidebar-scroll">
-            {navigationItems.map((item) => renderNavItem(item))}
+          {/* Nav search — filters the list below so agents don't have to
+              scroll through every section to find one link. */}
+          <div className="px-4 pt-4">
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={navSearch}
+                onChange={(e) => setNavSearch(e.target.value)}
+                placeholder="Search menu..."
+                className="w-full pl-9 pr-8 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition"
+              />
+              {navSearch && (
+                <button
+                  onClick={() => setNavSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto sidebar-scroll">
+            {visibleItems.length === 0 ? (
+              <p className="px-4 py-6 text-center text-sm text-gray-500">No menu items match &quot;{navSearch}&quot;</p>
+            ) : (
+              visibleItems.map((item) => renderNavItem(item))
+            )}
           </nav>
 
           <div className="border-t border-gray-800">

@@ -544,6 +544,82 @@ export async function sendWanderBookingEmail(params: {
   }
 }
 
+// Confirmation sent to the customer right after they submit a property
+// enquiry from a travel agent's public listing page — tells them it reached
+// the agent, without promising anything the agent hasn't actually said yet.
+export async function sendPropertyEnquiryConfirmationEmail(params: {
+  to: string;
+  customerName: string;
+  propertyName: string;
+  agencyName: string;
+  agencyPhone: string;
+  checkInDate?: string | null;
+  checkOutDate?: string | null;
+  guests?: number | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.error('SMTP credentials not configured');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const { to, customerName, propertyName, agencyName, agencyPhone, checkInDate, checkOutDate, guests } = params;
+
+    const detailRows = [
+      checkInDate ? `<tr><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Check-in</td><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600;text-align:right;">${checkInDate}</td></tr>` : '',
+      checkOutDate ? `<tr><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">Check-out</td><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;color:#111827;font-size:13px;font-weight:600;text-align:right;">${checkOutDate}</td></tr>` : '',
+      guests ? `<tr><td style="padding:10px 16px;color:#6b7280;font-size:13px;">Guests</td><td style="padding:10px 16px;color:#111827;font-size:13px;font-weight:600;text-align:right;">${guests}</td></tr>` : '',
+    ].filter(Boolean).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f4f4f4;">
+        <table role="presentation" style="width:100%;border-collapse:collapse;">
+          <tr><td align="center" style="padding:40px 12px;">
+            <table role="presentation" style="width:600px;max-width:100%;border-collapse:collapse;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+              <tr><td style="padding:30px 40px;background:linear-gradient(135deg,#059669,#0d9488);border-radius:12px 12px 0 0;">
+                <h1 style="margin:0;color:#fff;font-size:20px;">Enquiry received ✅</h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">TransRentals</p>
+              </td></tr>
+              <tr><td style="padding:30px 40px;">
+                <p style="color:#374151;font-size:16px;margin:0 0 16px;">Hi <strong>${customerName}</strong>,</p>
+                <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 20px;">
+                  Your enquiry for <strong>${propertyName}</strong> has reached <strong>${agencyName}</strong> successfully.
+                  They'll contact you directly on the phone number you shared, usually within a few hours.
+                </p>
+                ${detailRows ? `<table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">${detailRows}</table>` : ''}
+                <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;text-align:center;">
+                  Need to reach them sooner? Call <a href="tel:${agencyPhone}" style="color:#059669;">${agencyPhone}</a> directly,
+                  or write to us at <a href="mailto:book@transrentals.in" style="color:#059669;">book@transrentals.in</a>.
+                </p>
+              </td></tr>
+            </table>
+          </td></tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    await transporter.sendMail({
+      from: `"TransRentals" <${SMTP_FROM_EMAIL}>`,
+      to,
+      subject: `We've received your enquiry for ${propertyName}`,
+      html,
+    });
+
+    console.log(`Property enquiry confirmation email sent to ${to}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send property enquiry confirmation email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to send email' };
+  }
+}
+
 // Verify SMTP connection
 export async function verifyEmailService(): Promise<boolean> {
   try {
