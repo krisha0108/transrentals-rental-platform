@@ -26,6 +26,8 @@ import {
   Globe,
   IndianRupee,
   Star,
+  X,
+  MessageSquare,
 } from 'lucide-react';
 import { useManagerPageHeader } from '@/hooks/useManagerPageHeader';
 
@@ -108,14 +110,23 @@ interface Lead {
   id: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string | null;
   source: string;
   tripType: string | null;
+  pickupLocation?: string | null;
+  dropLocation?: string | null;
   destination: string | null;
   travelDate: string | null;
+  returnDate?: string | null;
+  passengers?: number | null;
+  requirement?: string | null;
   estimatedValue: number | null;
   quotedAmount: number | null;
   status: string;
   priority: string;
+  nextFollowUp?: string | null;
+  lastContactAt?: string | null;
+  lostReason?: string | null;
   createdAt: string;
 }
 
@@ -636,7 +647,86 @@ const LEAD_STATUS_COLOR: Record<string, string> = {
   CONVERTED: 'bg-emerald-100 text-emerald-700',
 };
 
+function LeadDetailModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+          <div>
+            <p className="font-bold text-gray-900">{lead.customerName}</p>
+            <p className="text-xs text-gray-500">{lead.customerPhone}{lead.customerEmail ? ` · ${lead.customerEmail}` : ''}</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-4">
+          <div className="flex flex-wrap gap-2">
+            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${LEAD_STATUS_COLOR[lead.status] || 'bg-gray-100 text-gray-600'}`}>
+              {lead.status}
+            </span>
+            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+              {lead.priority} priority
+            </span>
+            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+              {lead.source}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <Detail label="Trip type" value={lead.tripType} />
+            <Detail label="Destination" value={lead.destination} />
+            <Detail label="Pickup" value={lead.pickupLocation} />
+            <Detail label="Drop" value={lead.dropLocation} />
+            <Detail label="Travel date" value={dateShort(lead.travelDate)} />
+            <Detail label="Return date" value={dateShort(lead.returnDate)} />
+            <Detail label="Passengers / guests" value={lead.passengers ? String(lead.passengers) : null} />
+            <Detail label="Next follow-up" value={dateShort(lead.nextFollowUp)} />
+            <Detail label="Last contact" value={dateShort(lead.lastContactAt)} />
+            <Detail label="Created" value={dateShort(lead.createdAt)} />
+            <Detail label="Estimated value" value={lead.estimatedValue ? inr(lead.estimatedValue) : null} />
+            <Detail label="Quoted amount" value={lead.quotedAmount ? inr(lead.quotedAmount) : null} />
+          </div>
+
+          {lead.requirement && (
+            <div>
+              <p className="mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                <MessageSquare className="h-3 w-3" /> Enquiry notes
+              </p>
+              <p className="whitespace-pre-wrap rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-700">
+                {lead.requirement}
+              </p>
+            </div>
+          )}
+
+          {lead.lostReason && (
+            <div>
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">Lost reason</p>
+              <p className="text-sm text-gray-700">{lead.lostReason}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400">{label}</p>
+      <p className="text-gray-800">{value}</p>
+    </div>
+  );
+}
+
 function LeadsTab({ leads, total }: { leads: Lead[]; total: number }) {
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   if (leads.length === 0) return <Empty icon={Users} text="No leads yet" />;
   return (
     <div>
@@ -653,6 +743,7 @@ function LeadsTab({ leads, total }: { leads: Lead[]; total: number }) {
               <th className="text-right px-4 py-2.5">Quoted</th>
               <th className="text-left px-4 py-2.5">Status</th>
               <th className="text-left px-4 py-2.5">Created</th>
+              <th className="text-right px-4 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
@@ -674,11 +765,20 @@ function LeadsTab({ leads, total }: { leads: Lead[]; total: number }) {
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-xs text-gray-500">{dateShort(l.createdAt)}</td>
+                <td className="px-4 py-2.5 text-right">
+                  <button
+                    onClick={() => setSelectedLead(l)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:border-emerald-400 hover:text-emerald-700"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> View
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {selectedLead && <LeadDetailModal lead={selectedLead} onClose={() => setSelectedLead(null)} />}
     </div>
   );
 }

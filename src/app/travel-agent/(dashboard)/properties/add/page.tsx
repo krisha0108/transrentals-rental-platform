@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Loader2, ArrowLeft, Save, Building2, Upload, X, ImageIcon,
-  MapPin, Bed, Bath, Users, Clock, Shield, Info, Plus,
+  MapPin, Bed, Shield, Plus, Sparkles, ClipboardCheck, IndianRupee,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { AMENITY_GROUPS, CANCELLATION_POLICIES } from '@/lib/property-amenities';
@@ -166,12 +166,12 @@ export default function AddPropertyPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-10">
+    <div className="max-w-6xl mx-auto">
       <Link href="/travel-agent/properties" className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600">
         <ArrowLeft className="w-4 h-4" /> All Properties
       </Link>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mt-4 mb-6">
         <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
           <Building2 className="w-5 h-5 text-emerald-600" />
         </div>
@@ -181,10 +181,28 @@ export default function AddPropertyPage() {
         </div>
       </div>
 
-      <form onSubmit={submit} className="space-y-6">
+      <div className="lg:grid lg:grid-cols-[200px_1fr] lg:gap-8 lg:items-start">
+        {/* ── section quick-nav — this form runs 8 sections long, so a jump
+             list earns its keep on desktop; mobile just scrolls ── */}
+        <nav className="hidden lg:block lg:sticky lg:top-6 space-y-0.5">
+          {NAV_SECTIONS.map((s, i) => (
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-emerald-700"
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-bold text-gray-500">
+                {i + 1}
+              </span>
+              {s.label}
+            </a>
+          ))}
+        </nav>
+
+        <form id="add-property-form" onSubmit={submit} className="min-w-0 space-y-6 pb-24">
 
         {/* ── 1. BASICS ── */}
-        <FormSection icon={<Building2 className="w-4 h-4" />} title="Listing Basics" color="emerald">
+        <FormSection id="basics" icon={<Building2 className="w-4 h-4" />} title="Listing Basics" color="emerald">
           <div className="sm:col-span-2">
             <Label required>Property Name</Label>
             <input required type="text" value={form.name} onChange={(e) => update('name', e.target.value)}
@@ -233,7 +251,7 @@ export default function AddPropertyPage() {
         </FormSection>
 
         {/* ── 2. CAPACITY & ROOMS ── */}
-        <FormSection icon={<Bed className="w-4 h-4" />} title="Capacity & Rooms" color="blue">
+        <FormSection id="capacity" icon={<Bed className="w-4 h-4" />} title="Capacity & Rooms" color="blue">
           <Field label="Total Rooms *">
             <input required type="number" min={1} value={form.totalRooms}
               onChange={(e) => update('totalRooms', Number(e.target.value))} className={inp} />
@@ -256,7 +274,7 @@ export default function AddPropertyPage() {
         </FormSection>
 
         {/* ── 3. LOCATION ── */}
-        <FormSection icon={<MapPin className="w-4 h-4" />} title="Location" color="purple">
+        <FormSection id="location" icon={<MapPin className="w-4 h-4" />} title="Location" color="purple">
           <div className="sm:col-span-2">
             <Label>Street Address</Label>
             <textarea rows={2} value={form.address}
@@ -293,7 +311,7 @@ export default function AddPropertyPage() {
         </FormSection>
 
         {/* ── 4. PHOTOS ── */}
-        <FormSection icon={<ImageIcon className="w-4 h-4" />} title="Photos" color="pink">
+        <FormSection id="photos" icon={<ImageIcon className="w-4 h-4" />} title="Photos" color="pink">
           <div className="sm:col-span-2">
             <Label>Cover Photo <span className="text-gray-400 font-normal text-xs ml-1">— main photo shown on listings</span></Label>
             {form.coverImage ? (
@@ -342,7 +360,7 @@ export default function AddPropertyPage() {
         </FormSection>
 
         {/* ── 5. AMENITIES ── */}
-        <FormSection icon={<Info className="w-4 h-4" />} title="Amenities" color="teal">
+        <FormSection id="amenities" icon={<Sparkles className="w-4 h-4" />} title="Amenities" color="teal">
           <div className="sm:col-span-2 space-y-5">
             {AMENITY_GROUPS.map((group) => (
               <div key={group.id}>
@@ -420,7 +438,7 @@ export default function AddPropertyPage() {
         </FormSection>
 
         {/* ── 6. INCLUSIONS / EXCLUSIONS ── */}
-        <FormSection icon={<Info className="w-4 h-4" />} title="What's Included" color="green">
+        <FormSection id="inclusions" icon={<ClipboardCheck className="w-4 h-4" />} title="What's Included" color="green">
           <div className="sm:col-span-2">
             <Label>Inclusions <span className="text-gray-400 font-normal text-xs ml-1">— what's included in the price</span></Label>
             <textarea rows={3} value={form.inclusions}
@@ -438,7 +456,7 @@ export default function AddPropertyPage() {
         </FormSection>
 
         {/* ── 7. RULES & POLICIES ── */}
-        <FormSection icon={<Shield className="w-4 h-4" />} title="Rules & Policies" color="amber">
+        <FormSection id="rules" icon={<Shield className="w-4 h-4" />} title="Rules & Policies" color="amber">
           <div className="sm:col-span-2">
             <Label>House Rules</Label>
             <textarea rows={3} value={form.rules}
@@ -487,7 +505,7 @@ export default function AddPropertyPage() {
         </FormSection>
 
         {/* ── 8. PRICING ── */}
-        <FormSection icon={<Info className="w-4 h-4" />} title="Pricing" color="emerald">
+        <FormSection id="pricing" icon={<IndianRupee className="w-4 h-4" />} title="Pricing" color="emerald">
           <Field label="Starting Price (₹ / night)">
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">₹</span>
@@ -496,21 +514,42 @@ export default function AddPropertyPage() {
                 placeholder="e.g. 3500" className={`${inp} pl-7`} />
             </div>
           </Field>
+          <div className="sm:col-span-2 flex items-start gap-2 rounded-xl bg-emerald-50/60 border border-emerald-100 px-3.5 py-3 text-xs text-emerald-800">
+            <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            This is the "from" price shown on your listing card. You can adjust it anytime from the property's edit page.
+          </div>
         </FormSection>
 
+        </form>
+      </div>
+
+      {/* ── sticky action bar — this form is long; Save shouldn't require
+           scrolling all the way back down to find it ── */}
+      <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-gray-200 bg-white/90 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
         <div className="flex justify-end gap-3">
           <Link href="/travel-agent/properties" className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-4 py-2.5">
             Cancel
           </Link>
-          <button type="submit" disabled={saving}
+          <button type="submit" form="add-property-form" disabled={saving}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white font-semibold text-sm px-6 py-3 rounded-xl">
             {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> Create Property</>}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
+
+const NAV_SECTIONS = [
+  { id: 'basics', label: 'Listing Basics' },
+  { id: 'capacity', label: 'Capacity & Rooms' },
+  { id: 'location', label: 'Location' },
+  { id: 'photos', label: 'Photos' },
+  { id: 'amenities', label: 'Amenities' },
+  { id: 'inclusions', label: "What's Included" },
+  { id: 'rules', label: 'Rules & Policies' },
+  { id: 'pricing', label: 'Pricing' },
+];
 
 const inp = 'w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white';
 const labelBase = 'block text-sm font-semibold text-gray-700 mb-1.5';
@@ -544,12 +583,12 @@ const SECTION_COLORS: Record<string, string> = {
 };
 
 function FormSection({
-  icon, title, color, children,
+  id, icon, title, color, children,
 }: {
-  icon: React.ReactNode; title: string; color: string; children: React.ReactNode;
+  id: string; icon: React.ReactNode; title: string; color: string; children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 p-6">
+    <section id={id} className="scroll-mt-20 bg-white rounded-2xl border border-gray-200 p-6">
       <div className="flex items-center gap-2 mb-5">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${SECTION_COLORS[color] || 'bg-gray-100 text-gray-700'}`}>
           {icon}

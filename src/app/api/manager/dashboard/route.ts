@@ -187,6 +187,14 @@ export async function GET(request: NextRequest) {
     allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     const bookings = allBookings.slice(0, 100);
 
+    // Not scoped to this manager's assigned locations/services — the refunds
+    // queue itself (/manager/refunds) is shared across all managers, so the
+    // count shown here has to match what that page calls "Pending".
+    const pendingRefunds = await prisma.refund_followups.count({ where: { status: 'PENDING' } }).catch((e) => {
+      logger.error('Error counting pending refunds', e);
+      return 0;
+    });
+
     // Get stats
     const stats = {
       totalBookings: bookings.length,
@@ -196,6 +204,7 @@ export async function GET(request: NextRequest) {
       completedToday: bookings.filter(
         (b) => b.status === 'COMPLETED' && b.returnedAt && new Date(b.returnedAt).toDateString() === new Date().toDateString()
       ).length,
+      pendingRefunds,
       totalVendors: vendors.length,
       activeVendors: vendors.filter((v) => v.status === 'APPROVED').length,
     };

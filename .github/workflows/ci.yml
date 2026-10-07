@@ -272,6 +272,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # This image copies the full node_modules + .next standalone output +
+      # Prisma engines into the final layer (see the Dockerfile's runner
+      # stage — trimming node_modules there has broken `prisma migrate
+      # deploy` before, so it stays whole). That, plus whatever Buildx's own
+      # GHA cache has accumulated, is enough to exhaust a stock ubuntu-latest
+      # runner's free disk during the image export step ("no space left on
+      # device"). None of this — Android SDK, .NET, GHC, CodeQL, the
+      # preinstalled Docker images — is used by a Node.js/Next.js build, so
+      # it's safe to clear before the real build starts.
+      - name: Free up runner disk space
+        run: |
+          echo "Before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL "$AGENT_TOOLSDIRECTORY" || true
+          docker image prune --all --force || true
+          docker builder prune --all --force || true
+          echo "After cleanup:"
+          df -h /
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

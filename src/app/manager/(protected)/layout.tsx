@@ -77,12 +77,14 @@ function ManagerSidebar({
   vendorBadgeCount,
   notificationsBadgeCount,
   agreementBadgeCount,
+  refundBadgeCount,
 }: {
   isOpen: boolean;
   onClose: () => void;
   vendorBadgeCount: number;
   notificationsBadgeCount: number;
   agreementBadgeCount: number;
+  refundBadgeCount: number;
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -98,6 +100,7 @@ function ManagerSidebar({
     '/manager/vendors': vendorBadgeCount,
     '/manager/notifications': notificationsBadgeCount,
     '/manager/vendor-agreements': agreementBadgeCount,
+    '/manager/refunds': refundBadgeCount,
   };
   const canManageCarRentalContent = !!(session?.user as any)?.canManageCarRentalContent;
   const sidebarLinks = canManageCarRentalContent
@@ -286,6 +289,7 @@ const NOTIFICATION_ICON: Record<string, any> = {
   NEW_CONTACT_INQUIRY: Mail,
   NEW_TRAVEL_AGENT_REGISTRATION: Plane,
   NEW_VENDOR_AGREEMENT_SIGNED: FileSignature,
+  NEW_PROPERTY_ENQUIRY: Building2,
 };
 
 function ManagerNotificationBell({
@@ -384,6 +388,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
   const [agreementUnreadCount, setAgreementUnreadCount] = useState(0);
+  const [refundUnreadCount, setRefundUnreadCount] = useState(0);
 
   useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
 
@@ -402,6 +407,20 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Pulled from the refunds queue itself rather than the notification's
+  // read/unread state — a refund still needs a decision for as long as it
+  // sits PENDING, whether or not the manager has opened the alert about it.
+  const fetchRefundCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/refunds?status=pending&limit=1');
+      if (!res.ok) return;
+      const data = await res.json();
+      setRefundUnreadCount(data.counts?.pending || 0);
+    } catch {
+      // silent — same as notifications, non-critical
+    }
+  }, []);
+
   // Must be before any early returns — hooks cannot be called conditionally
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -412,11 +431,13 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status !== 'authenticated') return;
     fetchNotifications();
+    fetchRefundCount();
     const interval = setInterval(() => {
       fetchNotifications();
+      fetchRefundCount();
     }, 30000);
     return () => clearInterval(interval);
-  }, [status, fetchNotifications]);
+  }, [status, fetchNotifications, fetchRefundCount]);
 
   // Other pages (dashboard widget, the standalone notifications page) mark
   // notifications read via their own PATCH calls, not through this layout's
@@ -496,6 +517,7 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
         vendorBadgeCount={vendorUnreadCount}
         agreementBadgeCount={agreementUnreadCount}
         notificationsBadgeCount={unreadCount}
+        refundBadgeCount={refundUnreadCount}
       />
 
       <div className="lg:pl-64">

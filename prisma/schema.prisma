@@ -6722,6 +6722,7 @@ model travel_agent_leads {
   lostReason          String?                    @db.Text
   convertedBookingId  String?
   tourId              String? // optional FK to travel_agent_tours when lead came from a tour quote
+  propertyId          String? // optional FK to travel_agent_properties when lead came from a property enquiry
   customerId          String? // optional link to customers when lead came from a logged-in customer
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
@@ -6882,13 +6883,29 @@ model travel_agent_properties {
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
 
-  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agents                 travel_agents                   @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agent_property_reviews travel_agent_property_reviews[]
 
   @@unique([travelAgentId, slug])
   @@index([travelAgentId])
   @@index([propertyType])
   @@index([city])
   @@index([isActive])
+}
+
+model travel_agent_property_reviews {
+  id           String   @id @default(cuid())
+  propertyId   String
+  bookingId    String   @unique
+  customerName String
+  rating       Int
+  comment      String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  travel_agent_properties travel_agent_properties @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  travel_agent_bookings   travel_agent_bookings    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
 }
 
 model travel_agent_bookings {
@@ -6920,7 +6937,8 @@ model travel_agent_bookings {
   createdAt        DateTime                    @default(now())
   updatedAt        DateTime                    @updatedAt
 
-  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agents                  travel_agents                   @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agent_property_review   travel_agent_property_reviews?
 
   @@index([travelAgentId])
   @@index([status])
@@ -7577,6 +7595,7 @@ enum manager_notification_type {
   NEW_TRAVEL_AGENT_REGISTRATION
   NEW_VENDOR_AGREEMENT_SIGNED
   NEW_DRIVER_REGISTRATION
+  NEW_PROPERTY_ENQUIRY
 }
 
 model service_city_content {
