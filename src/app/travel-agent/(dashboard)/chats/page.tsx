@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Loader2,
-  MessageSquare,
   Phone,
   Inbox,
   ArrowRight,
@@ -12,6 +11,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Conversation {
   id: string;
@@ -75,20 +75,13 @@ export default function ChatsListPage() {
     return () => clearInterval(t);
   }, [statusFilter]);
 
+  useTravelAgentPageHeader(
+    'Customer Chats',
+    `${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}${totalUnread > 0 ? ` • ${totalUnread} unread` : ''}`,
+  );
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-          <MessageSquare className="w-5 h-5 text-emerald-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Customer Chats</h1>
-          <p className="text-sm text-gray-500">
-            {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
-            {totalUnread > 0 && ` • ${totalUnread} unread`}
-          </p>
-        </div>
-      </div>
 
       {!loading && (conversations.length > 0 || statusFilter !== 'ALL') && (
         <div className="flex flex-col sm:flex-row gap-3">

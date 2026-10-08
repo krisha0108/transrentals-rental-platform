@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         id: true,
         city: true,
         vendor_approved_locations: {
+          where: { isActive: true },
           select: { locationId: true, locations: { select: { name: true } } }
         }
       },
@@ -362,6 +363,7 @@ export async function POST(request: NextRequest) {
         id: true,
         city: true,
         vendor_approved_locations: {
+          where: { isActive: true },
           select: { locationId: true }
         }
       },

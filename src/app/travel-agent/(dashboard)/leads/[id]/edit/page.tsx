@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowLeft, Save, Target } from 'lucide-react';
+import { Loader2, ArrowLeft, Save } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 const TRIP_TYPES = [
   { value: '', label: 'Not specified' },
@@ -109,6 +110,19 @@ export default function EditLeadPage({ params }: { params: { id: string } }) {
     }
   };
 
+  useTravelAgentPageHeader(
+    'Edit Lead',
+    undefined,
+    undefined,
+    <Link
+      key="back"
+      href={`/travel-agent/leads/${id}`}
+      className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
+    >
+      <ArrowLeft className="w-4 h-4" /> Back to lead
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -119,20 +133,6 @@ export default function EditLeadPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Link
-        href={`/travel-agent/leads/${id}`}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to lead
-      </Link>
-
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-          <Target className="w-5 h-5 text-emerald-600" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Lead</h1>
-      </div>
-
       <form onSubmit={submit} className="space-y-5">
         <Section title="Customer">
           <Field label="Customer Name *" required>

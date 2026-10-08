@@ -19,12 +19,14 @@ export async function GET(request: NextRequest) {
 
     const vendor = await prisma.vendors.findFirst({
       where: { id: vendorId },
-      select: { id: true, city: true },
+      select: { id: true, city: true, vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } } },
     });
 
     if (!vendor) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
     }
+
+    const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
@@ -70,7 +72,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Note: Showing all requests to vendors (no city filtering)
+    // Scope to the vendor's approved locations — this had no location
+    // filtering at all before, so every vendor saw every pickup city's
+    // requests. Requests with no locationId tagged still show (same
+    // fallback used for bike/bus/truck). Not applied to 'quoted', which
+    // keeps a vendor's own quote history visible regardless of coverage.
+    if (type !== 'quoted') {
+      whereClause.OR = [{ locationId: { in: approvedLocationIds } }, { locationId: null }];
+    }
 
     if (type === 'quoted') {
       // Get requests where vendor has already submitted a quote

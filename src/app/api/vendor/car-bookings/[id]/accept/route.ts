@@ -33,7 +33,7 @@ export async function POST(
         id: true,
         businessName: true,
         phone: true,
-        vendor_approved_locations: { select: { locationId: true } },
+        vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } },
       },
     });
 

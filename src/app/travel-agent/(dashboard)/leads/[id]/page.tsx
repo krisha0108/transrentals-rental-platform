@@ -25,12 +25,27 @@ import {
   Plus,
   Users,
   AlertTriangle,
+  Building2,
+  Compass,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 // Strips an existing 91/+91 country-code prefix before re-adding it, so a
 // number already saved as "+919876543210" doesn't become "919919876543210".
 const waLink = (phone: string) => `https://wa.me/91${phone.replace(/^\+?91/, '')}`;
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 interface Note {
   id: string;
@@ -75,6 +90,8 @@ interface Lead {
   customerEmail: string | null;
   source: string;
   tripType: string | null;
+  propertyId: string | null;
+  tourId: string | null;
   pickupLocation: string | null;
   dropLocation: string | null;
   destination: string | null;
@@ -107,6 +124,8 @@ interface Lead {
   createdAt: string;
   notes: Note[];
   captureLink: { id: string; slug: string; title: string } | null;
+  sourceTour: { id: string; title: string; slug: string | null; coverImage: string | null } | null;
+  sourceProperty: { id: string; name: string; slug: string | null; coverImage: string | null } | null;
 }
 
 const STATUS_ORDER = ['NEW', 'CONTACTED', 'INTERESTED', 'QUOTED', 'NEGOTIATING', 'BOOKED', 'LOST', 'COLD'];
@@ -576,6 +595,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   })();
 
+  useTravelAgentPageHeader(
+    lead ? lead.customerName : 'Lead Details',
+    lead ? `Source: ${lead.source.replace(/_/g, ' ')}` : undefined,
+    lead ? (
+      <div key="actions" className="flex items-center gap-1">
+        <Link
+          href={`/travel-agent/leads/${id}/edit`}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-700 bg-white border border-gray-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg"
+        >
+          <Edit2 className="w-3.5 h-3.5" /> Edit
+        </Link>
+        <button
+          onClick={deleteLead}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-red-200 hover:bg-red-50 px-2.5 py-1.5 rounded-lg"
+          title="Delete lead"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    ) : undefined,
+    <Link
+      key="back"
+      href="/travel-agent/leads"
+      className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
+    >
+      <ArrowLeft className="w-4 h-4" /> All Leads
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -612,31 +660,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="max-w-7xl mx-auto space-y-4">
-      {/* ── Top crumb + secondary actions ── */}
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/travel-agent/leads"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
-        >
-          <ArrowLeft className="w-4 h-4" /> All Leads
-        </Link>
-        <div className="flex items-center gap-1">
-          <Link
-            href={`/travel-agent/leads/${id}/edit`}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-700 bg-white border border-gray-200 hover:border-emerald-300 px-2.5 py-1.5 rounded-lg"
-          >
-            <Edit2 className="w-3.5 h-3.5" /> Edit
-          </Link>
-          <button
-            onClick={deleteLead}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 bg-white border border-red-200 hover:bg-red-50 px-2.5 py-1.5 rounded-lg"
-            title="Delete lead"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
       {/* ── Hero card: identity (left) + primary CTAs (right) ── */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
@@ -663,6 +686,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {lead.captureLink && ` • via ${lead.captureLink.title}`}
                   {lead.assignedToName && ` • Assigned to ${lead.assignedToName}`}
                 </p>
+                {(lead.sourceProperty || lead.sourceTour) && (
+                  <Link
+                    href={
+                      lead.sourceProperty
+                        ? `/travel-agent/properties/${lead.sourceProperty.id}/edit`
+                        : `/travel-agent/tours/${lead.sourceTour!.id}/edit`
+                    }
+                    className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg hover:bg-indigo-100 w-fit"
+                  >
+                    {lead.sourceProperty ? <Building2 className="w-3.5 h-3.5" /> : <Compass className="w-3.5 h-3.5" />}
+                    Enquiry for: {lead.sourceProperty ? lead.sourceProperty.name : lead.sourceTour!.title}
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -1271,23 +1307,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               No activity yet. Add the first note above.
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {lead.notes.map((n) => (
-                <div key={n.id} className="flex gap-3">
-                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="bg-gray-50 rounded-xl px-4 py-2.5">
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.note}</p>
+            <div className="relative">
+              {/* connecting line down the middle of the icon column */}
+              <div className="absolute left-4 top-2 bottom-2 w-px bg-gray-100" aria-hidden="true" />
+              <div className="space-y-4">
+                {lead.notes.map((n) => (
+                  <div key={n.id} className="relative flex gap-3">
+                    <div className="relative z-10 w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">
-                      {n.authorName && `${n.authorName} • `}
-                      {new Date(n.createdAt).toLocaleString()}
-                    </p>
+                    <div className="flex-1 min-w-0 pt-1">
+                      <div className="bg-gray-50 rounded-xl px-4 py-2.5">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.note}</p>
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        {n.authorName && `${n.authorName} • `}
+                        {timeAgo(n.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </section>

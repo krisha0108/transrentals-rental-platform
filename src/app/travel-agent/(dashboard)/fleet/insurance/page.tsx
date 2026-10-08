@@ -17,8 +17,11 @@ import {
   Filter,
   Search,
   ExternalLink,
+  Plus,
+  Car,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface FleetDoc {
   id: string;
@@ -126,29 +129,40 @@ export default function FleetInsurancePage() {
     return buckets;
   }, [fleets]);
 
+  useTravelAgentPageHeader(
+    'Insurance & Documents',
+    'Track insurance, fitness and permit validity for every vehicle',
+    undefined,
+    <Link
+      key="back"
+      href="/travel-agent/fleet"
+      className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+      title="Back to fleet"
+    >
+      <ArrowLeft className="w-4 h-4" />
+    </Link>,
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      {!loading && fleets.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-14 text-center">
+          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Car className="w-8 h-8 text-emerald-400" />
+          </div>
+          <p className="text-gray-700 font-semibold text-lg mb-1">No vehicles in your fleet yet</p>
+          <p className="text-sm text-gray-400 mb-5 max-w-sm mx-auto">
+            Add your first vehicle to start tracking its insurance, fitness and permit validity here.
+          </p>
           <Link
-            href="/travel-agent/fleet"
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
-            title="Back to fleet"
+            href="/travel-agent/fleet/add"
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <Plus className="w-4 h-4" /> Add Vehicle
           </Link>
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Insurance & Documents</h1>
-            <p className="text-sm text-gray-500">
-              Track insurance, fitness and permit validity for every vehicle
-            </p>
-          </div>
         </div>
-      </div>
-
+      ) : (
+        <>
       {/* Insurance summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
@@ -303,6 +317,8 @@ export default function FleetInsurancePage() {
             </table>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {editing && (

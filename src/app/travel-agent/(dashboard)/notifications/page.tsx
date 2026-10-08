@@ -9,9 +9,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Bell, CheckCheck, Trash2, Loader2, Inbox, Target, Wallet, Compass,
+  CheckCheck, Trash2, Loader2, Inbox, Target, Wallet, Compass,
   MessageSquare, Settings, ChevronRight, MoreHorizontal,
 } from 'lucide-react';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 type NotificationType = 'LEAD' | 'PAYMENT' | 'BOOKING' | 'CHAT' | 'SYSTEM';
 
@@ -287,36 +288,25 @@ export default function TravelAgentNotificationsPage() {
 
   const grouped = groupByDate(items);
 
+  useTravelAgentPageHeader(
+    'Notifications',
+    'Updates about your leads, payments, bookings and chats',
+    <div key="actions" className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+      <button onClick={markAllRead} disabled={unreadCount === 0 || bulkBusy}
+        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <CheckCheck className="h-3.5 w-3.5" />
+        <span className="sm:inline">Mark all read</span>
+      </button>
+      <button onClick={clearAll} disabled={items.length === 0 || bulkBusy}
+        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-red-600 hover:border-red-400 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <Trash2 className="h-3.5 w-3.5" />
+        <span className="sm:inline">Clear all</span>
+      </button>
+    </div>,
+  );
+
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
-            Notifications
-            {unreadCount > 0 && (
-              <span className="bg-emerald-600 text-white text-xs font-bold rounded-full min-w-[22px] h-[22px] inline-flex items-center justify-center px-1.5">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Updates about your leads, payments, bookings and chats</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-          <button onClick={markAllRead} disabled={unreadCount === 0 || bulkBusy}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-            <CheckCheck className="h-3.5 w-3.5" />
-            <span className="sm:inline">Mark all read</span>
-          </button>
-          <button onClick={clearAll} disabled={items.length === 0 || bulkBusy}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-red-600 hover:border-red-400 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-            <Trash2 className="h-3.5 w-3.5" />
-            <span className="sm:inline">Clear all</span>
-          </button>
-        </div>
-      </div>
-
       {/* Filter tabs — live counts per type */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
         {FILTERS.map(f => {

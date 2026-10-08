@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 const STEPS = [
   { id: 1, label: 'Category & Title' },
@@ -488,6 +489,11 @@ export default function EditTravelAgentTourPage() {
       setSaving(false);
     }
   }
+
+  useTravelAgentPageHeader(
+    'Edit Tour',
+    form ? `Step ${step} of ${STEPS.length} — ${STEPS[step - 1].label}` : undefined,
+  );
 
   if (loading) {
     return (

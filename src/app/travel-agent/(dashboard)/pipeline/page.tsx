@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Loader2, Inbox, Phone, MapPin, Calendar, Flame, Plus, Users, Wallet, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Lead {
   id: string;
@@ -96,22 +97,20 @@ export default function PipelinePage() {
     setDraggingId(null);
   };
 
+  useTravelAgentPageHeader(
+    'Pipeline Board',
+    `Drag leads between stages to update status • ${leads.length} active leads`,
+    <Link
+      key="add"
+      href="/travel-agent/leads/add"
+      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg"
+    >
+      <Plus className="w-3.5 h-3.5" /> Add Lead
+    </Link>,
+  );
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pipeline Board</h1>
-          <p className="text-sm text-gray-500">
-            Drag leads between stages to update status • {leads.length} active leads
-          </p>
-        </div>
-        <Link
-          href="/travel-agent/leads/add"
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl"
-        >
-          <Plus className="w-4 h-4" /> Add Lead
-        </Link>
-      </div>
 
       {!loading && leads.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

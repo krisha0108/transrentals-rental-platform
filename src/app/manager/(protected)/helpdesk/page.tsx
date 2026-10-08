@@ -398,7 +398,7 @@ function ManagerHelpdeskPageInner() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
+                <table className="min-w-[900px] divide-y divide-slate-100 text-left text-sm">
                   <thead className="bg-slate-50/80">
                     <tr>
                       <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Type</th>

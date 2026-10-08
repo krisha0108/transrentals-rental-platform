@@ -14,6 +14,7 @@ import {
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 type Period = 'month' | 'last30' | 'year' | 'all';
 
@@ -178,6 +179,12 @@ export default function TravelAgentEarningsPage() {
     return () => { cancelled = true; };
   }, [period]);
 
+  useTravelAgentPageHeader(
+    'Earnings',
+    'Your revenue across tours, properties, fleet and lead quotes',
+    <PeriodSelector key="period" value={period} onChange={setPeriod} />,
+  );
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -204,18 +211,6 @@ export default function TravelAgentEarningsPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-start sm:items-center justify-between flex-col sm:flex-row gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Wallet className="h-6 w-6 text-emerald-600" />
-            Earnings
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">Your revenue across tours, properties, fleet and lead quotes</p>
-        </div>
-        <PeriodSelector value={period} onChange={setPeriod} />
-      </div>
-
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard

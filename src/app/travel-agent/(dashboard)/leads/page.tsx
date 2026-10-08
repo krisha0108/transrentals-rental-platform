@@ -12,12 +12,20 @@ import {
   Calendar,
   MapPin,
   Flame,
-  Target,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Inbox,
+  LayoutGrid,
+  List as ListIcon,
+  SlidersHorizontal,
+  X,
+  ArrowUpDown,
+  Building2,
+  Compass,
+  Car,
+  Target,
 } from 'lucide-react';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Lead {
   id: string;
@@ -25,6 +33,9 @@ interface Lead {
   customerPhone: string;
   customerEmail: string | null;
   source: string;
+  tripType: string | null;
+  propertyId: string | null;
+  tourId: string | null;
   destination: string | null;
   pickupLocation: string | null;
   dropLocation: string | null;
@@ -38,6 +49,48 @@ interface Lead {
   createdAt: string;
   notesCount: number;
 }
+
+const TRIP_TYPE_LABELS: Record<string, string> = {
+  ACCOMMODATION: 'Property',
+  TOUR_PACKAGE: 'Tour',
+  ONE_WAY: 'Transport (One-way)',
+  ROUND_TRIP: 'Transport (Round-trip)',
+};
+
+// What kind of enquiry this is — shown as a badge so a Property lead and a
+// Tour lead are visually distinct at a glance in both list and grid views.
+const LEAD_KIND_META: Record<string, { label: string; icon: any; cls: string }> = {
+  ACCOMMODATION: { label: 'Property', icon: Building2, cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  TOUR_PACKAGE: { label: 'Tour', icon: Compass, cls: 'bg-violet-50 text-violet-700 border-violet-200' },
+  ONE_WAY: { label: 'Transport', icon: Car, cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  ROUND_TRIP: { label: 'Transport', icon: Car, cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+};
+const DEFAULT_LEAD_KIND = { label: 'General', icon: Target, cls: 'bg-gray-50 text-gray-600 border-gray-200' };
+
+function LeadKindBadge({ lead, className = '' }: { lead: Lead; className?: string }) {
+  // A lead can carry tripType=ACCOMMODATION/TOUR_PACKAGE from a manual entry
+  // too, but propertyId/tourId confirm it's actually linked to a real listing.
+  const meta = lead.propertyId
+    ? LEAD_KIND_META.ACCOMMODATION
+    : lead.tourId
+      ? LEAD_KIND_META.TOUR_PACKAGE
+      : (lead.tripType && LEAD_KIND_META[lead.tripType]) || DEFAULT_LEAD_KIND;
+  const Icon = meta.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold whitespace-nowrap ${meta.cls} ${className}`}>
+      <Icon className="w-2.5 h-2.5" /> {meta.label}
+    </span>
+  );
+}
+
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'followup', label: 'Follow-up soonest' },
+  { value: 'travel_date', label: 'Travel date' },
+  { value: 'value_desc', label: 'Highest value' },
+  { value: 'value_asc', label: 'Lowest value' },
+];
 
 interface Stats {
   total: number;
@@ -77,8 +130,19 @@ export default function LeadsListPage() {
   const [statusFilter, setStatusFilter] = useState(searchParams?.get('status') || 'ALL');
   const [priorityFilter, setPriorityFilter] = useState(searchParams?.get('priority') || 'ALL');
   const [sourceFilter, setSourceFilter] = useState(searchParams?.get('source') || 'ALL');
+  const [tripTypeFilter, setTripTypeFilter] = useState('ALL');
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
+  const [travelFrom, setTravelFrom] = useState('');
+  const [travelTo, setTravelTo] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+
+  const moreFiltersActive =
+    !!createdFrom || !!createdTo || !!travelFrom || !!travelTo || sortBy !== 'newest';
 
   const load = async () => {
     setLoading(true);
@@ -89,6 +153,12 @@ export default function LeadsListPage() {
       if (statusFilter !== 'ALL') qs.append('status', statusFilter);
       if (priorityFilter !== 'ALL') qs.append('priority', priorityFilter);
       if (sourceFilter !== 'ALL') qs.append('source', sourceFilter);
+      if (tripTypeFilter !== 'ALL') qs.append('tripType', tripTypeFilter);
+      if (createdFrom) qs.append('createdFrom', createdFrom);
+      if (createdTo) qs.append('createdTo', createdTo);
+      if (travelFrom) qs.append('travelFrom', travelFrom);
+      if (travelTo) qs.append('travelTo', travelTo);
+      if (sortBy !== 'newest') qs.append('sortBy', sortBy);
       if (search) qs.append('search', search);
 
       const res = await fetch(`/api/travel-agent/leads?${qs.toString()}`);
@@ -106,7 +176,7 @@ export default function LeadsListPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, statusFilter, priorityFilter, sourceFilter, search]);
+  }, [pagination.page, statusFilter, priorityFilter, sourceFilter, tripTypeFilter, createdFrom, createdTo, travelFrom, travelTo, sortBy, search]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,25 +184,30 @@ export default function LeadsListPage() {
     setPagination((p) => ({ ...p, page: 1 }));
   };
 
+  const clearMoreFilters = () => {
+    setTripTypeFilter('ALL');
+    setCreatedFrom('');
+    setCreatedTo('');
+    setTravelFrom('');
+    setTravelTo('');
+    setSortBy('newest');
+    setPagination((p) => ({ ...p, page: 1 }));
+  };
+
+  useTravelAgentPageHeader(
+    'Lead Management',
+    `${stats?.total ?? 0} total leads`,
+    <Link
+      key="add"
+      href="/travel-agent/leads/add"
+      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition-colors"
+    >
+      <Plus className="w-3.5 h-3.5" /> Add Lead
+    </Link>,
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Target className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lead Management</h1>
-            <p className="text-sm text-gray-500">{stats?.total ?? 0} total leads</p>
-          </div>
-        </div>
-        <Link
-          href="/travel-agent/leads/add"
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Lead
-        </Link>
-      </div>
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
@@ -189,7 +264,106 @@ export default function LeadsListPage() {
             <option value="SOCIAL_MEDIA">Social Media</option>
             <option value="WHATSAPP">WhatsApp</option>
           </select>
+          <select
+            value={tripTypeFilter}
+            onChange={(e) => {
+              setTripTypeFilter(e.target.value);
+              setPagination((p) => ({ ...p, page: 1 }));
+            }}
+            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="ALL">All Types (Property / Tour / Transport)</option>
+            {Object.entries(TRIP_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => setShowMoreFilters((v) => !v)}
+            className={`relative inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+              showMoreFilters || moreFiltersActive
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                : 'border-gray-300 text-gray-600 hover:border-emerald-300'
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" /> Filters
+            {moreFiltersActive && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+            )}
+          </button>
+
+          {/* View toggle — Grid (cards) / List (compact rows) */}
+          <div className="inline-flex items-center bg-gray-100 rounded-xl p-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setView('grid')}
+              title="Grid view"
+              className={`p-2 rounded-lg transition-colors ${view === 'grid' ? 'bg-white shadow-sm text-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('list')}
+              title="List view"
+              className={`p-2 rounded-lg transition-colors ${view === 'list' ? 'bg-white shadow-sm text-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <ListIcon className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
+        {showMoreFilters && (
+          <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Added From</label>
+              <input type="date" value={createdFrom} max={createdTo || undefined}
+                onChange={(e) => { setCreatedFrom(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Added To</label>
+              <input type="date" value={createdTo} min={createdFrom || undefined}
+                onChange={(e) => { setCreatedTo(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Travel From</label>
+              <input type="date" value={travelFrom} max={travelTo || undefined}
+                onChange={(e) => { setTravelFrom(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">Travel To</label>
+              <input type="date" value={travelTo} min={travelFrom || undefined}
+                onChange={(e) => { setTravelTo(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+
+            <div className="lg:col-span-3">
+              <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1 flex items-center gap-1">
+                <ArrowUpDown className="w-3 h-3" /> Sort By
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => { setSortBy(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              >
+                {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            <div className="lg:col-span-3 flex items-end">
+              <button
+                type="button"
+                onClick={clearMoreFilters}
+                disabled={!moreFiltersActive}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-2"
+              >
+                <X className="w-3.5 h-3.5" /> Clear extra filters
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -208,6 +382,8 @@ export default function LeadsListPage() {
             <Plus className="w-4 h-4" /> Add Lead
           </Link>
         </div>
+      ) : view === 'list' ? (
+        <LeadsTable leads={leads} />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {leads.map((lead) => (
@@ -220,6 +396,7 @@ export default function LeadsListPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-bold text-gray-900 truncate">{lead.customerName}</p>
+                    <LeadKindBadge lead={lead} />
                     {lead.priority === 'HOT' && (
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${PRIORITY_COLORS.HOT}`}
@@ -314,6 +491,70 @@ export default function LeadsListPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function LeadsTable({ leads }: { leads: Lead[] }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden overflow-x-auto">
+      <table className="w-full text-sm min-w-[900px]">
+        <thead className="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wide">
+          <tr>
+            <th className="text-left px-4 py-3">Customer</th>
+            <th className="text-left px-4 py-3">Trip</th>
+            <th className="text-left px-4 py-3">Travel Date</th>
+            <th className="text-right px-4 py-3">Value</th>
+            <th className="text-left px-4 py-3">Status</th>
+            <th className="text-left px-4 py-3">Follow-up</th>
+            <th className="text-left px-4 py-3">Added</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {leads.map((lead) => (
+            <tr
+              key={lead.id}
+              onClick={() => { window.location.href = `/travel-agent/leads/${lead.id}`; }}
+              className="hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-900">{lead.customerName}</p>
+                  {lead.priority === 'HOT' && <Flame className="w-3.5 h-3.5 text-red-500 shrink-0" />}
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">{lead.customerPhone}</p>
+              </td>
+              <td className="px-4 py-3 text-xs text-gray-600">
+                <LeadKindBadge lead={lead} />
+                {lead.destination && <p className="text-gray-400 mt-1 truncate max-w-[160px]">{lead.destination}</p>}
+              </td>
+              <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                {lead.travelDate ? new Date(lead.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
+              </td>
+              <td className="px-4 py-3 text-xs text-gray-700 text-right font-semibold whitespace-nowrap">
+                {lead.estimatedValue ? `₹${lead.estimatedValue.toLocaleString('en-IN')}` : '—'}
+              </td>
+              <td className="px-4 py-3">
+                <span className={`inline-flex px-2 py-0.5 rounded-full border text-[10px] font-bold whitespace-nowrap ${STATUS_COLORS[lead.status]}`}>
+                  {lead.status.replace(/_/g, ' ')}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-xs whitespace-nowrap">
+                {lead.nextFollowUp ? (
+                  <span className="text-amber-600 font-semibold">
+                    {new Date(lead.nextFollowUp).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                  </span>
+                ) : (
+                  <span className="text-gray-300">—</span>
+                )}
+              </td>
+              <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                {new Date(lead.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

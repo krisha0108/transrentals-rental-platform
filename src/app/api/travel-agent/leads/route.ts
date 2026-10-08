@@ -18,6 +18,17 @@ const VALID_STATUS = [
 
 const VALID_PRIORITY = ['HOT', 'WARM', 'COLD'] as const;
 
+const VALID_TRIP_TYPE = ['ONE_WAY', 'ROUND_TRIP', 'TOUR_PACKAGE', 'ACCOMMODATION'] as const;
+
+const SORTS: Record<string, any> = {
+  newest: { createdAt: 'desc' },
+  oldest: { createdAt: 'asc' },
+  followup: { nextFollowUp: 'asc' },
+  value_desc: { estimatedValue: 'desc' },
+  value_asc: { estimatedValue: 'asc' },
+  travel_date: { travelDate: 'asc' },
+};
+
 const VALID_SOURCE = [
   'MANUAL',
   'CAPTURE_LINK',
@@ -42,14 +53,42 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
     const source = searchParams.get('source');
+    const tripType = searchParams.get('tripType');
     const search = searchParams.get('search');
+    const createdFrom = searchParams.get('createdFrom');
+    const createdTo = searchParams.get('createdTo');
+    const travelFrom = searchParams.get('travelFrom');
+    const travelTo = searchParams.get('travelTo');
+    const sortBy = searchParams.get('sortBy') || 'newest';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+
+    // Parsed as local midnight so an IST date picker value doesn't shift a
+    // day when compared against a UTC-stored timestamp.
+    const dayStart = (s: string) => {
+      const [y, m, d] = s.split('-').map(Number);
+      return new Date(y, m - 1, d, 0, 0, 0, 0);
+    };
+    const dayEnd = (s: string) => {
+      const [y, m, d] = s.split('-').map(Number);
+      return new Date(y, m - 1, d, 23, 59, 59, 999);
+    };
 
     const where: any = { travelAgentId: auth.travelAgentId };
     if (status && status !== 'ALL' && VALID_STATUS.includes(status as any)) where.status = status;
     if (priority && priority !== 'ALL' && VALID_PRIORITY.includes(priority as any)) where.priority = priority;
     if (source && source !== 'ALL' && VALID_SOURCE.includes(source as any)) where.source = source;
+    if (tripType && tripType !== 'ALL' && VALID_TRIP_TYPE.includes(tripType as any)) where.tripType = tripType;
+    if (createdFrom || createdTo) {
+      where.createdAt = {};
+      if (createdFrom) where.createdAt.gte = dayStart(createdFrom);
+      if (createdTo) where.createdAt.lte = dayEnd(createdTo);
+    }
+    if (travelFrom || travelTo) {
+      where.travelDate = {};
+      if (travelFrom) where.travelDate.gte = dayStart(travelFrom);
+      if (travelTo) where.travelDate.lte = dayEnd(travelTo);
+    }
     if (search) {
       where.OR = [
         { customerName: { contains: search } },
@@ -66,6 +105,9 @@ export async function GET(request: NextRequest) {
     const statsWhere: any = { travelAgentId: auth.travelAgentId };
     if (priority && priority !== 'ALL' && VALID_PRIORITY.includes(priority as any)) statsWhere.priority = priority;
     if (source && source !== 'ALL' && VALID_SOURCE.includes(source as any)) statsWhere.source = source;
+    if (tripType && tripType !== 'ALL' && VALID_TRIP_TYPE.includes(tripType as any)) statsWhere.tripType = tripType;
+    if (where.createdAt) statsWhere.createdAt = where.createdAt;
+    if (where.travelDate) statsWhere.travelDate = where.travelDate;
     if (search) {
       statsWhere.OR = [
         { customerName: { contains: search } },
@@ -78,7 +120,7 @@ export async function GET(request: NextRequest) {
     const [leads, total, statsByStatus] = await Promise.all([
       prisma.travel_agent_leads.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: SORTS[sortBy] || SORTS.newest,
         skip: (page - 1) * limit,
         take: limit,
         include: {
