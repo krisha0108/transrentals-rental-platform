@@ -186,7 +186,7 @@ export default function ManagerChatsPage() {
     <div className="space-y-6">
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-4 border shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-gray-100 rounded-lg">
