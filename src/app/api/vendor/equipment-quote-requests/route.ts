@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     // Filter by vendor's approved locations
     const approvedLocations = await prisma.vendor_approved_locations.findMany({
-      where: { vendorId: vendorId },
+      where: { vendorId: vendorId, isActive: true },
       include: { locations: { select: { name: true } } },
     });
 

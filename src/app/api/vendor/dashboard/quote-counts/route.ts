@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const vendor = await prisma.vendors.findFirst({
       where: { id: vendorId },
       select: {
-        vendor_approved_locations: { select: { locationId: true } },
+        vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } },
       },
     });
 

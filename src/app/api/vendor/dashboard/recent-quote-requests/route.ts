@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const vendor = await prisma.vendors.findFirst({
       where: { id: vendorId },
-      select: { vendor_approved_locations: { select: { locationId: true } } },
+      select: { vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } } },
     });
     if (!vendor) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });

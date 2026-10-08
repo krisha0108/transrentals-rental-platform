@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       where: { id: vendorId },
       select: {
         id: true,
-        vendor_approved_locations: { select: { locationId: true } },
+        vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } },
         vendor_fleets: {
           where: { isActive: true },
           select: {
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
       where: { id: vendorId },
       select: {
         id: true,
-        vendor_approved_locations: { select: { locationId: true } },
+        vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } },
         fleets: {
           where: { isActive: true },
           select: {

@@ -88,7 +88,7 @@ async function fetchVendorFromDB(vendorId: string) {
       _count: {
         select: {
           vendor_approved_services: true,
-          vendor_approved_locations: true,
+          vendor_approved_locations: { where: { isActive: true } },
           vendor_fleets: true,
           vendor_documents: true,
           vendor_service_requests: true,

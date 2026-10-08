@@ -109,7 +109,7 @@ export async function POST(
         vendor_approved_locations: {
           some: {
             locationId: booking.locationId,
-            status: 'ACTIVE',
+            isActive: true,
           },
         },
         // Check if vendor provides chauffeur/car rental service

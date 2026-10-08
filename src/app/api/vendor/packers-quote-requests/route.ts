@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const vendor = await prisma.vendors.findFirst({
       where: { id: vendorId },
-      select: { id: true, city: true, vendor_approved_locations: { select: { locationId: true } } },
+      select: { id: true, city: true, vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } } },
     });
 
     if (!vendor) {
