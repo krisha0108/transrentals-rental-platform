@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowLeft, Save, Target, Map } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Map } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 const TRIP_TYPES = [
   { value: '', label: 'Not specified' },
@@ -90,25 +91,21 @@ export default function AddLeadPage() {
     }
   };
 
+  useTravelAgentPageHeader(
+    'Add New Lead',
+    'Capture customer enquiry details',
+    undefined,
+    <Link
+      key="back"
+      href="/travel-agent/leads"
+      className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
+    >
+      <ArrowLeft className="w-4 h-4" /> All Leads
+    </Link>,
+  );
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <Link
-        href="/travel-agent/leads"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600"
-      >
-        <ArrowLeft className="w-4 h-4" /> All Leads
-      </Link>
-
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-          <Target className="w-5 h-5 text-emerald-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add New Lead</h1>
-          <p className="text-sm text-gray-500">Capture customer enquiry details</p>
-        </div>
-      </div>
-
       <form onSubmit={submit} className="space-y-5">
         <Section title="Customer">
           <Field label="Customer Name *" required>

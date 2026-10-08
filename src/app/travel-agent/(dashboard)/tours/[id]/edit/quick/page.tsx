@@ -5,11 +5,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Zap, ChevronLeft, Loader2, AlertCircle, Search, MapPin, X,
+  ChevronLeft, Loader2, AlertCircle, Search, MapPin, X,
   Image as ImageIcon, Save, Send, Trash2, Eye,
 } from 'lucide-react';
 import TourDescriptionEditor from '@/components/admin/wander/TourDescriptionEditor';
 import WanderQuickPreviewModal from '@/components/admin/wander/WanderQuickPreviewModal';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 const DURATION_OPTIONS = [
   'Half Day (4-5 hrs)', 'Full Day (8-10 hrs)', '2 Days 1 Night',
@@ -224,6 +225,28 @@ export default function TravelAgentQuickEditTourPage() {
     }
   }
 
+  useTravelAgentPageHeader(
+    'Quick Edit Tour',
+    'Update the essentials. Need more fields? Switch to detailed.',
+    <button
+      key="switch"
+      type="button"
+      onClick={switchToDetailed}
+      disabled={switching}
+      className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:underline disabled:opacity-60"
+    >
+      {switching && <Loader2 className="w-3 h-3 animate-spin" />}
+      Switch to detailed →
+    </button>,
+    <Link
+      key="back"
+      href="/travel-agent/tours"
+      className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:bg-gray-50"
+    >
+      <ChevronLeft className="w-5 h-5 text-gray-600" />
+    </Link>,
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -235,35 +258,6 @@ export default function TravelAgentQuickEditTourPage() {
   return (
     <div className="min-h-screen bg-gray-50 -mx-6 -mt-6">
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/travel-agent/tours"
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-gray-200 hover:bg-gray-50"
-            >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
-                <Zap className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Quick Edit Tour</h1>
-                <p className="text-xs text-gray-500">Update the essentials. Need more fields? Switch to detailed.</p>
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={switchToDetailed}
-            disabled={switching}
-            className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:underline disabled:opacity-60"
-          >
-            {switching && <Loader2 className="w-3 h-3 animate-spin" />}
-            Switch to detailed →
-          </button>
-        </div>
-
         {error && (
           <div className="mb-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />

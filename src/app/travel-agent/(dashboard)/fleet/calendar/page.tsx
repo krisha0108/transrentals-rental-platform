@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -17,6 +16,7 @@ import {
   ListFilter,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Fleet {
   id: string;
@@ -242,30 +242,23 @@ export default function FleetCalendarPage() {
     });
   };
 
+  useTravelAgentPageHeader(
+    'Fleet Calendar',
+    'Bookings, blocks & maintenance for every vehicle',
+    <button
+      key="add"
+      onClick={() => setModal({ mode: 'create' })}
+      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg"
+    >
+      <Plus className="w-3.5 h-3.5" /> Add Booking / Block
+    </button>,
+    <Link key="back" href="/travel-agent/fleet" className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Back to fleet">
+      <ArrowLeft className="w-4 h-4" />
+    </Link>,
+  );
+
   return (
     <div className="space-y-5">
-      {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link href="/travel-agent/fleet" className="p-2 rounded-lg hover:bg-gray-100 text-gray-500" title="Back to fleet">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <CalendarDays className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Fleet Calendar</h1>
-            <p className="text-sm text-gray-500">Bookings, blocks &amp; maintenance for every vehicle</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setModal({ mode: 'create' })}
-          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl"
-        >
-          <Plus className="w-4 h-4" /> Add Booking / Block
-        </button>
-      </div>
-
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
         {/* Top row: month nav + vehicle picker */}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, StatusBar, Linking, Platform,
+  RefreshControl, StatusBar, Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -87,6 +87,7 @@ function Section({ iconName, iconLib = 'ion', iconColor, title, children }) {
 }
 
 export default function SelfDriveQuoteRequestDetailScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets();
   const { requestId } = route.params || {};
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -555,7 +556,7 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
 
       {/* Bottom bar */}
       {request.hasQuoted && (status === 'ACCEPTED' || request.vendorQuote?.status === 'ACCEPTED') ? (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 14 }]}>
           <TouchableOpacity
             style={styles.primaryBtnWrap}
             activeOpacity={0.9}
@@ -571,7 +572,7 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
           </TouchableOpacity>
         </View>
       ) : canSendQuote ? (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 14 }]}>
           <TouchableOpacity style={styles.primaryBtnWrap} activeOpacity={0.9} onPress={handleSendQuote}>
             <LinearGradient colors={G.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primaryBtnInner}>
               <Ionicons name="paper-plane" size={18} color="#fff" />
@@ -580,7 +581,7 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
           </TouchableOpacity>
         </View>
       ) : request.hasQuoted && status !== 'ACCEPTED' && request.vendorQuote?.status !== 'ACCEPTED' ? (
-        <View style={styles.quotedSentBar}>
+        <View style={[styles.quotedSentBar, { paddingBottom: insets.bottom + 12 }]}>
           <Ionicons name="checkmark-circle" size={20} color={C.g600} />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={styles.quotedSentText}>Quote Already Sent</Text>
@@ -737,7 +738,6 @@ const styles = StyleSheet.create({
   // ── Bottom bar ────────────────────────────────────────────────────────
   bottomBar: {
     paddingHorizontal: 16, paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
     backgroundColor: C.card,
     borderTopWidth: 1, borderTopColor: C.border,
     ...cardShadow,
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
 
   quotedSentBar: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12,
+    paddingHorizontal: 16, paddingTop: 12,
     backgroundColor: C.g50,
     borderTopWidth: 1, borderTopColor: C.g100,
   },

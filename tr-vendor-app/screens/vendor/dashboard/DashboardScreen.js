@@ -357,16 +357,18 @@ export default function DashboardScreen({ navigation }) {
         // Pull open inquiries only for this vendor's approved services
         const slugs = (p.approvedServiceIds || []).map(id => SVC_ID_TO_SERVICE[id]).filter(Boolean);
         fetchInquiries(slugs, { limit: 5 })
-          .then(({ items }) => {
+          .then(({ items, total }) => {
             // `limit` above is per-service (each approved service is fetched
             // separately and merged), so a vendor with several approved
             // services could get well over 5 items here — cap what the
             // Dashboard preview actually renders to 5, newest-first (already
-            // sorted by fetchInquiries). `inquiriesTotal` stays the real
-            // count so the "N new" pill / header stat isn't misleading.
+            // sorted by fetchInquiries). `total` comes straight from each
+            // service's backend count (not capped by `limit`), so the "N new"
+            // pill / header stat reflects the real number even when a service
+            // has more than 5 open inquiries.
             const openItems = items.filter(x => !x.quoted);   // only not-yet-quoted
             setInquiries(openItems.slice(0, 5));
-            setInquiriesTotal(openItems.length);
+            setInquiriesTotal(total);
           })
           .catch(() => {});
       }

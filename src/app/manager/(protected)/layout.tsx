@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search, Route, Package, ArrowRightCircle, Ruler, Car, ChevronDown, FileSignature, PhoneCall } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail, UserCog, Bell, MapPinPlus, Layers, MapPinOff, Search, Route, Package, ArrowRightCircle, Ruler, Car, ChevronDown, FileSignature, PhoneCall, Download, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
@@ -45,6 +45,24 @@ const CAR_RENTAL_CONTENT_LINKS = [
   { href: '/manager/car-rental/distances', label: 'Distance Matrix', icon: Ruler },
 ];
 
+// Curated PWA v1 scope — just the "something needs a response right now"
+// screens, not the full ~18-item desktop sidebar. Shown as a bottom tab bar
+// on mobile viewports only (desktop keeps using ManagerSidebar as-is).
+const MOBILE_PRIMARY_TABS = [
+  { href: '/manager/notifications', label: 'Alerts', icon: Bell },
+  { href: '/manager/helpdesk', label: 'Helpdesk', icon: Headphones },
+  { href: '/manager/inquiries', label: 'Inquiries', icon: FileText },
+  { href: '/manager/chats', label: 'Customer Chat', icon: MessageSquare },
+];
+
+// Lower-frequency approval queues — still part of the "24/7 away from desk"
+// scope, but don't need their own bottom-tab slot. One tap away via "More".
+const MOBILE_MORE_ITEMS = [
+  { href: '/manager/refunds', label: 'Refunds', icon: IndianRupee },
+  { href: '/manager/vendor-agreements', label: 'Vendor Agreements', icon: FileSignature },
+  { href: '/manager/contact-requests', label: 'Contact Requests', icon: UserCog },
+];
+
 interface ManagerNotification {
   id: string;
   type:
@@ -78,6 +96,9 @@ function ManagerSidebar({
   notificationsBadgeCount,
   agreementBadgeCount,
   refundBadgeCount,
+  canInstall,
+  isInstalled,
+  onInstallClick,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -85,6 +106,9 @@ function ManagerSidebar({
   notificationsBadgeCount: number;
   agreementBadgeCount: number;
   refundBadgeCount: number;
+  canInstall: boolean;
+  isInstalled: boolean;
+  onInstallClick: () => void;
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -263,6 +287,24 @@ function ManagerSidebar({
             )}
           </nav>
 
+          {/* Download PWA — last item in the sidebar, above the user/logout
+              footer. Hidden once already installed; if the browser hasn't
+              fired beforeinstallprompt yet, still shown but disabled rather
+              than disappearing, so it's not confusing why it's missing. */}
+          {!isInstalled && (
+            <div className="px-4 pb-1">
+              <button
+                onClick={onInstallClick}
+                disabled={!canInstall}
+                title={canInstall ? 'Install Manager App' : 'Install prompt not ready yet — reload and try again'}
+                className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm text-green-100 hover:bg-white/10 hover:text-white transition text-left disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4" />
+                <span className="flex-1">Download App</span>
+              </button>
+            </div>
+          )}
+
           {/* User Info & Logout */}
           <div className="p-4 border-t border-green-500">
             <div className="mb-3 px-4">
@@ -384,13 +426,72 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<ManagerNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [vendorUnreadCount, setVendorUnreadCount] = useState(0);
   const [agreementUnreadCount, setAgreementUnreadCount] = useState(0);
   const [refundUnreadCount, setRefundUnreadCount] = useState(0);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showMoreSheet, setShowMoreSheet] = useState(false);
 
   useManagerActivityHeartbeat(status === 'authenticated' && session?.user?.role === 'MANAGER');
+
+  // ── PWA: install prompt capture + standalone detection ──────────────────
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    if (isStandalone) setIsInstalled(true);
+
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+      // Pop the install modal once per browser, not on every single page
+      // load — a manager who already said "not now" shouldn't get nagged
+      // again until the browser forgets (or the app gets installed).
+      let dismissed = false;
+      try {
+        dismissed = localStorage.getItem('manager-pwa-install-dismissed') === '1';
+      } catch {}
+      if (!dismissed) setShowInstallModal(true);
+    };
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+      setShowInstallModal(false);
+      setIsInstalled(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+      setShowInstallModal(false);
+    }
+  };
+
+  const dismissInstallModal = () => {
+    setShowInstallModal(false);
+    try {
+      localStorage.setItem('manager-pwa-install-dismissed', '1');
+    } catch {}
+  };
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -511,6 +612,31 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* PWA Install Banner — mobile only, dismissible */}
+      {showInstallBanner && !isInstalled && (
+        <div className="lg:hidden bg-green-50 border-b border-green-200 px-4 py-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-green-900 min-w-0">
+            <Download className="w-4 h-4 shrink-0" />
+            <span className="truncate">Install Manager App on your phone</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleInstallClick}
+              className="bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-green-700 transition"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="text-green-700 hover:text-green-900 p-1"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <ManagerSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -518,6 +644,9 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
         agreementBadgeCount={agreementUnreadCount}
         notificationsBadgeCount={unreadCount}
         refundBadgeCount={refundUnreadCount}
+        canInstall={!!installPrompt && !isInstalled}
+        isInstalled={isInstalled}
+        onInstallClick={handleInstallClick}
       />
 
       <div className="lg:pl-64">
@@ -527,10 +656,138 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
           unreadCount={unreadCount}
           onMarkRead={handleMarkRead}
           onMarkAllRead={handleMarkAllRead}
+          canInstall={!!installPrompt && !isInstalled}
+          onInstallClick={handleInstallClick}
         />
 
-        <main className="p-6">{children}</main>
+        <main className="p-6 pb-24 lg:pb-6">{children}</main>
       </div>
+
+      {/* ── Mobile bottom tab bar — PWA v1's curated "needs a response" set ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_16px_-8px_rgba(9,40,24,0.25)] z-40">
+        <div className="flex justify-around">
+          {MOBILE_PRIMARY_TABS.map((item) => {
+            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            const badge =
+              item.href === '/manager/notifications' ? unreadCount : 0;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative flex flex-col items-center py-2.5 px-3 transition ${
+                  isActive ? 'text-green-700' : 'text-gray-500'
+                }`}
+              >
+                <span className={`flex items-center justify-center w-10 h-7 rounded-full transition ${isActive ? 'bg-green-100' : ''}`}>
+                  <item.icon className="w-[21px] h-[21px]" />
+                </span>
+                {badge > 0 && (
+                  <span className="absolute top-1 right-2 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
+                <span className="text-[10.5px] mt-0.5 font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setShowMoreSheet(true)}
+            className={`relative flex flex-col items-center py-2.5 px-3 transition ${
+              showMoreSheet ? 'text-green-700' : 'text-gray-500'
+            }`}
+          >
+            <span className="flex items-center justify-center w-10 h-7 rounded-full">
+              <MoreHorizontal className="w-[21px] h-[21px]" />
+            </span>
+            {(refundUnreadCount + agreementUnreadCount) > 0 && (
+              <span className="absolute top-1 right-2 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                {(refundUnreadCount + agreementUnreadCount) > 9 ? '9+' : refundUnreadCount + agreementUnreadCount}
+              </span>
+            )}
+            <span className="text-[10.5px] mt-0.5 font-medium">More</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* "More" bottom sheet — the lower-frequency approval queues */}
+      {showMoreSheet && (
+        <div className="lg:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowMoreSheet(false)}
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <h2 className="text-base font-bold text-gray-900">More</h2>
+              <button
+                onClick={() => setShowMoreSheet(false)}
+                className="p-2 -mr-2 text-gray-400 hover:text-gray-700"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-3 pb-2">
+              {MOBILE_MORE_ITEMS.map((item) => {
+                const badge =
+                  item.href === '/manager/refunds' ? refundUnreadCount :
+                  item.href === '/manager/vendor-agreements' ? agreementUnreadCount : 0;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setShowMoreSheet(false)}
+                    className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-gray-50 transition"
+                  >
+                    <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-green-50 text-green-700 shrink-0">
+                      <item.icon className="w-[18px] h-[18px]" />
+                    </span>
+                    <span className="flex-1 text-sm font-semibold text-gray-800">{item.label}</span>
+                    {badge > 0 && (
+                      <span className="min-w-[1.25rem] h-5 px-1.5 flex items-center justify-center rounded-full bg-orange-100 text-orange-700 text-[11px] font-bold">
+                        {badge > 99 ? '99+' : badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Install app popup — appears once per browser (see
+          handleBeforeInstall) across both desktop and mobile, since the
+          topbar button covers "install any time" and this covers "ask once". */}
+      {showInstallModal && !isInstalled && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/50" onClick={dismissInstallModal} />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-green-600 to-teal-700 flex items-center justify-center mb-4">
+              <Download className="w-7 h-7 text-white" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900">Install Manager App</h2>
+            <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
+              Add it to your home screen for one-tap access to Helpdesk, Inquiries, Chats and approvals — even away from your desk.
+            </p>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={dismissInstallModal}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+              >
+                Not now
+              </button>
+              <button
+                onClick={handleInstallClick}
+                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 rounded-xl text-sm font-semibold text-white transition flex items-center justify-center gap-1.5"
+              >
+                <Download className="w-4 h-4" /> Install
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -547,12 +804,16 @@ function ManagerTopBar({
   unreadCount,
   onMarkRead,
   onMarkAllRead,
+  canInstall,
+  onInstallClick,
 }: {
   onOpenSidebar: () => void;
   notifications: ManagerNotification[];
   unreadCount: number;
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
+  canInstall: boolean;
+  onInstallClick: () => void;
 }) {
   const { header } = useManagerPageHeaderContext();
 
@@ -576,6 +837,15 @@ function ManagerTopBar({
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        {canInstall && (
+          <button
+            onClick={onInstallClick}
+            className="hidden sm:inline-flex items-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+            title="Install Manager App"
+          >
+            <Download className="w-3.5 h-3.5" /> Install App
+          </button>
+        )}
         {header?.action}
         <ManagerNotificationBell
           notifications={notifications}

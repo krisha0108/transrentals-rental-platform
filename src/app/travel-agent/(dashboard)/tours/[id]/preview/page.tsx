@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { sanitizeRichText } from '@/lib/utils/sanitize';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Tour {
   id: string;
@@ -70,6 +71,27 @@ export default function TourPreviewPage({ params }: { params: { id: string } }) 
       .then((data) => setTour(data))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useTravelAgentPageHeader(
+    tour ? tour.title : 'Tour Preview',
+    tour ? (tour.isPublic ? 'This is what customers see on /wander' : 'Customer-facing view of your draft') : undefined,
+    tour ? (
+      <Link
+        key="edit"
+        href={`/travel-agent/tours/${id}/edit`}
+        className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"
+      >
+        <Edit2 className="w-3 h-3" /> Edit
+      </Link>
+    ) : undefined,
+    <Link
+      key="back"
+      href="/travel-agent/tours"
+      className="text-xs font-semibold text-gray-600 hover:text-gray-900 inline-flex items-center gap-1"
+    >
+      <ArrowLeft className="w-3.5 h-3.5" /> Back
+    </Link>,
+  );
 
   if (loading) {
     return (
@@ -136,18 +158,6 @@ export default function TourPreviewPage({ params }: { params: { id: string } }) 
               <Lock className="w-2.5 h-2.5" /> DRAFT
             </span>
           )}
-          <Link
-            href="/travel-agent/tours"
-            className="text-xs font-semibold text-gray-600 hover:text-gray-900 inline-flex items-center gap-1"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back
-          </Link>
-          <Link
-            href={`/travel-agent/tours/${id}/edit`}
-            className="text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"
-          >
-            <Edit2 className="w-3 h-3" /> Edit
-          </Link>
           {tour.isPublic && tour.slug && (
             <a
               href={`/wander/${tour.slug}`}

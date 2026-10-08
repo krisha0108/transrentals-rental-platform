@@ -25,7 +25,7 @@ export async function GET(
       where: { id: auth.vendorId },
       select: {
         id: true,
-        vendor_approved_locations: { select: { locationId: true } },
+        vendor_approved_locations: { where: { isActive: true }, select: { locationId: true } },
       },
     });
 

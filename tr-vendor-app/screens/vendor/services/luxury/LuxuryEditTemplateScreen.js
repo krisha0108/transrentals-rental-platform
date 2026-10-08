@@ -67,7 +67,8 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
 
   const loadTemplate = useCallback(async () => {
     try {
-      const t = await getTemplateById('luxury', templateId);
+      const data = await getTemplateById('luxury', templateId);
+      const t = data.template || data;
       setTemplateName(t.name);
       setName(t.name);
       setCategory(t.category);

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Loader2,
   Save,
-  Building2,
   CheckCircle2,
   Share2,
   Copy,
@@ -14,6 +13,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 // Canonical agency types — kept in sync with the mobile app
 // (tr-vendor-app TravelAgentRegisterScreen / AgencyProfileScreen) so the
@@ -134,6 +134,8 @@ export default function TravelAgentProfilePage() {
     }
   };
 
+  useTravelAgentPageHeader('Agency Profile', 'Keep your business information up to date');
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -144,18 +146,6 @@ export default function TravelAgentProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Agency Profile</h1>
-            <p className="text-sm text-gray-500">Keep your business information up to date</p>
-          </div>
-        </div>
-      </div>
-
       {/* Public profile share card */}
       {data.slug && (
         <section className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl p-6 mb-6 shadow-lg">

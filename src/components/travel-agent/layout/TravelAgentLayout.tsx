@@ -20,6 +20,7 @@ import { ToastProvider } from '@/components/ui/toast';
 import Link from 'next/link';
 import { TravelAgentVerificationContext } from '@/contexts/TravelAgentVerificationContext';
 import { HelpBotWidget } from '../HelpBotWidget';
+import { TravelAgentPageHeaderProvider, useTravelAgentPageHeaderContext } from '@/hooks/useTravelAgentPageHeader';
 
 interface TravelAgentLayoutProps {
   children: React.ReactNode;
@@ -198,6 +199,53 @@ function VerificationModal({
   );
 }
 
+// Shared sticky top bar — every page registers its title via
+// useTravelAgentPageHeader() instead of rendering its own header block, so
+// the title style (and the notification bell next to it) stays identical
+// across the whole travel-agent side. Mirrors the manager layout's top bar.
+function TravelAgentTopBar({
+  onOpenSidebar,
+  unreadNotifCount,
+}: {
+  onOpenSidebar: () => void;
+  unreadNotifCount: number;
+}) {
+  const { header } = useTravelAgentPageHeaderContext();
+
+  return (
+    <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3.5 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onOpenSidebar}
+          className="lg:hidden shrink-0 p-2 hover:bg-gray-100 rounded-lg transition"
+        >
+          <Menu className="w-6 h-6 text-gray-700" />
+        </button>
+        {header?.leading}
+        {header && (
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-gray-900 leading-tight truncate">{header.title}</h1>
+            {header.subtitle && (
+              <p className="text-xs text-gray-500 truncate hidden sm:block">{header.subtitle}</p>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {header?.action}
+        <Link href="/travel-agent/notifications" className="relative p-2 hover:bg-gray-100 rounded-lg transition">
+          <Bell className="w-5 h-5 text-gray-700" />
+          {unreadNotifCount > 0 && (
+            <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+              {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+            </span>
+          )}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
@@ -294,6 +342,7 @@ export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
   return (
     <TravelAgentVerificationContext.Provider value={contextValue}>
       <ToastProvider>
+        <TravelAgentPageHeaderProvider>
         <div className="min-h-screen bg-[#f5f6fa]">
           <TravelAgentSidebar
             isOpen={sidebarOpen}
@@ -302,22 +351,7 @@ export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
           />
 
           <div className="lg:pl-64">
-            <div className="lg:hidden sticky top-0 z-30 bg-[#f5f6fa]/80 backdrop-blur-md border-b border-gray-200/50 px-4 py-3 flex items-center justify-between">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 hover:bg-white rounded-xl transition"
-              >
-                <Menu className="w-6 h-6 text-gray-700" />
-              </button>
-              <Link href="/travel-agent/notifications" className="relative p-2 hover:bg-white rounded-xl transition">
-                <Bell className="w-5 h-5 text-gray-700" />
-                {unreadNotifCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
-                    {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
-                  </span>
-                )}
-              </Link>
-            </div>
+            <TravelAgentTopBar onOpenSidebar={() => setSidebarOpen(true)} unreadNotifCount={unreadNotifCount} />
 
             {/* Single combined verification banner — replaces what used to be
                 three separately-stacked full-width strips (Soft Access Mode +
@@ -384,6 +418,7 @@ export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
 
           <HelpBotWidget />
         </div>
+        </TravelAgentPageHeaderProvider>
       </ToastProvider>
     </TravelAgentVerificationContext.Provider>
   );

@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Sparkles,
 } from 'lucide-react';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 interface Lead {
   id: string;
@@ -116,22 +117,13 @@ export default function TourQuoteRequestsPage() {
     setPagination((p) => ({ ...p, page: 1 }));
   };
 
+  useTravelAgentPageHeader(
+    'Tour Quote Requests',
+    `${stats?.total ?? 0} quote request${(stats?.total ?? 0) !== 1 ? 's' : ''} from your website tours`,
+  );
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-            <Compass className="w-5 h-5 text-violet-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tour Quote Requests</h1>
-            <p className="text-sm text-gray-500">
-              {stats?.total ?? 0} quote request{(stats?.total ?? 0) !== 1 ? 's' : ''} from your website tours
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Info banner */}
       <div className="bg-gradient-to-r from-violet-50 via-fuchsia-50 to-indigo-50 border border-violet-200/60 rounded-2xl p-4 flex items-start gap-3">

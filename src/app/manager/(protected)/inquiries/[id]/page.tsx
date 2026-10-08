@@ -728,7 +728,7 @@ export default function InquiryDetailPage() {
             <span className="ml-auto text-sm font-normal text-gray-500">{callLogs.length} call{callLogs.length !== 1 ? 's' : ''}</span>
           </h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[500px] text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
                   <th className="text-left py-2 px-3 font-medium text-gray-600 text-xs">Vendor</th>

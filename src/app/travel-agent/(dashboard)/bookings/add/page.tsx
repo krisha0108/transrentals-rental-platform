@@ -9,6 +9,7 @@ import {
   Map, Building2, Car, FileText, MessageSquare,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
+import { useTravelAgentPageHeader } from '@/hooks/useTravelAgentPageHeader';
 
 const BOOKING_TYPES = [
   { value: 'TOUR', label: 'Tour Package', icon: Map, bg: 'bg-violet-50', border: 'border-violet-300', text: 'text-violet-700' },
@@ -124,6 +125,8 @@ export default function AddBookingPage() {
     : form.bookingType === 'TOUR'
       ? tours.map((t) => ({ value: t.id, label: t.title }))
       : [];
+
+  useTravelAgentPageHeader('Add Booking', 'A booking number will be generated automatically');
 
   return (
     <div className="min-h-screen -m-4 lg:-m-6 bg-gray-50">

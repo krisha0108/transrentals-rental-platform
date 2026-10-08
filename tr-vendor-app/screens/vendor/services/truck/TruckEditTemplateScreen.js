@@ -65,7 +65,8 @@ export default function TruckEditTemplateScreen({ navigation, route }) {
 
   const loadTemplate = useCallback(async () => {
     try {
-      const t = await getTemplateById('truck', templateId);
+      const data = await getTemplateById('truck', templateId);
+      const t = data.template || data;
       setTemplateName(t.name);
       setName(t.name);
       setCategory(t.category);

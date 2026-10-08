@@ -77,6 +77,24 @@ export async function GET(request: NextRequest) {
 
     const conversionRate = totalLeads > 0 ? Math.round((bookedLeads / totalLeads) * 100) : 0;
 
+    // A few most-recent leads so the dashboard shows real things to act on,
+    // not just counts.
+    const recentLeads = await prisma.travel_agent_leads.findMany({
+      where: { travelAgentId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        customerName: true,
+        tripType: true,
+        destination: true,
+        status: true,
+        priority: true,
+        nextFollowUp: true,
+        createdAt: true,
+      },
+    });
+
     return NextResponse.json({
       leads: {
         total: totalLeads,
@@ -110,6 +128,7 @@ export async function GET(request: NextRequest) {
         totalAmount: totalEarningsAgg._sum.totalAmount || 0,
         paidAmount: totalEarningsAgg._sum.paidAmount || 0,
       },
+      recentLeads,
     });
   } catch (error: any) {
     logger.error('Travel agent dashboard error', error);
