@@ -10,10 +10,14 @@ import {
   Image,
   Linking,
   Alert,
-  Modal,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import CancelBookingSheet from '../../../components/CancelBookingSheet';
+import BookingStatusHero from '../../../components/BookingStatusHero';
+import RefundStatusCard from '../../../components/RefundStatusCard';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -24,6 +28,8 @@ import {
 } from 'react-native-responsive-screen';
 import api, { BASE_URL, IMAGE_BASE_URL } from '../../api';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 const BikeBookingDetailScreen = () => {
   const route = useRoute();
@@ -96,32 +102,21 @@ const BikeBookingDetailScreen = () => {
     }
   };
 
-  const handleCancelBooking = async () => {
-    Alert.alert(
-      'Cancel Booking',
-      'Are you sure you want to cancel this booking?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await api.patch(`/bike-bookings/${bookingId}`, {
-                action: 'cancel',
-                reason: 'Cancelled by customer',
-              });
-              if (response.data.success) {
-                Alert.alert('Success', 'Booking cancelled successfully');
-                fetchBookingDetails();
-              }
-            } catch (err) {
-              Alert.alert('Error', err.response?.data?.error || 'Failed to cancel booking');
-            }
-          },
-        },
-      ]
-    );
+  // Cancelling runs through CancelBookingSheet (confirm, then success or
+  // error) instead of two system alerts.
+  const [showCancelSheet, setShowCancelSheet] = useState(false);
+  const handleCancelBooking = () => setShowCancelSheet(true);
+  const cancelBooking = async (reason) => {
+    try {
+      const response = await api.patch(`/bike-bookings/${bookingId}`, {
+        action: 'cancel',
+        reason: reason || 'Cancelled by customer',
+      });
+      if (!response.data?.success) throw new Error(response.data?.error || 'Failed to cancel booking');
+      return { refundAmount: response.data?.booking?.refundAmount ?? null };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || err.message || 'Failed to cancel booking');
+    }
   };
 
   // Parse array data from API (handles both string and array formats)
@@ -377,6 +372,22 @@ const BikeBookingDetailScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
+        {/* ── Status, progress and payment summary ── */}
+        <BookingStatusHero
+          style={styles.statusHero}
+          statusConfig={{ label: getStatusLabel(booking.status), color: getStatusColor(booking.status), icon: getStatusIcon(booking.status) }}
+          status={booking.status}
+          meta={`#${booking.bookingNumber}`}
+          totalAmount={booking.grandTotal}
+          advanceAmount={booking.advanceAmount}
+          paidAmount={booking.paidAmount}
+          paymentStatus={booking.paymentStatus}
+        />
+        {/* Refund progress for a cancelled booking (renders nothing otherwise) */}
+        {['CANCELLED', 'REFUNDED'].includes(String(booking.status).toUpperCase()) && (
+          <RefundStatusCard source="bike_bookings" bookingId={booking.id} />
+        )}
+
         {/* ── Drop Reason Banner ─────────────── */}
         {booking.status === 'DROPPED' && booking.dropReason && (
           <View style={{ backgroundColor: '#FEE2E2', padding: wp('4%'), borderRadius: wp('3%'), marginBottom: hp('1.5%'), flexDirection: 'row', alignItems: 'center', gap: wp('3%') }}>
@@ -648,6 +659,17 @@ const BikeBookingDetailScreen = () => {
             </>
           )} */}
 
+          <CancelBookingSheet
+            visible={showCancelSheet}
+            onClose={() => { setShowCancelSheet(false); fetchBookingDetails(); }}
+            onConfirm={cancelBooking}
+            booking={{
+              title: booking.vehicleName || 'Bike Rental',
+              number: booking.bookingNumber,
+              when: booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null,
+              paid: booking.paidAmount || 0,
+            }}
+          />
           {canCancel && (
             <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelBooking}>
               <Ionicons name="close-circle-outline" size={wp('4.5%')} color="#EF4444" />
@@ -757,7 +779,7 @@ const BikeBookingDetailScreen = () => {
               </View>
 
               {/* Tab Content */}
-              <View style={styles.quoteTabContent}>
+              <SwipeTabsView style={styles.quoteTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -1067,11 +1089,11 @@ const BikeBookingDetailScreen = () => {
                       }
 
                       // If single item or plain text, show as paragraph
-                      if (terms.length === 1 || booking.quote.termsConditions) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.quoteTermsCard}>
                             <Text style={styles.quoteTermsText}>
-                              {terms.length === 1 ? terms[0] : booking.quote.termsConditions}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1087,7 +1109,7 @@ const BikeBookingDetailScreen = () => {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               <View style={{ height: hp('5%') }} />
             </ScrollView>
@@ -1277,6 +1299,11 @@ const styles = StyleSheet.create({
   /* ── Content / ScrollView ─────────────────── */
   content: {
     flex: 1,
+  },
+  statusHero: {
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: hp('1.5%'),
   },
   contentContainer: {
     padding: wp('4%'),
@@ -1981,11 +2008,15 @@ const styles = StyleSheet.create({
     borderRadius: wp('4%'),
     alignItems: 'center',
     ...SHADOW_SM,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   quoteEmptyText: {
     fontSize: wp('3.3%'),
     color: TEXT_MUTED,
     marginTop: hp('1.2%'),
+    textAlign: 'center',
   },
 
   /* ── Vehicle Images ───────────────────────── */

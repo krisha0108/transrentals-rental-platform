@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  Modal,
   View,
   Text,
   TouchableOpacity,
@@ -9,6 +8,7 @@ import {
   Easing,
   Dimensions,
 } from 'react-native';
+import Modal from './SafeModal';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 

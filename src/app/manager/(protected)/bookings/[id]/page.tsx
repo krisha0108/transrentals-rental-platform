@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { Suspense, useState, useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -25,6 +25,7 @@ import {
   Truck,
   Navigation,
   MessageSquare,
+  ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
@@ -56,9 +57,17 @@ interface Booking {
   [key: string]: any;
 }
 
-export default function ManagerBookingDetailPage() {
+function ManagerBookingDetailPageInner() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // The back arrow used to be pinned to the dashboard, so leaving a booking
+  // dropped the manager somewhere they had not been. The list carries its
+  // filters and page number in the URL and passes them here as `from`, so
+  // going back returns to the same list, still filtered, not just to its top.
+  const from = searchParams.get('from');
+  const backHref = from ? `/manager/bookings?${from}` : '/manager/bookings';
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -282,8 +291,8 @@ export default function ManagerBookingDetailPage() {
       </div>
     ) : undefined,
     <Link
-      href="/manager/dashboard"
-      title="Back to dashboard"
+      href={backHref}
+      title="Back to bookings"
       className="p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0 text-gray-600"
     >
       <ArrowLeft className="w-5 h-5" />
@@ -304,8 +313,8 @@ export default function ManagerBookingDetailPage() {
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-900 mb-2">Error</h1>
         <p className="text-gray-600 mb-4">{error}</p>
-        <Link href="/manager/dashboard">
-          <Button>Back to Dashboard</Button>
+        <Link href={backHref}>
+          <Button>Back to Bookings</Button>
         </Link>
       </div>
     );
@@ -315,7 +324,10 @@ export default function ManagerBookingDetailPage() {
     return (
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">Booking not found</p>
+        <p className="text-gray-600 mb-4">Booking not found</p>
+        <Link href={backHref}>
+          <Button variant="outline">Back to Bookings</Button>
+        </Link>
       </div>
     );
   }
@@ -498,10 +510,23 @@ export default function ManagerBookingDetailPage() {
 
       {/* Customer Details */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <User className="w-5 h-5 text-gray-400" />
-          Customer Details
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <User className="w-5 h-5 text-gray-400" />
+            Customer Details
+          </h2>
+          {booking.customer?.id && (
+            <Link
+              href={`/admin/customers/${booking.customer.id}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-800"
+              title="See every booking and quote request this customer has ever made"
+            >
+              View all bookings by this customer
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
         <div className="grid md:grid-cols-3 gap-4">
           <div>
             <p className="text-sm text-gray-500">Name</p>
@@ -1305,5 +1330,21 @@ export default function ManagerBookingDetailPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary during prerendering — same
+// wrapper the bookings list uses.
+export default function ManagerBookingDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+        </div>
+      }
+    >
+      <ManagerBookingDetailPageInner />
+    </Suspense>
   );
 }

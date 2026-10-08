@@ -9,12 +9,13 @@ import {
   Alert,
   Image,
   RefreshControl,
-  Modal,
   Dimensions,
   Animated,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,6 +38,8 @@ const STATUS_CONFIG = {
   EXPIRED: { label: 'Expired', color: '#EF4444', icon: 'close-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#6B7280', icon: 'close-circle' },
 };
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 export default function LuxuryQuoteDetailScreen() {
   const navigation = useNavigation();
@@ -1297,7 +1300,7 @@ export default function LuxuryQuoteDetailScreen() {
 
               {/* Tabs */}
               <View style={styles.qdTabs}>
-                {['overview', 'inclusions', 'exclusions', 'terms'].map((tab) => (
+                {DETAILS_TABS.map((tab) => (
                   <TouchableOpacity
                     key={tab}
                     style={[styles.qdTab, detailsTab === tab && styles.qdTabActive]}
@@ -1311,7 +1314,7 @@ export default function LuxuryQuoteDetailScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={{ padding: wp('4%') }}>
+              <SwipeTabsView style={{ padding: wp('4%') }} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -1467,7 +1470,8 @@ export default function LuxuryQuoteDetailScreen() {
                       <Text style={styles.qdSectionTitle}>Terms & Conditions</Text>
                     </View>
                     {(() => {
-                      const terms = parseListData(viewingQuote.termsConditions || viewingQuote.terms);
+                      const conditions = parseListData(viewingQuote.termsConditions);
+                      const terms = conditions.length > 0 ? conditions : parseListData(viewingQuote.terms);
                       if (terms.length > 1) {
                         return (
                           <View style={styles.qdCard}>
@@ -1482,11 +1486,11 @@ export default function LuxuryQuoteDetailScreen() {
                           </View>
                         );
                       }
-                      if (terms.length === 1 || viewingQuote.termsConditions || viewingQuote.terms) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.qdCard}>
                             <Text style={styles.qdMessageText}>
-                              {terms.length === 1 ? terms[0] : (viewingQuote.termsConditions || viewingQuote.terms)}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1500,7 +1504,7 @@ export default function LuxuryQuoteDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               {/* Bottom Accept Button */}
               {quoteRequest?.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
@@ -2625,11 +2629,15 @@ const styles = StyleSheet.create({
     borderRadius: wp('3.5%'),
     alignItems: 'center',
     ...SHADOW_SM,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   qdEmptyText: {
     fontSize: wp('3.5%'),
     color: TEXT_MUTED,
     marginTop: hp('1.5%'),
+    textAlign: 'center',
   },
 
   // Re-request & Expired

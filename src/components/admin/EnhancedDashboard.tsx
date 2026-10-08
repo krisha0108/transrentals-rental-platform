@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, TrendingUp, RefreshCw, Building2, MapPin, BarChart3, PieChart } from 'lucide-react';
+import { Calendar, FileText, TrendingUp, RefreshCw, Building2, MapPin, BarChart3, PieChart, Trophy, Store, AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import {
   BarChart,
@@ -25,6 +25,19 @@ interface DashboardStats {
   bookingsByService: Record<string, number>;
   quotesByService: Record<string, number>;
   filter: string;
+  availableLocations: string[];
+  states: { id: string; name: string }[];
+  cities: { name: string; parentId: string | null }[];
+  topInquiryState: { name: string; count: number } | null;
+  topInquiryCity: { name: string; count: number } | null;
+  topVendorState: { name: string; count: number } | null;
+  topVendorCity: { name: string; count: number } | null;
+  coverageGapEvents: number;
+  coverageGapLocations: number;
+  topCoverageGap: { locationName: string; serviceType: string; count: number } | null;
+  idleVendorCount: number;
+  idleVendorPairs: number;
+  topIdleLocation: { locationName: string; total: number; uniqueVendors: number; serviceCount: number } | null;
 }
 
 type FilterType = 'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
@@ -69,6 +82,8 @@ export default function EnhancedDashboard() {
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'bar' | 'pie'>('bar');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [stateFilter, setStateFilter] = useState<string>('all');
 
   useEffect(() => {
     if (filter === 'custom') {
@@ -78,12 +93,12 @@ export default function EnhancedDashboard() {
     } else {
       fetchStats(filter);
     }
-  }, [filter, customFrom, customTo]);
+  }, [filter, customFrom, customTo, locationFilter, stateFilter]);
 
   const fetchStats = async (selectedFilter: FilterType) => {
     setLoading(true);
     try {
-      let url = `/api/admin/dashboard/stats?filter=${selectedFilter}`;
+      let url = `/api/admin/dashboard/stats?filter=${selectedFilter}&location=${encodeURIComponent(locationFilter)}&state=${encodeURIComponent(stateFilter)}`;
       if (selectedFilter === 'custom' && customFrom && customTo) {
         url += `&from=${customFrom}&to=${customTo}`;
       }
@@ -160,6 +175,12 @@ export default function EnhancedDashboard() {
     ...Object.keys(stats?.bookingsByService ?? {}),
     ...Object.keys(stats?.quotesByService ?? {}),
   ].filter((v, i, a) => a.indexOf(v) === i).sort();
+
+  // City options for the Location dropdown — narrowed to the picked state,
+  // or every city when no state is picked.
+  const citiesForDropdown = stateFilter === 'all'
+    ? (stats?.availableLocations ?? [])
+    : Array.from(new Set((stats?.cities ?? []).filter((c) => c.parentId === stateFilter).map((c) => c.name))).sort();
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -278,6 +299,41 @@ export default function EnhancedDashboard() {
             ))}
           </div>
         </div>
+
+        {/* Divider */}
+        <div className="border-t border-blue-200/50" />
+
+        {/* Row 3 — State & Location Filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-bold text-gray-800 flex-shrink-0">📍 State:</span>
+          <select
+            value={stateFilter}
+            onChange={(e) => {
+              setStateFilter(e.target.value);
+              setLocationFilter('all');
+            }}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-gray-700 shadow-sm border border-transparent hover:shadow-md focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="all">All States</option>
+            {(stats?.states ?? []).map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+
+          <span className="text-sm font-bold text-gray-800 flex-shrink-0">Location:</span>
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-gray-700 shadow-sm border border-transparent hover:shadow-md focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="all">All Locations</option>
+            {citiesForDropdown.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Main Stats Grid */}
@@ -343,6 +399,122 @@ export default function EnhancedDashboard() {
             <p className="text-sm font-medium text-orange-100 mb-1">Active Locations</p>
             <p className="text-4xl font-bold text-white mb-2">{stats?.totalLocations || 0}</p>
             <p className="text-xs text-orange-100">Click to manage →</p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Highest State / City — inquiries vs active vendor supply, same
+          date/location/state filter as everything else above. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <Trophy className="w-4.5 h-4.5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Highest Inquiries</p>
+              <p className="text-xs text-gray-500">{activeLabel}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-indigo-50 p-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-indigo-500 mb-1">Top State</p>
+              <p className="text-lg font-bold text-indigo-900 truncate">{stats?.topInquiryState?.name || '—'}</p>
+              <p className="text-xs text-indigo-600 mt-0.5">{stats?.topInquiryState?.count ?? 0} inquiries</p>
+            </div>
+            <div className="rounded-xl bg-indigo-50 p-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-indigo-500 mb-1">Top City</p>
+              <p className="text-lg font-bold text-indigo-900 truncate">{stats?.topInquiryCity?.name || '—'}</p>
+              <p className="text-xs text-indigo-600 mt-0.5">{stats?.topInquiryCity?.count ?? 0} inquiries</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center">
+              <Store className="w-4.5 h-4.5 text-teal-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Highest Vendor Supply</p>
+              <p className="text-xs text-gray-500">Approved vendors · {activeLabel}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-teal-50 p-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-teal-600 mb-1">Top State</p>
+              <p className="text-lg font-bold text-teal-900 truncate">{stats?.topVendorState?.name || '—'}</p>
+              <p className="text-xs text-teal-700 mt-0.5">{stats?.topVendorState?.count ?? 0} vendors</p>
+            </div>
+            <div className="rounded-xl bg-teal-50 p-3.5">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-teal-600 mb-1">Top City</p>
+              <p className="text-lg font-bold text-teal-900 truncate">{stats?.topVendorCity?.name || '—'}</p>
+              <p className="text-xs text-teal-700 mt-0.5">{stats?.topVendorCity?.count ?? 0} vendors</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Coverage Gaps — demand with no vendor vs. vendor capacity sitting
+          idle with no demand. Admin-wide (not scoped to the location/state
+          filter above), full drill-down lives on Operations Tracker. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link
+          href={`/admin/operations?tab=gaps&filter=${filter}${stats?.topCoverageGap ? `&search=${encodeURIComponent(stats.topCoverageGap.locationName)}` : ''}`}
+          className="group bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:border-red-300 hover:shadow-md transition"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-4.5 h-4.5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Inquiries With No Vendor</p>
+              <p className="text-xs text-gray-500">{activeLabel} · lost business</p>
+            </div>
+          </div>
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-3xl font-bold text-red-700">{stats?.coverageGapEvents ?? 0}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{stats?.coverageGapLocations ?? 0} location+service combos affected</p>
+            </div>
+            {stats?.topCoverageGap && (
+              <div className="text-right">
+                <p className="text-xs font-bold uppercase tracking-wide text-red-400">Worst spot</p>
+                <p className="text-sm font-bold text-gray-900 truncate max-w-[160px]">{stats.topCoverageGap.locationName}</p>
+                <p className="text-xs text-gray-500">{stats.topCoverageGap.serviceType} · {stats.topCoverageGap.count}</p>
+              </div>
+            )}
+          </div>
+        </Link>
+
+        <Link
+          href={`/admin/operations?tab=idle&filter=${filter}${stats?.topIdleLocation ? `&search=${encodeURIComponent(stats.topIdleLocation.locationName)}` : ''}`}
+          className="group bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:border-amber-300 hover:shadow-md transition"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-4.5 h-4.5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Vendors With No Inquiries</p>
+              <p className="text-xs text-gray-500">{activeLabel} · idle supply</p>
+            </div>
+          </div>
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-3xl font-bold text-amber-700">{stats?.idleVendorCount ?? 0}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                vendors with zero inquiries anywhere they're approved
+                {typeof stats?.idleVendorPairs === 'number' ? ` (${stats.idleVendorPairs} location+service combos)` : ''}
+              </p>
+            </div>
+            {stats?.topIdleLocation && (
+              <div className="text-right">
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-500">Most idle</p>
+                <p className="text-sm font-bold text-gray-900 truncate max-w-[160px]">{stats.topIdleLocation.locationName}</p>
+                <p className="text-xs text-gray-500">{stats.topIdleLocation.uniqueVendors} vendors · {stats.topIdleLocation.serviceCount} services</p>
+              </div>
+            )}
           </div>
         </Link>
       </div>

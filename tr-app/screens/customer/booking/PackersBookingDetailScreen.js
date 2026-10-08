@@ -10,10 +10,14 @@ import {
   Alert,
   Linking,
   RefreshControl,
-  Modal,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import BookingStatusHero from '../../../components/BookingStatusHero';
+import RefundStatusCard from '../../../components/RefundStatusCard';
+import CancelBookingAction, { formatCancelDate } from '../../../components/CancelBookingAction';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -40,6 +44,8 @@ const STATUS_CONFIG = {
   CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: 'close-circle-outline' },
   DROPPED: { label: 'Dropped', color: '#EF4444', icon: 'arrow-down-circle-outline' },
 };
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 export default function PackersBookingDetailScreen() {
   const route = useRoute();
@@ -280,18 +286,19 @@ export default function PackersBookingDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: hp('4%') }}
       >
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <View style={[styles.statusIconCircle, { backgroundColor: statusConfig.color + '15' }]}>
-            <Ionicons name={statusConfig.icon} size={wp('6%')} color={statusConfig.color} />
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '12' }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusConfig.color }]} />
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-          </View>
-        </View>
+        {/* Status, progress and payment summary */}
+        <BookingStatusHero
+          statusConfig={statusConfig}
+          status={booking.status}
+          totalAmount={booking.totalAmount}
+          advanceAmount={booking.advanceAmount}
+          advancePaid={booking.advancePaid}
+          paymentStatus={booking.paymentStatus}
+        />
+        {/* Refund progress for a cancelled booking (renders nothing otherwise) */}
+        {['CANCELLED', 'REFUNDED'].includes(String(booking.status).toUpperCase()) && (
+          <RefundStatusCard source="packers_bookings" bookingId={booking.id} />
+        )}
 
         {/* Payment Pending - Show Pay Now Button */}
         {booking.status === 'PENDING_PAYMENT' && booking.advanceAmount > 0 && (
@@ -839,6 +846,20 @@ export default function PackersBookingDetailScreen() {
           )
         )}
 
+        {/* Customer can cancel until the job starts (same statuses the API accepts) */}
+        {["PENDING_PAYMENT","PAYMENT_SUBMITTED","ADVANCE_PAID","CONFIRMED","TEAM_ASSIGNED"].includes(booking.status) && (
+          <CancelBookingAction
+            path={`/packers-bookings/${booking.id}`}
+            booking={{
+              title: booking.shiftingType ? `${booking.shiftingType} shifting` : 'Packers & Movers booking',
+              number: booking.bookingNumber,
+              when: formatCancelDate(booking.scheduledDate),
+              paid: booking.advancePaid || 0,
+            }}
+            onDone={() => fetchBookingDetails(true)}
+          />
+        )}
+
         <View style={{ height: hp('2.5%') }} />
       </ScrollView>
 
@@ -902,7 +923,7 @@ export default function PackersBookingDetailScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={styles.quoteTabContent}>
+              <SwipeTabsView style={styles.quoteTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -1087,11 +1108,11 @@ export default function PackersBookingDetailScreen() {
                       }
 
                       // If single item or plain text, show as paragraph
-                      if (terms.length === 1 || booking.quote.termsConditions) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.quoteTermsCard}>
                             <Text style={styles.quoteTermsText}>
-                              {terms.length === 1 ? terms[0] : booking.quote.termsConditions}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1107,7 +1128,7 @@ export default function PackersBookingDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               <View style={{ height: hp('5%') }} />
             </ScrollView>
@@ -1797,11 +1818,15 @@ const styles = StyleSheet.create({
     borderRadius: wp('3.5%'),
     alignItems: 'center',
     ...SHADOW_SM,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   quoteEmptyText: {
     fontSize: wp('3.5%'),
     color: TEXT_MUTED,
     marginTop: hp('1.5%'),
+    textAlign: 'center',
   },
   rateBtn: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), overflow: 'hidden' },
   rateBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('2%'), paddingHorizontal: wp('4%'), gap: wp('2%') },

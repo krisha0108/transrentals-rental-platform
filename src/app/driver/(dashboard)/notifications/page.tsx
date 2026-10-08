@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, AlertTriangle, CheckCircle, Car, Calendar, Loader2, RefreshCw, ChevronRight } from 'lucide-react';
+import { PageHeader } from '../_components/PortalUI';
 
 interface Notification {
   id: string;
@@ -76,26 +77,22 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-            <Bell className="w-4 h-4 text-emerald-600" /> Notifications
-          </h1>
-        </div>
-        <button
-          onClick={load}
-          disabled={isLoading}
-          className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 text-gray-600 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
+      <PageHeader
+        icon={Bell}
+        title="Notifications"
+        subtitle="Trip assignments and account updates"
+        actions={
+          <button type="button" onClick={load} disabled={isLoading} className="dv-action-ghost disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex gap-2">
         <button
           onClick={() => setTab('notifications')}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${tab === 'notifications' ? 'bg-emerald-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${tab === 'notifications' ? 'bg-green-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
         >
           Booking Alerts
           {unreadCount > 0 && (
@@ -104,7 +101,7 @@ export default function NotificationsPage() {
         </button>
         <button
           onClick={() => setTab('alerts')}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${tab === 'alerts' ? 'bg-emerald-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${tab === 'alerts' ? 'bg-green-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
         >
           Document Alerts
           {alerts.filter(a => a.urgent).length > 0 && (
@@ -115,7 +112,7 @@ export default function NotificationsPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
         </div>
       ) : (
         <>
@@ -123,7 +120,7 @@ export default function NotificationsPage() {
           {tab === 'notifications' && (
             <div>
               {unreadCount > 0 && (
-                <button onClick={markAllRead} className="text-sm text-emerald-600 font-medium hover:underline mb-3 block">
+                <button onClick={markAllRead} className="text-sm text-green-600 font-medium hover:underline mb-3 block">
                   Mark all as read
                 </button>
               )}
@@ -139,20 +136,20 @@ export default function NotificationsPage() {
                     <div
                       key={n.id}
                       onClick={() => handleNotificationClick(n)}
-                      className={`bg-white rounded-xl border p-4 transition ${!n.read ? 'border-emerald-300 bg-emerald-50/30' : ''} ${n.bookingNumber ? 'cursor-pointer hover:shadow-md hover:border-emerald-400' : ''}`}
+                      className={`bg-white rounded-xl border p-4 transition ${!n.read ? 'border-green-300 bg-green-50/30' : ''} ${n.bookingNumber ? 'cursor-pointer hover:shadow-md hover:border-green-400' : ''}`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${!n.read ? 'bg-emerald-100' : 'bg-gray-100'}`}>
-                          <Car className={`w-4 h-4 ${!n.read ? 'text-emerald-600' : 'text-gray-500'}`} />
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${!n.read ? 'bg-green-100' : 'bg-gray-100'}`}>
+                          <Car className={`w-4 h-4 ${!n.read ? 'text-green-600' : 'text-gray-500'}`} />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <p className={`font-semibold text-sm ${!n.read ? 'text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
-                            {!n.read && <span className="w-2 h-2 bg-emerald-500 rounded-full" />}
+                            {!n.read && <span className="w-2 h-2 bg-green-500 rounded-full" />}
                           </div>
                           {n.body && <p className="text-sm text-gray-600 mt-0.5">{n.body}</p>}
                           {n.bookingNumber && (
-                            <p className="text-xs text-emerald-600 font-medium mt-1">Booking #{n.bookingNumber}</p>
+                            <p className="text-xs text-green-600 font-medium mt-1">Booking #{n.bookingNumber}</p>
                           )}
                           {n.createdAt && (
                             <p className="text-xs text-gray-400 mt-1">

@@ -1892,6 +1892,7 @@ model locations {
   chauffeur_route_packages_chauffeur_route_packages_toLocationIdTolocations   chauffeur_route_packages[]      @relation("chauffeur_route_packages_toLocationIdTolocations")
   city_distance_matrix_city_distance_matrix_fromLocationIdTolocations         city_distance_matrix[]          @relation("city_distance_matrix_fromLocationIdTolocations")
   city_distance_matrix_city_distance_matrix_toLocationIdTolocations           city_distance_matrix[]          @relation("city_distance_matrix_toLocationIdTolocations")
+  driver_locations                                                            driver_locations[]
   equipment_quote_requests                                                    equipment_quote_requests[]
   fleet_pricing                                                               fleet_pricing[]
   locations                                                                   locations?                      @relation("locationsTolocations", fields: [parentId], references: [id], onDelete: Cascade)
@@ -2234,6 +2235,22 @@ model manager_locations {
 
   @@unique([managerId, locationId])
   @@index([locationId], map: "manager_locations_locationId_fkey")
+}
+
+// Cities a driver picked at registration (a driver can operate in more than
+// one) — separate from drivers.city/state, which stay as a simple display
+// summary. This is what getManagersForLocation() matches against to notify
+// the right managers when a driver joins their area.
+model driver_locations {
+  id         String   @id @default(cuid())
+  driverId   String
+  locationId String
+  createdAt  DateTime @default(now())
+  drivers    drivers  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  locations  locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, locationId])
+  @@index([locationId])
 }
 
 model manager_services {
@@ -3807,6 +3824,7 @@ model vendor_staff {
   accountNumber      String?
   ifscCode           String?
   accountHolderName  String?
+  upiId              String?
   salary             Float                       @default(0)
   emergencyContact   String?
   emergencyPhone     String?
@@ -6286,9 +6304,11 @@ model web_stories {
   category         String?
   isPublished      Boolean               @default(false)
   isArchived       Boolean               @default(false)
+  isFeatured       Boolean               @default(false)
   displayOrder     Int                   @default(0)
   expiresAt        DateTime?
   publishedAt      DateTime?
+  scheduledAt      DateTime?
   targetServices   String?               @db.Text
   targetLocations  String?               @db.Text
   createdAt        DateTime              @default(now())
@@ -6299,8 +6319,10 @@ model web_stories {
 
   @@index([isPublished])
   @@index([isArchived])
+  @@index([isFeatured])
   @@index([expiresAt])
   @@index([displayOrder])
+  @@index([scheduledAt])
 }
 
 model web_story_slides {
@@ -6395,6 +6417,7 @@ model drivers {
   accountHolderName String?
   accountNumber     String?
   ifscCode          String?
+  upiId             String?
 
   // Emergency
   emergencyContact String?
@@ -6425,6 +6448,7 @@ model drivers {
   chauffeur_bookings chauffeur_bookings[]
   driver_vehicles    driver_vehicles[]
   chat_conversations chat_conversations[]
+  driver_locations   driver_locations[]
 
   @@index([email])
   @@index([phone])
@@ -6698,6 +6722,7 @@ model travel_agent_leads {
   lostReason          String?                    @db.Text
   convertedBookingId  String?
   tourId              String? // optional FK to travel_agent_tours when lead came from a tour quote
+  propertyId          String? // optional FK to travel_agent_properties when lead came from a property enquiry
   customerId          String? // optional link to customers when lead came from a logged-in customer
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
@@ -6858,13 +6883,29 @@ model travel_agent_properties {
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
 
-  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agents                 travel_agents                   @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agent_property_reviews travel_agent_property_reviews[]
 
   @@unique([travelAgentId, slug])
   @@index([travelAgentId])
   @@index([propertyType])
   @@index([city])
   @@index([isActive])
+}
+
+model travel_agent_property_reviews {
+  id           String   @id @default(cuid())
+  propertyId   String
+  bookingId    String   @unique
+  customerName String
+  rating       Int
+  comment      String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  travel_agent_properties travel_agent_properties @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  travel_agent_bookings   travel_agent_bookings    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
 }
 
 model travel_agent_bookings {
@@ -6896,7 +6937,8 @@ model travel_agent_bookings {
   createdAt        DateTime                    @default(now())
   updatedAt        DateTime                    @updatedAt
 
-  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agents                  travel_agents                   @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agent_property_review   travel_agent_property_reviews?
 
   @@index([travelAgentId])
   @@index([status])
@@ -7546,11 +7588,14 @@ model manager_notifications {
 }
 
 enum manager_notification_type {
+  REFUND_PENDING
   NEW_LOCATION_REQUEST
   NEW_SERVICE_REQUEST
   NEW_CONTACT_INQUIRY
   NEW_TRAVEL_AGENT_REGISTRATION
   NEW_VENDOR_AGREEMENT_SIGNED
+  NEW_DRIVER_REGISTRATION
+  NEW_PROPERTY_ENQUIRY
 }
 
 model service_city_content {
@@ -7730,4 +7775,50 @@ model booking_review_moderation {
 
   @@unique([source, bookingId])
   @@index([status])
+}
+
+/// One row per cancelled booking that owes the customer money. The booking
+/// tables each hold their own refundAmount, but nobody can work a queue that
+/// is spread across eight of them — this is the single list the refunds desk
+/// works from, and the only place the refund state lives.
+model refund_followups {
+  id              String    @id @default(cuid())
+  /// Booking table the refund belongs to, e.g. bike_bookings.
+  source          String    @db.VarChar(40)
+  bookingId       String    @db.VarChar(191)
+  bookingNumber   String    @db.VarChar(64)
+  serviceType     String    @db.VarChar(40)
+  customerId      String?   @db.VarChar(191)
+  customerName    String?   @db.VarChar(191)
+  /// What the cancel handler worked out was owed, snapshotted at cancel time.
+  amount          Float
+  /// PENDING | MANAGER_REVIEWED | PROCESSING | COMPLETED | FAILED | NOT_REQUIRED
+  status          String    @default("PENDING") @db.VarChar(20)
+  /// Razorpay refund id, when it went through the gateway.
+  gatewayRefundId String?   @db.VarChar(191)
+  /// Why it failed, or how it was settled off-gateway.
+  notes           String?   @db.Text
+  handledBy       String?   @db.VarChar(191)
+  handledAt       DateTime?
+  /// The manager's call on whether a refund is owed at all — set together
+  /// with the rest of the review fields when the manager sends this to the
+  /// admin desk. Null until reviewed.
+  customerRefundApproved Boolean?
+  /// What the manager approved paying back, which may differ from `amount`
+  /// (e.g. a partial goodwill amount). Admin refunds this figure, not `amount`,
+  /// once a review exists.
+  approvedAmount         Float?
+  /// The manager's call on whether the vendor keeps their share of this
+  /// booking — recorded for whoever runs vendor payouts to act on; this app
+  /// has no automated vendor payout ledger to deduct from directly.
+  vendorPayoutApproved   Boolean?
+  managerNotes           String?   @db.Text
+  reviewedBy             String?   @db.VarChar(191)
+  reviewedAt             DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([source, bookingId])
+  @@index([status])
+  @@index([createdAt])
 }

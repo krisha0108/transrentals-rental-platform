@@ -1,32 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   CreditCard,
+  ChevronRight,
   CheckCircle,
   XCircle,
-  Clock,
   Loader2,
-  Phone,
-  Mail,
-  Car,
-  Bike,
-  Bus,
-  CarFront,
-  MapPin,
-  Calendar,
-  IndianRupee,
-  Search,
-  Filter,
   Eye,
   RefreshCw,
-  Truck,
-  Package,
-  Crown,
-  Compass,
+  IndianRupee,
+  Wallet,
+  Clock,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
+import ServiceTabs from './_components/ServiceTabs';
+
+interface EarningsSummary {
+  totalBookings: number;
+  totalValue: number;
+  totalCollected: number;
+  totalPending: number;
+  totalRefunded: number;
+}
 
 interface PendingPayment {
   id: string;
@@ -52,16 +52,26 @@ interface PendingPayment {
   updatedAt: string;
 }
 
+const VALID_BOOKING_TYPES = ['bike', 'chauffeur', 'bus', 'car', 'truck', 'equipment', 'packers', 'luxury', 'wander'] as const;
+
 export default function PaymentsPage() {
+  // Deep-link support — e.g. /admin/payments?type=bike from the Payments Tally page.
+  const searchParams = useSearchParams();
+  const typeParam = searchParams?.get('type');
+  const initialFilter = (VALID_BOOKING_TYPES as readonly string[]).includes(typeParam || '')
+    ? (typeParam as (typeof VALID_BOOKING_TYPES)[number])
+    : 'all';
+
   const [payments, setPayments] = useState<PendingPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury' | 'wander'>('all');
+  const [filter, setFilter] = useState<'all' | 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury' | 'wander'>(initialFilter);
   const [dayFilter, setDayFilter] = useState<'all' | 'today' | 'yesterday' | 'last7' | 'last30'>('all');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'all'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'manual' | 'direct'>('all');
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
+  const [earnings, setEarnings] = useState<EarningsSummary | null>(null);
 
   // useCallback gives fetchPayments a stable identity that only changes when
   // the filters change — avoids stale-closure issues on the initial render.
@@ -90,6 +100,25 @@ export default function PaymentsPage() {
   useEffect(() => {
     fetchPayments();
   }, [fetchPayments]);
+
+  // Earning summary for the current service + date selection — reuses the
+  // Payments Tally endpoint so the numbers always agree with that page.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/admin/payments/tally?range=${dayFilter}&services=${filter}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then((r) => r.json())
+      .then((json) => setEarnings(json.success ? json.totals : null))
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.error('Failed to fetch earnings summary:', err);
+          setEarnings(null);
+        }
+      });
+    return () => controller.abort();
+  }, [filter, dayFilter]);
 
   const handleVerify = async (action: 'verify' | 'reject') => {
     if (!selectedPayment) return;
@@ -186,6 +215,16 @@ export default function PaymentsPage() {
         </Button>
       </div>
 
+      {/* Earning summary — for the current service + date selection */}
+      {earnings && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <EarningTile icon={<IndianRupee className="w-5 h-5" />} label="Booking Value" value={formatPrice(earnings.totalValue)} accent="bg-gray-100 text-gray-700" />
+          <EarningTile icon={<Wallet className="w-5 h-5" />} label="Collected" value={formatPrice(earnings.totalCollected)} accent="bg-emerald-100 text-emerald-700" />
+          <EarningTile icon={<Clock className="w-5 h-5" />} label="Pending / Due" value={formatPrice(earnings.totalPending)} accent="bg-amber-100 text-amber-700" />
+          <EarningTile icon={<RotateCcw className="w-5 h-5" />} label="Refunded" value={formatPrice(earnings.totalRefunded)} accent="bg-red-100 text-red-700" />
+        </div>
+      )}
+
       {/* Unified filters card — Status · Date · Service rows */}
       <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
       {/* Payment status (server-side) */}
@@ -266,128 +305,11 @@ export default function PaymentsPage() {
       {/* Service tabs row */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-bold text-gray-500 uppercase tracking-wide w-16 shrink-0">Service</span>
-        <div className="flex gap-2 overflow-x-auto flex-1 pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        <button
-          onClick={() => setFilter('all')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'all'
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Clock className="w-4 h-4" />
-          All ({displayedPayments.length})
-        </button>
-        <button
-          onClick={() => setFilter('bike')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'bike'
-              ? 'bg-purple-100 text-purple-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Bike className="w-4 h-4" />
-          Bike Rentals
-        </button>
-        <button
-          onClick={() => setFilter('chauffeur')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'chauffeur'
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Car className="w-4 h-4" />
-          Car Rental
-        </button>
-        <button
-          onClick={() => setFilter('car')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'car'
-              ? 'bg-orange-100 text-orange-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <CarFront className="w-4 h-4" />
-          Self-Drive
-        </button>
-        <button
-          onClick={() => setFilter('bus')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'bus'
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Bus className="w-4 h-4" />
-          Bus Rentals
-        </button>
-        <button
-          onClick={() => setFilter('truck')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'truck'
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Truck className="w-4 h-4" />
-          Truck Rentals
-        </button>
-        <button
-          onClick={() => setFilter('equipment')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'equipment'
-              ? 'bg-teal-100 text-teal-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <CreditCard className="w-4 h-4" />
-          Equipment
-        </button>
-        <button
-          onClick={() => setFilter('packers')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'packers'
-              ? 'bg-pink-100 text-pink-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Package className="w-4 h-4" />
-          Packers & Movers
-        </button>
-        <button
-          onClick={() => setFilter('luxury')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'luxury'
-              ? 'bg-yellow-100 text-yellow-800'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Crown className="w-4 h-4" />
-          Luxury Car
-        </button>
-        <button
-          onClick={() => setFilter('wander')}
-          className={cn(
-            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
-            filter === 'wander'
-              ? 'bg-indigo-100 text-indigo-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          )}
-        >
-          <Compass className="w-4 h-4" />
-          Wander Tours
-        </button>
-        </div>
+        <ServiceTabs
+          value={filter}
+          onChange={(v) => setFilter(v as typeof filter)}
+          allCount={displayedPayments.length}
+        />
       </div>
       </div>
 
@@ -408,8 +330,16 @@ export default function PaymentsPage() {
             return (
               <div
                 key={payment.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition"
+                className="group relative bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition hover:shadow-md hover:border-blue-200 focus-within:ring-2 focus-within:ring-blue-400"
               >
+                {/* Covers the card so a click anywhere opens the payment, while
+                    staying a real link: middle-click, Ctrl-click and the
+                    keyboard all behave. The controls below sit above it. */}
+                <Link
+                  href={`/admin/payments/${payment.bookingType}/${payment.id}`}
+                  aria-label={`Open payment ${payment.bookingNumber}`}
+                  className="absolute inset-0 z-0 rounded-xl"
+                />
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
@@ -421,6 +351,9 @@ export default function PaymentsPage() {
                       </span>
                       <span className="text-sm text-gray-500">
                         {formatDate(payment.advancePaymentDate || payment.updatedAt)}
+                      </span>
+                      <span className="ml-auto hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-blue-600 opacity-0 transition group-hover:opacity-100">
+                        View details <ChevronRight className="w-3.5 h-3.5" />
                       </span>
                     </div>
 
@@ -468,7 +401,7 @@ export default function PaymentsPage() {
                         </div>
                       )}
                       {payment.advancePaymentProof && (
-                        <div>
+                        <div className="relative z-10">
                           <a
                             href={payment.advancePaymentProof}
                             target="_blank"
@@ -482,7 +415,7 @@ export default function PaymentsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-row lg:flex-col gap-2">
+                  <div className="relative z-10 flex flex-row lg:flex-col gap-2">
                     {payment.paymentStatus === 'SUBMITTED' ? (
                       <>
                         <Button
@@ -622,6 +555,20 @@ export default function PaymentsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function EarningTile({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-start gap-3">
+      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', accent)}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</div>
+        <div className="text-2xl font-bold text-gray-900 truncate leading-tight mt-0.5">{value}</div>
+      </div>
     </div>
   );
 }

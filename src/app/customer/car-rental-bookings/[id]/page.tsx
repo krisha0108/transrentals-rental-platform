@@ -22,6 +22,7 @@ import {
   Share2,
   HelpCircle,
   CreditCard,
+  RotateCcw,
 } from 'lucide-react';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 import { DriverBookingChat } from '@/components/driver/DriverBookingChat';
@@ -105,6 +106,12 @@ interface BookingDetails {
   cancelledBy?: string;
   cancellationReason?: string;
   createdAt: string;
+  refund?: {
+    status: 'PENDING' | 'MANAGER_REVIEWED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'NOT_REQUIRED';
+    /** Null until a manager has decided — show "in process", not a number. */
+    decidedAmount: number | null;
+    customerRefundApproved: boolean | null;
+  } | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -498,6 +505,37 @@ export default function CarRentalBookingDetailPage() {
                   </p>
                   {booking.transactionId && (
                     <p className="mt-1.5 text-[11.5px] tabular-nums text-amber-700/80">Ref: {booking.transactionId}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Cancelled — headline notice ── */}
+          {booking.status === 'CANCELLED' && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-100">
+                  <RotateCcw className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-extrabold text-red-800">Your booking has been cancelled</p>
+                  {!booking.refund || booking.refund.customerRefundApproved === null ? (
+                    <p className="mt-1 text-[13px] leading-relaxed text-red-700">
+                      Your refund is in process — our team is reviewing this cancellation and will confirm the amount shortly.
+                    </p>
+                  ) : booking.refund.customerRefundApproved === false ? (
+                    <p className="mt-1 text-[13px] leading-relaxed text-red-700">
+                      No refund is applicable for this cancellation.
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[13px] leading-relaxed text-red-700">
+                      {booking.refund.status === 'COMPLETED'
+                        ? <>₹{(booking.refund.decidedAmount ?? 0).toLocaleString('en-IN')} has been refunded to you.</>
+                        : booking.refund.status === 'PROCESSING'
+                          ? <>₹{(booking.refund.decidedAmount ?? 0).toLocaleString('en-IN')} refund is being processed.</>
+                          : <>₹{(booking.refund.decidedAmount ?? 0).toLocaleString('en-IN')} refund has been approved and will be processed shortly.</>}
+                    </p>
                   )}
                 </div>
               </div>

@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
-  View, Text, Modal, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet,
   Animated, Easing, Alert, ActivityIndicator,Image
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import Svg, { Path, Image as SvgImage, Defs, ClipPath } from 'react-native-svg';
 import api from '../api';
 import LinearGradient from 'react-native-linear-gradient';

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Loader2, Plus, Building2, Search, Edit2, Trash2, MapPin,
   Globe, Lock, Power, PowerOff, Bed, Star, Users, Bath,
-  ChevronDown, TrendingUp, CheckSquare,
+  ChevronDown, TrendingUp, CheckSquare, MessageCircle,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
@@ -36,6 +36,7 @@ interface Property {
   rating: number | null;
   totalRatings: number;
   createdAt: string;
+  enquiryCount: number;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -109,6 +110,7 @@ export default function PropertiesListPage() {
     avgRating: properties.filter((p) => (p.totalRatings || 0) > 0).length > 0
       ? (properties.reduce((s, p) => s + (p.rating || 0), 0) / properties.filter((p) => (p.totalRatings || 0) > 0).length).toFixed(1)
       : null,
+    totalEnquiries: properties.reduce((s, p) => s + (p.enquiryCount || 0), 0),
   }), [properties]);
 
   const togglePublic = async (p: Property) => {
@@ -157,11 +159,12 @@ export default function PropertiesListPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label: 'Total', value: stats.total, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Active', value: stats.active, icon: Power, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Published', value: stats.published, icon: Globe, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Enquiries', value: stats.totalEnquiries, icon: MessageCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
           { label: 'Avg Rating', value: stats.avgRating ?? '—', icon: Star, color: 'text-amber-600', bg: 'bg-amber-50' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
@@ -315,6 +318,16 @@ function PropertyCard({
               <span className="text-xs text-gray-400">· {p.totalBookings} booking{p.totalBookings !== 1 ? 's' : ''}</span>
             )}
           </div>
+        </div>
+
+        {/* Enquiry count — how many customers asked about this listing */}
+        <div className={`flex items-center gap-1.5 text-xs font-semibold rounded-lg px-2.5 py-1.5 self-start ${
+          p.enquiryCount > 0 ? 'bg-rose-50 text-rose-700' : 'bg-gray-50 text-gray-400'
+        }`}>
+          <MessageCircle className="w-3.5 h-3.5" />
+          {p.enquiryCount > 0
+            ? `${p.enquiryCount} enquir${p.enquiryCount !== 1 ? 'ies' : 'y'} received`
+            : 'No enquiries yet'}
         </div>
 
         {/* Location */}

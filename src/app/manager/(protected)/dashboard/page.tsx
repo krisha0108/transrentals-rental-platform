@@ -65,6 +65,7 @@ interface AttentionStats {
   pendingApproval: number;
   activeTrips: number;
   completedToday: number;
+  pendingRefunds: number;
 }
 
 interface RecentBooking {
@@ -199,6 +200,7 @@ export default function ManagerDashboard() {
           pendingApproval: data.stats?.pendingApproval || 0,
           activeTrips: data.stats?.activeTrips || 0,
           completedToday: data.stats?.completedToday || 0,
+          pendingRefunds: data.stats?.pendingRefunds || 0,
         });
         setRecentBookings((data.bookings || []).slice(0, 8));
       } else {
@@ -502,7 +504,7 @@ export default function ManagerDashboard() {
           <AlertCircle className="w-5 h-5 text-red-500" />
           Needs Your Attention
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Link href="/manager/bookings" className="p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition">
             <div className="flex items-center gap-2 text-yellow-700 mb-1">
               <Clock className="w-4 h-4" />
@@ -530,6 +532,13 @@ export default function ManagerDashboard() {
               <span className="text-xs font-medium">Completed Today</span>
             </div>
             <p className="text-2xl font-bold text-green-800">{attention?.completedToday || 0}</p>
+          </Link>
+          <Link href="/manager/refunds" className="p-4 bg-rose-50 rounded-lg hover:bg-rose-100 transition">
+            <div className="flex items-center gap-2 text-rose-700 mb-1">
+              <IndianRupee className="w-4 h-4" />
+              <span className="text-xs font-medium">Pending Refunds</span>
+            </div>
+            <p className="text-2xl font-bold text-rose-800">{attention?.pendingRefunds || 0}</p>
           </Link>
         </div>
       </div>

@@ -147,6 +147,9 @@ import GetStartedScreen from './screens/vendor/get-started/GetStartedScreen';
 // Earnings
 import EarningsScreen from './screens/vendor/earnings/EarningsScreen';
 
+// Reviews
+import ReviewsScreen from './screens/vendor/reviews/ReviewsScreen';
+
 // Templates
 import TemplatesListScreen from './screens/vendor/templates/TemplatesListScreen';
 import CreateBusTemplateScreen from './screens/vendor/templates/CreateBusTemplateScreen';
@@ -1064,6 +1067,9 @@ export default function App() {
 
             {/* Earnings */}
             <Stack.Screen name="EarningsScreen" component={EarningsScreen} />
+
+            {/* Reviews */}
+            <Stack.Screen name="VendorReviews" component={ReviewsScreen} />
 
             {/* Templates */}
             <Stack.Screen name="TemplatesListScreen" component={TemplatesListScreen} />

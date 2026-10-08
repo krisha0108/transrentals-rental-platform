@@ -19,6 +19,9 @@ export async function GET(
         travel_agents: {
           select: { agencyName: true, logo: true, status: true, phone: true },
         },
+        travel_agent_property_review: {
+          select: { rating: true, comment: true, createdAt: true },
+        },
       },
     });
 
@@ -63,6 +66,8 @@ export async function GET(
       paymentStatus: booking.paymentStatus,
       status: booking.status,
       customerFilledAt: booking.customerFilledAt,
+      referenceId: booking.referenceId,
+      review: booking.travel_agent_property_review,
       agency: {
         name: booking.travel_agents.agencyName,
         logo: booking.travel_agents.logo,

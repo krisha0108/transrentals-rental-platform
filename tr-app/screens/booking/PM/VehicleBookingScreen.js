@@ -19,7 +19,7 @@ import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native'
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toTimeString, combineDateAndTime } from '../../utils/dateValidation';
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
 import { getTravelAgentContext } from '../../../utils/isTravelAgent';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
@@ -77,7 +77,7 @@ const VehicleBookingScreen = () => {
   const [destination, setDestination] = useState('');
   // const [selectedVehicleTyes, setvehicleTypes] = useState(null);
   // const [selectedBikeType, setSelectedBikeType] = useState(null);
-  const [startDate, setStartDate] = useState(new Date()); // Date object for Start Date
+  const [startDate, setStartDate] = useState(() => getEarliestPickup()); // Date object for Start Date
   // const [returnDate, setReturnDate] = useState(new Date()); // Date object for Return Date
   const [otherDetails, setOtherDetails] = useState('');
   const [query, setQuery] = useState('');  // Text input field
@@ -165,19 +165,21 @@ const VehicleBookingScreen = () => {
     value: startDate,
     mode: 'date', // Date picker first
     is24Hour: true,
-    minDate: getMinBookingDate(), // Disable past dates
+    minimumDate: getMinBookingDate(), // Disable past dates
     onChange: (event, date) => {
       if (event.type === 'dismissed' || !date) return;
       // Check if the selected date is in the past, reset to today if so
       if (date < getTodayDate()) {
         alert("You cannot select past dates. Selecting today instead.");
-        setStartDate(getTodayDate());
+        setStartDate(getEarliestPickup());
         return;
       }
-      setStartDate(date); // Set the selected date
+      // Keep the chosen time unless it is now too soon on the new date.
+      const pickup = clampPickup(combineDateAndTime(date, toTimeString(startDate)));
+      setStartDate(pickup);
       // Open time picker after selecting date
       DateTimePickerAndroid.open({
-        value: date,
+        value: pickup,
         mode: 'time',
         is24Hour: true,
         onChange: (eventTime, time) => {
@@ -186,6 +188,8 @@ const VehicleBookingScreen = () => {
           finalDateTime.setHours(time.getHours());
           finalDateTime.setMinutes(time.getMinutes());
           if (isPickupTooSoon(finalDateTime)) {
+            // Too close to now for a driver to reach: snap to the earliest slot.
+            setStartDate(getEarliestPickup());
             setShowBookingAlert(true);
             return;
           }

@@ -23,6 +23,7 @@ import {
   KeyRound,
   Play,
   X,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ import { BookingPayment } from '@/components/payment/BookingPayment';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 import { quoteDisplay } from '@/lib/quote-font';
 import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
+import RefundStatusCard from '@/components/customer/RefundStatusCard';
 
 type BikeBookingStatus =
   | 'PENDING'
@@ -818,6 +820,24 @@ export default function BikeBookingDetailPage() {
           </div>
         )}
 
+        {/* Cancelled — the headline notice. Full refund detail (amount, stage,
+            or the no-refund explanation) lives in RefundStatusCard further
+            down; this banner's only job is to be the first thing a customer
+            sees so a cancelled booking never reads as an untouched one. */}
+        {booking.status === 'CANCELLED' && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <RotateCcw className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="font-bold text-red-800 text-sm">Your booking has been cancelled</p>
+              <p className="text-xs text-red-700 mt-0.5">
+                If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── Vehicle Card ── */}
         <div className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-50 bg-[#FCFDFC] flex items-center justify-between">
@@ -1039,7 +1059,6 @@ export default function BikeBookingDetailPage() {
             </div>
           )}
 
-          {booking.vendorName && <BookingPaymentSafetyNotice />}
 
           {/* ── Booking Info ── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -1112,6 +1131,16 @@ export default function BikeBookingDetailPage() {
           </div>
         </aside>
         {/* ══ /Right rail ══ */}
+      </div>
+
+      {/* Outside the grid on purpose: the right rail is sticky, and a sticky
+          grid item paints over anything sharing its rows. Full content width. */}
+      <div className="max-w-7xl mx-auto space-y-5 px-4 pb-5 sm:px-6 lg:px-8">
+        {/* Renders itself away when there is no refund to talk about. A refund
+            is owed whether or not a vendor was ever assigned, so it does not
+            sit behind the notice's vendor guard. */}
+        <RefundStatusCard source="bike_bookings" bookingId={booking.id} />
+        {booking.vendorName && <BookingPaymentSafetyNotice />}
       </div>
 
       {/* ── Cancel Modal ── */}

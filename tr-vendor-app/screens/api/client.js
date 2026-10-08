@@ -1204,6 +1204,19 @@ export async function getVendorEarnings(params = {}) {
 }
 
 /**
+ * Get the reviews customers left for this vendor after completed trips.
+ * Returns { success, summary: { average, total, distribution }, reviews, page, totalPages }
+ */
+export async function getVendorReviews({ page = 1, limit = 20, rating, service } = {}) {
+  const params = { page: String(page), limit: String(limit) };
+  if (rating) params.rating = String(rating);
+  if (service) params.service = service;
+  const queryString = new URLSearchParams(params).toString();
+  const res = await apiGet(`/vendor/reviews?${queryString}`);
+  return res.data;
+}
+
+/**
  * Get vendor earnings debug data - shows all bookings without filters
  */
 export async function getVendorEarningsDebug() {

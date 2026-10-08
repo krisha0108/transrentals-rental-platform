@@ -5,11 +5,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Share, FlatList,
-  Modal, RefreshControl, Platform, Image, KeyboardAvoidingView,
+  TextInput, ActivityIndicator, Alert, Share, FlatList, RefreshControl, Platform, Image, KeyboardAvoidingView,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import { launchImageLibrary } from 'react-native-image-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateTypeField } from '../../../components/TripDatePicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -48,15 +48,12 @@ export default function WanderGroupScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupEmoji, setGroupEmoji] = useState('🌏');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [maxMembers, setMaxMembers] = useState('');
   const [groupAvatarUri, setGroupAvatarUri] = useState(null);
   const [travelDate, setTravelDate] = useState(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [tripNote, setTripNote] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const EMOJI_OPTIONS = ['🌏', '🏔️', '🏖️', '🗺️', '✈️', '🚂', '🌊', '🏕️', '🎒', '🌴', '🏜️', '❄️'];
 
   const handlePickGroupAvatar = () => {
     launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
@@ -286,51 +283,30 @@ export default function WanderGroupScreen() {
               </View>
             )}
 
-            {/* Group Photo picker */}
-            <View style={{ alignItems: 'center', marginBottom: 4, marginTop: 4 }}>
-              <TouchableOpacity onPress={handlePickGroupAvatar} activeOpacity={0.8}>
-                <View style={{ width: 90, height: 90, borderRadius: 45, backgroundColor: '#E8F8F2', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: GREEN, borderStyle: 'dashed', overflow: 'hidden' }}>
-                  {groupAvatarUri ? (
-                    <Image source={{ uri: groupAvatarUri }} style={{ width: 90, height: 90, borderRadius: 45 }} />
-                  ) : (
-                    <View style={{ alignItems: 'center' }}>
-                      <Ionicons name="camera-outline" size={28} color={GREEN} />
-                      <Text style={{ fontSize: 10, color: GREEN, fontWeight: '600', marginTop: 4 }}>Add Photo</Text>
-                    </View>
-                  )}
-                </View>
-                {groupAvatarUri && (
-                  <TouchableOpacity onPress={() => setGroupAvatarUri(null)}
-                    style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' }}>
-                    <Ionicons name="close" size={12} color="#fff" />
-                  </TouchableOpacity>
+            {/* Live preview of the group card: photo (or the name's initial) and name */}
+            <View style={styles.previewCard}>
+              <TouchableOpacity onPress={handlePickGroupAvatar} activeOpacity={0.85} accessibilityLabel="Add group photo">
+                {groupAvatarUri ? (
+                  <Image source={{ uri: groupAvatarUri }} style={styles.previewAvatar} />
+                ) : (
+                  <LinearGradient colors={['#09B368', '#047857']} style={styles.previewAvatar}>
+                    <Text style={styles.previewInitial}>{(groupName.trim().charAt(0) || 'G').toUpperCase()}</Text>
+                  </LinearGradient>
                 )}
+                <View style={styles.previewCamera}>
+                  <Ionicons name="camera" size={13} color="#fff" />
+                </View>
               </TouchableOpacity>
-              <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 6 }}>Group photo (optional)</Text>
-            </View>
-
-            {/* Emoji picker */}
-            <Text style={styles.fieldLabel}>Group Emoji</Text>
-            <TouchableOpacity
-              style={[styles.inputRow, { justifyContent: 'space-between' }]}
-              onPress={() => setShowEmojiPicker(p => !p)}
-              activeOpacity={0.7}
-            >
-              <Text style={{ fontSize: 28 }}>{groupEmoji}</Text>
-              <Text style={{ fontSize: 12, color: '#94A3B8' }}>Tap to change</Text>
-            </TouchableOpacity>
-            {showEmojiPicker && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 12 }}>
-                {EMOJI_OPTIONS.map(e => (
-                  <TouchableOpacity key={e} onPress={() => { setGroupEmoji(e); setShowEmojiPicker(false); }}
-                    style={{ width: 44, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-                      backgroundColor: groupEmoji === e ? '#E8F8F2' : '#fff',
-                      borderWidth: 1.5, borderColor: groupEmoji === e ? GREEN : '#E5E7EB' }}>
-                    <Text style={{ fontSize: 22 }}>{e}</Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.previewName} numberOfLines={1}>{groupName.trim() || 'Your group name'}</Text>
+                <Text style={styles.previewSub}>Friends you invite will see this</Text>
+                <TouchableOpacity onPress={groupAvatarUri ? () => setGroupAvatarUri(null) : handlePickGroupAvatar}>
+                  <Text style={[styles.previewPhotoLink, groupAvatarUri && { color: '#EF4444' }]}>
+                    {groupAvatarUri ? 'Remove photo' : '+ Add group photo (optional)'}
+                  </Text>
+                </TouchableOpacity>
               </View>
-            )}
+            </View>
 
             <Text style={styles.fieldLabel}>Group Name *</Text>
             <View style={styles.inputRow}>
@@ -356,34 +332,11 @@ export default function WanderGroupScreen() {
             </View>
 
             <Text style={styles.fieldLabel}>Travel Date (optional)</Text>
-            <TouchableOpacity
-              style={styles.inputRow}
-              onPress={() => setShowDatePicker(true)}
-              activeOpacity={0.7}
-            >
-              <Icon name="calendar" size={16} color="#94A3B8" />
-              <Text style={[styles.inputField, { paddingVertical: 0, color: travelDate ? '#111827' : '#94A3B8' }]}>
-                {travelDate
-                  ? travelDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
-                  : 'Select date (optional)'}
+            <DateTypeField value={travelDate} onChange={setTravelDate} placeholder="Type DD/MM/YYYY or pick" />
+            {travelDate && (
+              <Text style={styles.dateHint}>
+                {travelDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </Text>
-              {travelDate && (
-                <TouchableOpacity onPress={() => setTravelDate(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={16} color="#9CA3AF" />
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={travelDate || new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={new Date()}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(Platform.OS === 'ios');
-                  if (selectedDate) setTravelDate(selectedDate);
-                }}
-              />
             )}
 
             <Text style={styles.fieldLabel}>Trip Note (optional)</Text>
@@ -459,9 +412,16 @@ function GroupCard({ group, customerId, listingId, listingTitle, onShare, onAddT
     <View style={styles.card}>
       {/* Header */}
       <View style={styles.cardHeader}>
-        <LinearGradient colors={['#09B368', '#06A35C']} style={styles.groupAvatar}>
-          <Text style={styles.groupAvatarText}>{group.name.charAt(0).toUpperCase()}</Text>
-        </LinearGradient>
+        {group.avatarUrl ? (
+          <Image
+            source={{ uri: group.avatarUrl.startsWith('http') ? group.avatarUrl : `${BASE_URL}${group.avatarUrl}` }}
+            style={styles.groupAvatar}
+          />
+        ) : (
+          <LinearGradient colors={['#09B368', '#047857']} style={styles.groupAvatar}>
+            <Text style={styles.groupAvatarText}>{group.name.charAt(0).toUpperCase()}</Text>
+          </LinearGradient>
+        )}
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={styles.groupName}>{group.name}</Text>
@@ -568,8 +528,20 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  groupAvatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  groupAvatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   groupAvatarText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  previewCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#fff', borderRadius: 20, padding: 16,
+    borderWidth: 1, borderColor: '#E2E8F0', marginTop: 4, marginBottom: 6,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1,
+  },
+  previewAvatar: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  previewInitial: { color: '#fff', fontSize: 30, fontWeight: '800' },
+  previewCamera: { position: 'absolute', right: -2, bottom: -2, width: 26, height: 26, borderRadius: 13, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
+  previewName: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
+  previewSub: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  previewPhotoLink: { fontSize: 12.5, fontWeight: '700', color: GREEN, marginTop: 8 },
+  dateHint: { fontSize: 12, color: GREEN, fontWeight: '600', marginTop: 6, marginLeft: 4 },
   groupName: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
   groupMeta: { fontSize: 12, color: '#64748B', marginTop: 2 },
   shareIconBtn: {

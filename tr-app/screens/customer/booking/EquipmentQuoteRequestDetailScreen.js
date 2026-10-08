@@ -8,10 +8,10 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  Modal,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -513,7 +513,7 @@ export default function EquipmentQuoteRequestDetailScreen() {
                       <Text style={styles.quoteDetailText}>{quote.equipmentModel || quote.equipmentName}</Text>
                     </View>
                   )}
-                  {quote.inclusions && (
+                  {parseListData(quote.inclusions).length > 0 && (
                     <View style={styles.quoteDetailRow}>
                       <Ionicons name="checkmark-circle-outline" size={wp('4%')} color={TEAL} />
                       <Text style={styles.quoteDetailText}>{parseListData(quote.inclusions).join(', ')}</Text>
@@ -753,7 +753,7 @@ export default function EquipmentQuoteRequestDetailScreen() {
                         </View>
                       )}
 
-                      {selectedQuote.inclusions && (
+                      {parseListData(selectedQuote.inclusions).length > 0 && (
                         <View style={styles.confirmDetailRow}>
                           <Ionicons name="checkmark-circle-outline" size={wp('4%')} color={TEAL} />
                           <Text style={styles.confirmDetailText}>{parseListData(selectedQuote.inclusions).join(', ')}</Text>

@@ -2,12 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  Modal,
   TouchableOpacity,
   StyleSheet,
   Animated,
   Dimensions,
 } from 'react-native';
+import Modal from '../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
 import { getEarliestPickupLabel, MIN_ADVANCE_HOURS } from './dateValidation';
 

@@ -10,10 +10,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Image, Platform, ActivityIndicator, Alert, Modal, Pressable, KeyboardAvoidingView,
+  Image, Platform, ActivityIndicator, Alert, Pressable, KeyboardAvoidingView,
   findNodeHandle, UIManager,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,13 +34,13 @@ const TEXT = '#111827';
 const MUTED = '#6B7280';
 
 const OCCASIONS = [
-  { id: 'wedding',        label: 'Wedding',          emoji: '💒' },
-  { id: 'corporate',      label: 'Corporate',        emoji: '🏢' },
-  { id: 'birthday',       label: 'Birthday',         emoji: '🎂' },
-  { id: 'tour',           label: 'Tour/Trip',        emoji: '🗺️' },
-  { id: 'religious',      label: 'Religious',        emoji: '🛕' },
-  { id: 'sports',         label: 'Sports Event',     emoji: '⚽' },
-  { id: 'other',          label: 'Other',            emoji: '🎉' },
+  { id: 'wedding',        label: 'Wedding',          icon: 'ring',            tint: '#DB2777' },
+  { id: 'corporate',      label: 'Corporate',        icon: 'office-building', tint: '#2563EB' },
+  { id: 'birthday',       label: 'Birthday',         icon: 'cake-variant',    tint: '#EA580C' },
+  { id: 'tour',           label: 'Tour/Trip',        icon: 'map-marker-path', tint: '#0D9488' },
+  { id: 'religious',      label: 'Religious',        icon: 'hands-pray',      tint: '#D97706' },
+  { id: 'sports',         label: 'Sports Event',     icon: 'soccer',          tint: '#16A34A' },
+  { id: 'other',          label: 'Other',            icon: 'party-popper',    tint: ACCENT },
 ];
 
 // Service catalogue — keys match what the backend stores in bulkBreakdown JSON.
@@ -1035,7 +1037,16 @@ export default function CustomBookingScreen() {
             onPress={() => setOccasionType(o.id)}
             style={[styles.chip, occasionType === o.id && styles.chipActive]}
           >
-            <Text style={{ marginRight: 6 }}>{o.emoji}</Text>
+            <View
+              style={[
+                styles.occasionBadge,
+                occasionType === o.id
+                  ? styles.occasionBadgeActive
+                  : { borderColor: o.tint, backgroundColor: `${o.tint}14` },
+              ]}
+            >
+              <MaterialCommunityIcons name={o.icon} size={14} color={o.tint} />
+            </View>
             <Text style={[styles.chipText, occasionType === o.id && { color: '#fff' }]}>{o.label}</Text>
           </TouchableOpacity>
         ))}
@@ -1899,6 +1910,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderWidth: 1, borderColor: BORDER,
   },
   chipActive: { backgroundColor: ACCENT, borderColor: ACCENT },
+  occasionBadge: {
+    width: 26, height: 26, borderRadius: 13, borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center', marginRight: 8,
+  },
+  occasionBadgeActive: { backgroundColor: '#fff', borderColor: '#fff' },
   chipText: { fontSize: 13, color: TEXT, fontWeight: '600' },
   miniChip: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,

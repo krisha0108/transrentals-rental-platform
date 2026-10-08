@@ -64,7 +64,7 @@ const ACTION_ICONS: Record<string, any> = {
   COLD_LEAD: Snowflake,
 };
 
-interface CoverageStat { total: number; actioned: number; coveragePct: number | null }
+interface CoverageStat { total: number; actioned: number; actionedBacklog: number; coveragePct: number | null }
 
 interface ManagerDetail {
   manager: { id: string; name: string; email: string; phone: string | null; isActive: boolean; createdAt: string };
@@ -706,6 +706,9 @@ export default function ManagerPerformanceDetailPage() {
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-3">
               <div className={`h-full rounded-full ${coverageBarColor(data.inquiries.coveragePct)} transition-all`} style={{ width: `${Math.min(data.inquiries.coveragePct ?? 0, 100)}%` }} />
             </div>
+            {data.inquiries.actionedBacklog > 0 && (
+              <p className="text-xs text-slate-400 mt-2">+{data.inquiries.actionedBacklog} older inquiries (from before this period) also cleared during it</p>
+            )}
           </div>
 
           {/* Bookings coverage */}
@@ -727,6 +730,9 @@ export default function ManagerPerformanceDetailPage() {
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden mt-3">
               <div className={`h-full rounded-full ${coverageBarColor(data.bookings.coveragePct)} transition-all`} style={{ width: `${Math.min(data.bookings.coveragePct ?? 0, 100)}%` }} />
             </div>
+            {data.bookings.actionedBacklog > 0 && (
+              <p className="text-xs text-slate-400 mt-2">+{data.bookings.actionedBacklog} older bookings (from before this period) also cleared during it</p>
+            )}
           </div>
         </div>
 

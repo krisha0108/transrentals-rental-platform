@@ -85,10 +85,24 @@ export async function GET(request: NextRequest) {
       where: { travelAgentId, isRead: false },
     });
 
+    // Per-type totals for the filter row — lets the UI show "Leads (12)"
+    // etc. without a separate round trip per tab.
+    const typeCountRows = await prisma.travel_agent_notifications.groupBy({
+      by: ['type'],
+      where: { travelAgentId },
+      _count: { _all: true },
+    });
+    const totalCount = await prisma.travel_agent_notifications.count({ where: { travelAgentId } });
+    const typeCounts: Record<string, number> = { all: totalCount, unread: unreadCount };
+    for (const row of typeCountRows) {
+      typeCounts[row.type.toLowerCase()] = row._count._all;
+    }
+
     return NextResponse.json({
       items: page.map(projectItem),
       nextCursor: hasMore ? page[page.length - 1].id : null,
       unreadCount,
+      typeCounts,
     });
   } catch (error: any) {
     logger.error('GET /api/travel-agent/notifications', error);

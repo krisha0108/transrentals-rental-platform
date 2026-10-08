@@ -30,12 +30,14 @@ import {
   Send,
   X,
   Loader2,
+  RotateCcw,
 } from 'lucide-react';
 // Chat will be inline - no external component needed
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import { quoteDisplay } from '@/lib/quote-font';
 import BookingPaymentSafetyNotice from '@/components/customer/BookingPaymentSafetyNotice';
+import RefundStatusCard from '@/components/customer/RefundStatusCard';
 
 interface BookingDetail {
   id: string;
@@ -481,17 +483,39 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               <RefreshCw className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex items-center gap-3">
-            <Crown className="w-8 h-8 text-amber-400" />
-            <div>
-              <h1 className="quote-serif text-[26px] font-medium">#{booking.bookingNumber}</h1>
-              <p className="text-amber-200 text-sm">Luxury Car Booking</p>
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="flex items-center gap-3">
+              <Crown className="w-8 h-8 text-amber-400" />
+              <div>
+                <h1 className="quote-serif text-[26px] font-medium">#{booking.bookingNumber}</h1>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="text-amber-200 text-sm">Luxury Car Booking</span>
+                  <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-100 ring-1 ring-white/15">
+                    {statusConfig.label}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* The four things people reopen this page to check. */}
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/10 sm:grid-cols-4">
+              {[
+                ['Pickup', new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })],
+                ['Duration', booking.tripHours ? `${booking.tripHours} hrs` : `${booking.tripDays} day${booking.tripDays > 1 ? 's' : ''}`],
+                ['Total', `₹${booking.grandTotal?.toLocaleString('en-IN')}`],
+                ['Advance paid', `₹${(booking.advancePaid || 0).toLocaleString('en-IN')}`],
+              ].map(([label, value]) => (
+                <div key={label} className="bg-gray-900/60 px-4 py-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-200/70">{label}</p>
+                  <p className="mt-0.5 text-[15px] font-bold text-white">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="container mx-auto max-w-7xl px-4 py-6">
         {/* New Booking Confirmation */}
         {isNew && (
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
@@ -509,399 +533,402 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
           </div>
         )}
 
-        {/* Status Card */}
-        <div className={`${statusConfig.bgColor} rounded-xl p-6`}>
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white flex-shrink-0">
-              <StatusIcon className={`w-6 h-6 ${statusConfig.color}`} />
-            </div>
-            <div>
-              <h2 className={`font-bold text-lg ${statusConfig.color}`}>{statusConfig.label}</h2>
-              <p className="text-gray-700">{statusConfig.description}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Section - Show for PENDING_PAYMENT status */}
-        {booking.status === 'PENDING_PAYMENT' && (
-          <div className="bg-white rounded-xl border border-amber-200 p-4">
-            <p className="font-bold text-gray-900 mb-1">Pay Advance to Confirm</p>
-            <p className="text-sm text-gray-500 mb-3">{booking.advancePercent}% advance — ₹{booking.advanceAmount?.toLocaleString()}</p>
-            <BookingPayment
-              bookingId={booking.id}
-              bookingType="luxury"
-              amount={booking.advanceAmount || 0}
-              bookingNumber={booking.bookingNumber}
-              serviceSlug="luxury-car-rental"
-              onSuccess={() => window.location.reload()}
-            />
-          </div>
-        )}
-
-        {/* Payment Submitted - Waiting for verification */}
-        {booking.status === 'PAYMENT_SUBMITTED' && (
-          <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center animate-pulse">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="font-bold text-blue-800">Payment Under Verification</p>
-                <p className="text-blue-700 text-sm">
-                  We are verifying your payment. You will receive confirmation shortly.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* OTP Card - Driver will ask for this */}
-        {booking.status === 'DRIVER_ASSIGNED' && (
-          booking.tripStartOtp ? (
-            <div className="bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl p-6 text-gray-900">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Key className="w-8 h-8" />
-                  <div>
-                    <p className="text-sm font-medium">Your Trip OTP</p>
-                    <p className="text-sm opacity-80">Driver will ask for this OTP to start trip</p>
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_372px]">
+          {/* ══ Main column ══ */}
+          <div className="flex min-w-0 flex-col gap-5">
+            {/* Cancelled — headline notice */}
+            {booking.status === 'CANCELLED' && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <RotateCcw className="w-6 h-6 text-red-600" />
                   </div>
-                </div>
-                <div className="text-4xl font-mono font-bold tracking-widest">{booking.tripStartOtp}</div>
-              </div>
-              <p className="mt-3 text-sm bg-white/20 rounded-lg p-2 text-center">
-                Keep this OTP ready. Share it verbally with the driver when asked.
-              </p>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-6 text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Clock className="w-5 h-5 animate-pulse" />
-                </div>
-                <div>
-                  <p className="font-semibold">Driver Assigned</p>
-                  <p className="text-sm opacity-80">
-                    {booking.driverName} will generate OTP when ready to start. Refresh page to see OTP.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )
-        )}
-
-        {/* Vehicle Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-gray-900 to-amber-900 px-4 py-3">
-            <h3 className="quote-serif font-medium text-amber-200 flex items-center gap-2 text-[21px]">
-              <Crown className="w-4 h-4" />
-              Your Luxury Vehicle
-            </h3>
-          </div>
-          <div className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center">
-                <Car className="w-8 h-8 text-amber-600" />
-              </div>
-              <div>
-                <h4 className="quote-serif font-medium text-[26px] text-gray-900">
-                  {booking.vehicleName || booking.carCategoryName || booking.carCategory}
-                </h4>
-                {booking.vehicleNumber && (
-                  <p className="font-mono text-sm text-gray-600">{booking.vehicleNumber}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 pt-4 border-t">
-              <span className="text-sm bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full border border-amber-100">
-                {TRIP_TYPES[booking.tripType] || booking.tripType}
-              </span>
-              {booking.occasion && (
-                <span className="flex items-center gap-1 text-sm bg-pink-50 text-pink-700 px-3 py-1.5 rounded-full">
-                  <Gift className="w-4 h-4" />
-                  {booking.occasion}
-                </span>
-              )}
-              {booking.needDecoration && (
-                <span className="text-sm bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full">
-                  {booking.decorationType || 'Decoration'}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Driver Details */}
-        {booking.driverName && (
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 border-b">
-              <h3 className="quote-serif font-medium text-gray-900 flex items-center gap-2 text-[21px]">
-                <Star className="w-4 h-4 text-amber-500" />
-                Your Driver
-              </h3>
-            </div>
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
-                  {booking.driverName.charAt(0)}
-                </div>
-                <div className="flex-1">
-                  <h4 className="quote-serif font-medium text-[23px] text-gray-900">{booking.driverName}</h4>
-                  {booking.vendor && (
-                    <p className="text-gray-500 flex items-center gap-1">
-                      {booking.vendor.businessName}
-                      {booking.vendor.rating && (
-                        <span className="flex items-center gap-0.5 text-amber-600">
-                          <Star className="w-3 h-3 fill-amber-400" />
-                          {booking.vendor.rating}
-                        </span>
-                      )}
+                  <div>
+                    <h2 className="quote-serif font-medium text-red-800 text-[23px] mb-1">Your booking has been cancelled</h2>
+                    <p className="text-red-700">
+                      If a refund applies, it&apos;s already being processed — our support team will reach out to you shortly with an update.
                     </p>
-                  )}
-                </div>
-              </div>
-
-              {booking.driverPhone && (
-                <a
-                  href={`tel:${booking.driverPhone}`}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-gray-900 font-bold rounded-xl hover:bg-amber-600 transition"
-                >
-                  <Phone className="w-5 h-5" />
-                  Call Driver
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Trip Details */}
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b">
-            <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Trip Details</h3>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-green-500 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Pickup</p>
-                <p className="font-medium text-gray-900">{booking.pickupAddress || booking.pickupCity}</p>
-              </div>
-            </div>
-
-            {booking.dropAddress && (
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-red-500 mt-0.5" />
-                <div>
-                  <p className="text-sm text-gray-500">Drop</p>
-                  <p className="font-medium text-gray-900">{booking.dropAddress || booking.dropCity}</p>
+                  </div>
                 </div>
               </div>
             )}
-
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-amber-500 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Date & Time</p>
-                <p className="font-medium text-gray-900">
-                  {new Date(booking.pickupDate).toLocaleDateString('en-IN', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}{' '}
-                  at {formatRawTime(booking.pickupTime)}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-amber-500 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Duration</p>
-                <p className="font-medium text-gray-900">
-                  {booking.tripHours ? `${booking.tripHours} hours` : `${booking.tripDays} day(s)`}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Fare Breakdown */}
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b">
-            <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Fare Breakdown</h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Base Amount</span>
-                <span className="font-medium">₹{booking.baseAmount?.toLocaleString()}</span>
-              </div>
-              {booking.chauffeurCharges > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Chauffeur Charges</span>
-                  <span className="font-medium">₹{booking.chauffeurCharges?.toLocaleString()}</span>
+            {/* OTP Card - Driver will ask for this */}
+            {booking.status === 'DRIVER_ASSIGNED' && (
+              booking.tripStartOtp ? (
+                <div className="bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl p-6 text-gray-900">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Key className="w-8 h-8" />
+                      <div>
+                        <p className="text-sm font-medium">Your Trip OTP</p>
+                        <p className="text-sm opacity-80">Driver will ask for this OTP to start trip</p>
+                      </div>
+                    </div>
+                    <div className="text-4xl font-mono font-bold tracking-widest">{booking.tripStartOtp}</div>
+                  </div>
+                  <p className="mt-3 text-sm bg-white/20 rounded-lg p-2 text-center">
+                    Keep this OTP ready. Share it verbally with the driver when asked.
+                  </p>
                 </div>
-              )}
-              {booking.decorationCharges > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Decoration</span>
-                  <span className="font-medium">₹{booking.decorationCharges?.toLocaleString()}</span>
+              ) : (
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl p-6 text-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <Clock className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Driver Assigned</p>
+                      <p className="text-sm opacity-80">
+                        {booking.driverName} will generate OTP when ready to start. Refresh page to see OTP.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div className="border-t pt-3 flex justify-between text-base">
-                <span className="font-semibold">Total Amount</span>
-                <span className="font-bold text-amber-600">₹{(booking.baseAmount + (booking.chauffeurCharges || 0) + (booking.decorationCharges || 0))?.toLocaleString()}</span>
+              )
+            )}
+            {/* Vehicle Details */}
+            <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-900 to-amber-900 px-4 py-3">
+                <h3 className="quote-serif font-medium text-amber-200 flex items-center gap-2 text-[21px]">
+                  <Crown className="w-4 h-4" />
+                  Your Luxury Vehicle
+                </h3>
               </div>
-              <div className="flex justify-between text-green-700">
-                <span>Advance ({booking.advancePercent}%)</span>
-                <span className="font-medium">₹{booking.advanceAmount?.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Balance Due</span>
-                <span className="font-medium">₹{booking.balanceAmount?.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Invoice Download - Show after advance is paid */}
-        {['ADVANCE_PAID', 'CONFIRMED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && (
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-green-600" />
+              <div className="p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <Car className="w-8 h-8 text-amber-600" />
                   </div>
                   <div>
-                    <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Booking Invoice</h3>
-                    <p className="text-sm text-gray-600">Download your payment receipt</p>
+                    <h4 className="quote-serif font-medium text-[26px] text-gray-900">
+                      {booking.vehicleName || booking.carCategoryName || booking.carCategory}
+                    </h4>
+                    {booking.vehicleNumber && (
+                      <p className="font-mono text-sm text-gray-600">{booking.vehicleNumber}</p>
+                    )}
                   </div>
                 </div>
-                <a
-                  href={`/api/luxury-bookings/${booking.id}/invoice`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition flex items-center gap-2 shadow-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Vendor Details */}
-        {booking.vendor && (
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 border-b">
-              <h3 className="quote-serif font-medium text-gray-900 flex items-center gap-2 text-[21px]">
-                <Building2 className="w-4 h-4" />
-                Service Provider
-              </h3>
-            </div>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="font-bold text-gray-900">{booking.vendor.businessName}</p>
-                  {booking.vendor.rating && (
-                    <p className="text-sm text-amber-600 flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-amber-400" />
-                      {booking.vendor.rating} Rating
-                    </p>
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <span className="text-sm bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full border border-amber-100">
+                    {TRIP_TYPES[booking.tripType] || booking.tripType}
+                  </span>
+                  {booking.occasion && (
+                    <span className="flex items-center gap-1 text-sm bg-pink-50 text-pink-700 px-3 py-1.5 rounded-full">
+                      <Gift className="w-4 h-4" />
+                      {booking.occasion}
+                    </span>
+                  )}
+                  {booking.needDecoration && (
+                    <span className="text-sm bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full">
+                      {booking.decorationType || 'Decoration'}
+                    </span>
                   )}
                 </div>
               </div>
+            </div>
+            {/* Trip Details */}
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b">
+                <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Trip Details</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-green-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Pickup</p>
+                    <p className="font-medium text-gray-900">{booking.pickupAddress || booking.pickupCity}</p>
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <a
-                  href={`tel:${booking.vendor.phone}`}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2 font-medium"
-                >
-                  <Phone className="w-4 h-4" />
-                  Call
-                </a>
+                {booking.dropAddress && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-red-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500">Drop</p>
+                      <p className="font-medium text-gray-900">{booking.dropAddress || booking.dropCity}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-5 h-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Date & Time</p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(booking.pickupDate).toLocaleDateString('en-IN', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}{' '}
+                      at {formatRawTime(booking.pickupTime)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Duration</p>
+                    <p className="font-medium text-gray-900">
+                      {booking.tripHours ? `${booking.tripHours} hours` : `${booking.tripDays} day(s)`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Driver Details */}
+            {booking.driverName && (
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b">
+                  <h3 className="quote-serif font-medium text-gray-900 flex items-center gap-2 text-[21px]">
+                    <Star className="w-4 h-4 text-amber-500" />
+                    Your Driver
+                  </h3>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                      {booking.driverName.charAt(0)}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="quote-serif font-medium text-[23px] text-gray-900">{booking.driverName}</h4>
+                      {booking.vendor && (
+                        <p className="text-gray-500 flex items-center gap-1">
+                          {booking.vendor.businessName}
+                          {booking.vendor.rating && (
+                            <span className="flex items-center gap-0.5 text-amber-600">
+                              <Star className="w-3 h-3 fill-amber-400" />
+                              {booking.vendor.rating}
+                            </span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {booking.driverPhone && (
+                    <a
+                      href={`tel:${booking.driverPhone}`}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-gray-900 font-bold rounded-xl hover:bg-amber-600 transition"
+                    >
+                      <Phone className="w-5 h-5" />
+                      Call Driver
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Renders itself away when there is no refund to talk about. */}
+            <RefundStatusCard source="luxury_bookings" bookingId={booking.id} />
+            {booking.vendor && <BookingPaymentSafetyNotice />}
+            {/* Cancellation Details */}
+            {booking.status === 'CANCELLED' && booking.cancelledAt && (
+              <div className="bg-red-50 rounded-xl border border-red-200 p-4">
+                <p className="quote-serif text-[17px] font-medium text-red-600 mb-3 flex items-center gap-1.5">
+                  <XCircle className="w-3.5 h-3.5" />
+                  Cancellation Details
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">Cancelled At</span>
+                    <span className="text-xs font-semibold text-gray-800">
+                      {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
+                    </span>
+                  </div>
+                  {booking.cancelledBy && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Cancelled By</span>
+                      <span className="text-xs font-semibold text-gray-800 capitalize">{booking.cancelledBy}</span>
+                    </div>
+                  )}
+                  {booking.cancellationReason && (
+                    <div className="pt-1 border-t border-red-200 mt-1">
+                      <p className="text-xs text-gray-500 mb-1">Reason</p>
+                      <p className="text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2">{booking.cancellationReason}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Rate Trip */}
+            {booking.status === 'COMPLETED' && !booking.rating && (
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 transition flex items-center justify-center gap-2"
+              >
+                <Star className="w-5 h-5" />
+                Rate Your Experience
+              </button>
+            )}
+          </div>
+
+          {/* ══ Right rail — the things you act on ══ */}
+          <aside className="flex min-w-0 flex-col gap-5">
+            {/* Status Card */}
+            <div className={`${statusConfig.bgColor} rounded-xl p-6`}>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white flex-shrink-0">
+                  <StatusIcon className={`w-6 h-6 ${statusConfig.color}`} />
+                </div>
+                <div>
+                  <h2 className={`font-bold text-lg ${statusConfig.color}`}>{statusConfig.label}</h2>
+                  <p className="text-gray-700">{statusConfig.description}</p>
+                </div>
+              </div>
+            </div>
+            {/* Payment Section - Show for PENDING_PAYMENT status */}
+            {booking.status === 'PENDING_PAYMENT' && (
+              <div className="bg-white rounded-xl border border-amber-200 p-4">
+                <p className="font-bold text-gray-900 mb-1">Pay Advance to Confirm</p>
+                <p className="text-sm text-gray-500 mb-3">{booking.advancePercent}% advance — ₹{booking.advanceAmount?.toLocaleString()}</p>
+                <BookingPayment
+                  bookingId={booking.id}
+                  bookingType="luxury"
+                  amount={booking.advanceAmount || 0}
+                  bookingNumber={booking.bookingNumber}
+                  serviceSlug="luxury-car-rental"
+                  onSuccess={() => window.location.reload()}
+                />
+              </div>
+            )}
+            {/* Fare Breakdown */}
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b">
+                <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Fare Breakdown</h3>
+              </div>
+              <div className="p-6">
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Base Amount</span>
+                    <span className="font-medium">₹{booking.baseAmount?.toLocaleString()}</span>
+                  </div>
+                  {booking.chauffeurCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Chauffeur Charges</span>
+                      <span className="font-medium">₹{booking.chauffeurCharges?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {booking.decorationCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Decoration</span>
+                      <span className="font-medium">₹{booking.decorationCharges?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {booking.gstAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">GST</span>
+                  <span className="font-medium">₹{booking.gstAmount?.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="border-t pt-3 flex justify-between text-base">
+                    <span className="font-semibold">Total Amount</span>
+                    <span className="font-bold text-amber-600">₹{(booking.grandTotal ?? (booking.baseAmount + (booking.chauffeurCharges || 0) + (booking.decorationCharges || 0) + (booking.gstAmount || 0)))?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-green-700">
+                    <span>Advance ({booking.advancePercent}%)</span>
+                    <span className="font-medium">₹{booking.advanceAmount?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Balance Due</span>
+                    <span className="font-medium">₹{booking.balanceAmount?.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Invoice Download - Show after advance is paid */}
+            {['ADVANCE_PAID', 'CONFIRMED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                        <FileText className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="quote-serif font-medium text-gray-900 text-[21px]">Booking Invoice</h3>
+                        <p className="text-sm text-gray-600">Download your payment receipt</p>
+                      </div>
+                    </div>
+                    <a
+                      href={`/api/luxury-bookings/${booking.id}/invoice`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition flex items-center gap-2 shadow-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Vendor Details */}
+            {booking.vendor && (
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b">
+                  <h3 className="quote-serif font-medium text-gray-900 flex items-center gap-2 text-[21px]">
+                    <Building2 className="w-4 h-4" />
+                    Service Provider
+                  </h3>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="font-bold text-gray-900">{booking.vendor.businessName}</p>
+                      {booking.vendor.rating && (
+                        <p className="text-sm text-amber-600 flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-amber-400" />
+                          {booking.vendor.rating} Rating
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <a
+                      href={`tel:${booking.vendor.phone}`}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2 font-medium"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Call
+                    </a>
+                    <button
+                      onClick={() => setShowChat(true)}
+                      className="px-4 py-2 bg-amber-500 text-gray-900 rounded-lg hover:bg-amber-600 transition flex items-center justify-center gap-2 font-medium"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Cancel Option */}
+            {['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
+              <div className="bg-white rounded-xl border border-red-100 p-4">
+                <h3 className="quote-serif text-[17px] font-medium text-gray-400 mb-1">Cancel Booking</h3>
+                <p className="text-sm text-gray-500 mb-3">
+                  Once cancelled, refund will be processed as per vendor's cancellation policy.
+                </p>
                 <button
-                  onClick={() => setShowChat(true)}
-                  className="px-4 py-2 bg-amber-500 text-gray-900 rounded-lg hover:bg-amber-600 transition flex items-center justify-center gap-2 font-medium"
+                  onClick={() => { setShowCancelModal(true); setCancelError(null); setSelectedCancelReason(''); setOtherCancelReason(''); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium"
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  Chat
+                  <XCircle className="w-4 h-4" />
+                  Cancel This Booking
                 </button>
               </div>
+            )}
+            {/* Support */}
+            <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100">
+              <p className="text-sm text-amber-800 mb-1">Need help with your booking?</p>
+              <a href="tel:+919737965551" className="text-amber-700 font-bold hover:underline">
+                Call Concierge: +91 97379 65551
+              </a>
             </div>
-          </div>
-        )}
-
-        {booking.vendor && <BookingPaymentSafetyNotice />}
-
-        {/* Cancellation Details */}
-        {booking.status === 'CANCELLED' && booking.cancelledAt && (
-          <div className="bg-red-50 rounded-xl border border-red-200 p-4">
-            <p className="quote-serif text-[17px] font-medium text-red-600 mb-3 flex items-center gap-1.5">
-              <XCircle className="w-3.5 h-3.5" />
-              Cancellation Details
-            </p>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-500">Cancelled At</span>
-                <span className="text-xs font-semibold text-gray-800">
-                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
-                </span>
-              </div>
-              {booking.cancelledBy && (
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Cancelled By</span>
-                  <span className="text-xs font-semibold text-gray-800 capitalize">{booking.cancelledBy}</span>
-                </div>
-              )}
-              {booking.cancellationReason && (
-                <div className="pt-1 border-t border-red-200 mt-1">
-                  <p className="text-xs text-gray-500 mb-1">Reason</p>
-                  <p className="text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2">{booking.cancellationReason}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Rate Trip */}
-        {booking.status === 'COMPLETED' && !booking.rating && (
-          <button
-            onClick={() => setShowRatingModal(true)}
-            className="w-full py-4 bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 transition flex items-center justify-center gap-2"
-          >
-            <Star className="w-5 h-5" />
-            Rate Your Experience
-          </button>
-        )}
-
-        {/* Cancel Option */}
-        {['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
-          <div className="bg-white rounded-xl border border-red-100 p-4">
-            <h3 className="quote-serif text-[17px] font-medium text-gray-400 mb-1">Cancel Booking</h3>
-            <p className="text-sm text-gray-500 mb-3">
-              Once cancelled, refund will be processed as per vendor's cancellation policy.
-            </p>
-            <button
-              onClick={() => { setShowCancelModal(true); setCancelError(null); setSelectedCancelReason(''); setOtherCancelReason(''); }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium"
-            >
-              <XCircle className="w-4 h-4" />
-              Cancel This Booking
-            </button>
-          </div>
-        )}
-
-        {/* Support */}
-        <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100">
-          <p className="text-sm text-amber-800 mb-1">Need help with your booking?</p>
-          <a href="tel:+919737965551" className="text-amber-700 font-bold hover:underline">
-            Call Concierge: +91 97379 65551
-          </a>
+          </aside>
         </div>
       </div>
 

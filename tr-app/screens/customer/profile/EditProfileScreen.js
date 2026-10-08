@@ -11,9 +11,9 @@ import {
   Platform,
   StatusBar,
   KeyboardAvoidingView,
-  Modal,
   Animated,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';

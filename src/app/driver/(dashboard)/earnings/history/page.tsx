@@ -70,7 +70,7 @@ export default function TripHistoryPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
         </div>
       ) : trips.length === 0 ? (
         <div className="bg-white rounded-xl border p-10 text-center">
@@ -81,14 +81,14 @@ export default function TripHistoryPage() {
         <>
           {/* Summary stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl p-4 text-white">
+            <div className="bg-gradient-to-br from-green-600 to-teal-600 rounded-2xl p-4 text-white">
               <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-2">
                 <TrendingUp className="w-4 h-4" />
               </div>
               <p className="text-2xl font-black flex items-center gap-0.5">
                 <IndianRupee className="w-5 h-5" />{totalEarnings.toLocaleString()}
               </p>
-              <p className="text-emerald-100 text-xs mt-0.5">All-time earnings</p>
+              <p className="text-green-100 text-xs mt-0.5">All-time earnings</p>
             </div>
             {bestMonth && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
@@ -112,7 +112,7 @@ export default function TripHistoryPage() {
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-gray-500">{group.trips.length} trips</span>
                     {group.total > 0 && (
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                      <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
                         <IndianRupee className="w-2.5 h-2.5" />{group.total.toLocaleString()}
                       </span>
                     )}
@@ -120,7 +120,7 @@ export default function TripHistoryPage() {
                 </div>
                 <div className="space-y-2">
                   {group.trips.map(trip => (
-                    <Link key={trip.id} href={`/driver/bookings/${trip.bookingNumber}`} className="block bg-white rounded-xl border p-4 hover:border-emerald-300 hover:shadow-sm transition">
+                    <Link key={trip.id} href={`/driver/bookings/${trip.bookingNumber}`} className="block bg-white rounded-xl border p-4 hover:border-green-300 hover:shadow-sm transition">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -128,7 +128,7 @@ export default function TripHistoryPage() {
                             <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{trip.serviceType}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                            <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                            <MapPin className="w-3.5 h-3.5 text-green-500" />
                             {trip.dropCity ? `${trip.pickupCity} → ${trip.dropCity}` : trip.pickupCity}
                           </div>
                           <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
@@ -142,7 +142,7 @@ export default function TripHistoryPage() {
                           {trip.isVendorAssigned ? (
                             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Paid by Vendor</span>
                           ) : (
-                            <p className="font-bold text-emerald-700 flex items-center gap-0.5 justify-end">
+                            <p className="font-bold text-green-700 flex items-center gap-0.5 justify-end">
                               <IndianRupee className="w-3.5 h-3.5" />{(trip.earnings || 0).toLocaleString()}
                             </p>
                           )}

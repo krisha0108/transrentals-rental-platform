@@ -106,14 +106,14 @@ export default function AddFuelPage() {
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Total Amount (₹) *</label>
                 {autoCalced && (
-                  <span className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
                     <Zap className="w-3 h-3" /> Auto-calculated
                   </span>
                 )}
               </div>
               <input type="number" step="0.01" placeholder="e.g. 2895" value={totalAmount}
                 onChange={e => { setTotalAmount(e.target.value); setAutoCalced(false); }} required
-                className={`${inp} ${autoCalced ? 'border-emerald-300 bg-emerald-50 focus:ring-emerald-500' : ''}`} />
+                className={`${inp} ${autoCalced ? 'border-green-300 bg-green-50 focus:ring-green-500' : ''}`} />
             </div>
           </div>
         </div>
@@ -140,11 +140,11 @@ export default function AddFuelPage() {
 
         {/* Odometer & Station */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-3 bg-emerald-50 border-b border-emerald-100">
-            <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <Gauge className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="flex items-center gap-2.5 px-5 py-3 bg-green-50 border-b border-green-100">
+            <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+              <Gauge className="w-3.5 h-3.5 text-green-600" />
             </div>
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Additional Info</span>
+            <span className="text-xs font-bold text-green-800 uppercase tracking-wider">Additional Info</span>
           </div>
           <div className="p-5 space-y-4">
             <div>

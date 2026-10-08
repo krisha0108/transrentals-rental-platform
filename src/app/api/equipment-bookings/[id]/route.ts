@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
-import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
+import { updateVendorRating, parseStarRating } from '@/lib/utils/update-vendor-rating';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { openRefundFollowup } from '@/lib/refunds/refund-followup';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Equipment Booking details
@@ -138,10 +140,18 @@ export async function PATCH(
         }
         const { reason } = data;
         let refundAmount = 0;
+        let refundPolicyNote: string | null = null;
         if (booking.advancePaid > 0) {
           const daysUntilStart = Math.ceil((new Date(booking.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-          if (daysUntilStart > 3) refundAmount = booking.advancePaid * 0.9;
-          else if (daysUntilStart > 1) refundAmount = booking.advancePaid * 0.5;
+          if (daysUntilStart > 3) {
+            refundAmount = booking.advancePaid * 0.9;
+            refundPolicyNote = '90% refund — cancelled more than 3 days before start.';
+          } else if (daysUntilStart > 1) {
+            refundAmount = booking.advancePaid * 0.5;
+            refundPolicyNote = '50% refund — cancelled 1–3 days before start.';
+          } else {
+            refundPolicyNote = 'no refund — cancelled within 1 day of start.';
+          }
         }
 
         const updatedBooking = await prisma.equipment_bookings.update({
@@ -149,6 +159,34 @@ export async function PATCH(
           data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'CUSTOMER', cancellationReason: reason || 'Cancelled by customer', refundAmount },
         });
 
+
+        // Non-blocking: the vendor has kit set aside for this job.
+        if (booking.vendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.vendorId,
+            title: 'Booking cancelled by customer',
+            body: `Booking #${booking.bookingNumber} was cancelled. Reason: ${reason || 'not given'}.`,
+            type: 'booking_cancelled',
+            serviceType: 'equipment',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber,
+          }).catch((err: unknown) => console.error('[Cancel] vendor notification failed:', err));
+        }
+
+        // Money owed goes on the refunds queue and the desk is told. Never
+        // blocks the cancellation.
+        openRefundFollowup({
+          source: 'equipment_bookings',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          serviceType: 'Equipment Rental',
+          customerId: booking.customerId,
+          customerName: booking.customerName,
+          amount: refundAmount,
+          policyNote: refundPolicyNote,
+          reason,
+          paidAmount: booking.advancePaid || 0,
+        }).catch(() => {});
         return NextResponse.json({ success: true, message: 'Booking cancelled', booking: { id: updatedBooking.id, bookingNumber: updatedBooking.bookingNumber, status: updatedBooking.status, refundAmount } });
       }
 
@@ -157,19 +195,27 @@ export async function PATCH(
         if (booking.status !== 'COMPLETED') {
           return NextResponse.json({ error: 'Can only rate completed bookings' }, { status: 400 });
         }
+        if (booking.rating) {
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+        }
         const { rating, review, equipmentRating } = data;
-        if (!rating || rating < 1 || rating > 5) {
+        const stars = parseStarRating(rating);
+        if (!stars) {
           return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
         }
 
-        const updatedBooking = await prisma.equipment_bookings.update({
-          where: { id },
-          data: { rating, review: review || null, equipmentRating: equipmentRating || rating },
+        // Only an unrated row is written, so a double submit cannot count twice.
+        const { count } = await prisma.equipment_bookings.updateMany({
+          where: { id, rating: null },
+          data: { rating: stars, review: review || null, equipmentRating: parseStarRating(equipmentRating) ?? stars },
         });
+        if (!count) {
+          return NextResponse.json({ success: false, error: 'You have already rated this trip' }, { status: 400 });
+        }
 
-        updateVendorRating(booking.vendorId, rating).catch(() => {});
+        updateVendorRating(booking.vendorId, stars).catch(() => {});
 
-        return NextResponse.json({ success: true, message: 'Rating submitted', booking: { id: updatedBooking.id, rating: updatedBooking.rating } });
+        return NextResponse.json({ success: true, message: 'Rating submitted', booking: { id: booking.id, rating: stars } });
       }
 
       case 'extend': {

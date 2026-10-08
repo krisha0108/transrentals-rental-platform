@@ -754,14 +754,17 @@ export function CustomerReviews() {
       ? Math.round((((distribution[4] || 0) + (distribution[5] || 0)) / total) * 100)
       : 0;
 
-  // A row needs a few different people in it to be worth moving: with one
-  // card it would just show the same face over and over. So the section uses
-  // as many rows as the reviews can fill — three, two, one — and below that
-  // it stops moving altogether and simply shows what there is. Past six
-  // reviews there is enough to open the third row.
-  const MIN_PER_ROW = 3;
+  // Four cards to a row. The fifth review opens a second row and the ninth a
+  // third, so a row never grows long enough to turn into a blur and twelve
+  // reviews sit as an even 4 / 4 / 4. Below three reviews nothing moves at
+  // all — a row holding one or two people would just show the same face
+  // coming round again.
+  const MAX_PER_ROW = 4;
+  const MIN_TO_MOVE = 3;
   const rowCount =
-    reviews.length > 6 ? 3 : Math.min(2, Math.floor(reviews.length / MIN_PER_ROW));
+    reviews.length < MIN_TO_MOVE
+      ? 0
+      : Math.min(3, Math.ceil(reviews.length / MAX_PER_ROW));
 
   // Dealt out one card at a time, so each row gets a mix rather than the
   // newest in row one and the oldest in the last.

@@ -60,6 +60,7 @@ logs
 /public/uploads/travel-agents/*
 /public/uploads/lead-payments/*
 /public/uploads/payment-proofs/*
+/public/uploads/driver-licenses/*
 !/public/uploads/.gitkeep
 
 # Sensitive KYC / private storage

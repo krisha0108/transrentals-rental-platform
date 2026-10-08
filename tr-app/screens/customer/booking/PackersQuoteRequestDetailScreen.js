@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl,
-  ActivityIndicator, Alert, Modal, StatusBar, Platform,
+  ActivityIndicator, Alert, StatusBar, Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -18,6 +20,8 @@ const STATUS_CONFIG = {
   EXPIRED: { label: 'Expired', color: '#EF4444', icon: 'close-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#6B7280', icon: 'close-circle' },
 };
+
+const DETAILS_TABS = ['overview', 'charges', 'terms'];
 
 export default function PackersQuoteRequestDetailScreen() {
   const route = useRoute();
@@ -225,20 +229,23 @@ export default function PackersQuoteRequestDetailScreen() {
   // Parse list data (handles JSON array, comma-separated, newline-separated)
   const parseListData = (data) => {
     if (!data) return [];
+    // Drop blank entries so "[]", '[""]' or whitespace parse to an empty list.
+    const hasText = (item) => item != null && String(item).trim() !== '';
 
     try {
       // Try parsing as JSON array
-      if (typeof data === 'string' && (data.startsWith('[') || data.startsWith('{'))) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean);
-        if (typeof parsed === 'object') return Object.values(parsed).filter(Boolean);
+      const trimmed = typeof data === 'string' ? data.trim() : '';
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.filter(hasText);
+        if (parsed && typeof parsed === 'object') return Object.values(parsed).filter(hasText);
       }
     } catch (e) {
       // Not JSON, continue to other parsing methods
     }
 
     // If already an array, return it
-    if (Array.isArray(data)) return data.filter(Boolean);
+    if (Array.isArray(data)) return data.filter(hasText);
 
     // Try splitting by newlines, commas, or bullet points
     if (typeof data === 'string') {
@@ -258,7 +265,7 @@ export default function PackersQuoteRequestDetailScreen() {
       }
 
       // If single item, return as array
-      return [cleaned];
+      return cleaned ? [cleaned] : [];
     }
 
     return [];
@@ -499,10 +506,10 @@ export default function PackersQuoteRequestDetailScreen() {
                       <Text style={styles.quoteDetailText}>{quote.vehicleName}</Text>
                     </View>
                   )}
-                  {quote.inclusions && (
+                  {parseListData(quote.inclusions).length > 0 && (
                     <View style={styles.quoteDetailRow}>
                       <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
-                      <Text style={styles.quoteDetailText}>{quote.inclusions}</Text>
+                      <Text style={styles.quoteDetailText}>{parseListData(quote.inclusions).join(', ')}</Text>
                     </View>
                   )}
                   {quote.validTill && (
@@ -750,10 +757,10 @@ export default function PackersQuoteRequestDetailScreen() {
                         </View>
                       )}
 
-                      {selectedQuote.inclusions && (
+                      {parseListData(selectedQuote.inclusions).length > 0 && (
                         <View style={styles.confirmDetailRow}>
                           <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
-                          <Text style={styles.confirmDetailText}>{selectedQuote.inclusions}</Text>
+                          <Text style={styles.confirmDetailText}>{parseListData(selectedQuote.inclusions).join(', ')}</Text>
                         </View>
                       )}
                     </View>
@@ -875,7 +882,7 @@ export default function PackersQuoteRequestDetailScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={styles.detailsTabContent}>
+              <SwipeTabsView style={styles.detailsTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -910,7 +917,7 @@ export default function PackersQuoteRequestDetailScreen() {
                     </View>
 
                     {/* Inclusions */}
-                    {viewingQuote.inclusions && (() => {
+                    {(() => {
                       const inclusions = parseListData(viewingQuote.inclusions);
                       return inclusions.length > 0 && (
                         <View style={styles.detailsSection}>
@@ -935,7 +942,7 @@ export default function PackersQuoteRequestDetailScreen() {
                     })()}
 
                     {/* Exclusions */}
-                    {viewingQuote.exclusions && (() => {
+                    {(() => {
                       const exclusions = parseListData(viewingQuote.exclusions);
                       return exclusions.length > 0 && (
                         <View style={styles.detailsSection}>
@@ -1100,8 +1107,10 @@ export default function PackersQuoteRequestDetailScreen() {
                         <Text style={styles.detailsSectionTitle}>Terms & Conditions</Text>
                       </View>
                       {(() => {
-                        const terms = viewingQuote.termsAndConditions
-                          ? parseListData(viewingQuote.termsAndConditions)
+                        // A blank value ("", "[]", whitespace) counts as no terms, same as null.
+                        const vendorTerms = parseListData(viewingQuote.termsAndConditions);
+                        const terms = vendorTerms.length > 0
+                          ? vendorTerms
                           : [
                               'Payment: 30% advance at booking, balance after service completion',
                               'Cancellation: Free cancellation up to 24 hours before service',
@@ -1125,9 +1134,9 @@ export default function PackersQuoteRequestDetailScreen() {
                       })()}
                     </View>
 
-                    {viewingQuote.notes && (() => {
+                    {(() => {
                       const notes = parseListData(viewingQuote.notes);
-                      return (
+                      return notes.length > 0 && (
                         <View style={styles.detailsSection}>
                           <View style={styles.detailsSectionHeader}>
                             <View style={[styles.sectionIconCircle, { backgroundColor: '#EDE9FE' }]}>
@@ -1150,7 +1159,7 @@ export default function PackersQuoteRequestDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               {/* Accept Button at Bottom */}
               {(() => {

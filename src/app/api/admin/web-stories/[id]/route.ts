@@ -65,6 +65,7 @@ export async function GET(
       displayOrder: story.displayOrder,
       expiresAt: story.expiresAt?.toISOString() || null,
       publishedAt: story.publishedAt?.toISOString() || null,
+      scheduledAt: story.scheduledAt?.toISOString() || null,
       createdAt: story.createdAt.toISOString(),
       updatedAt: story.updatedAt.toISOString(),
       targetServices: targeting?.targetServices ? JSON.parse(targeting.targetServices) : [],
@@ -139,6 +140,7 @@ export async function PUT(
         publisherLogo: body.publisherLogo ?? existing.publisherLogo,
         category: body.category?.trim() ?? existing.category,
         expiresAt: body.expiresAt !== undefined ? (body.expiresAt ? new Date(body.expiresAt) : null) : existing.expiresAt,
+        scheduledAt: body.scheduledAt !== undefined ? (body.scheduledAt ? new Date(body.scheduledAt) : null) : existing.scheduledAt,
         displayOrder: body.displayOrder ?? existing.displayOrder,
       },
     });

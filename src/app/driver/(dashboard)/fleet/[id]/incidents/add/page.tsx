@@ -15,7 +15,7 @@ const SEVERITIES = [
 const STATUSES = [
   { v: 'PENDING',     label: 'Pending',     color: 'text-gray-600',  activeBg: 'bg-gray-600' },
   { v: 'IN_PROGRESS', label: 'In Progress', color: 'text-blue-600',  activeBg: 'bg-blue-600' },
-  { v: 'RESOLVED',    label: 'Resolved',    color: 'text-green-600', activeBg: 'bg-emerald-600' },
+  { v: 'RESOLVED',    label: 'Resolved',    color: 'text-green-600', activeBg: 'bg-green-600' },
 ];
 
 const inp = 'w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition';
@@ -145,11 +145,11 @@ export default function AddIncidentPage() {
 
         {/* Repair */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-3 bg-emerald-50 border-b border-emerald-100">
-            <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="flex items-center gap-2.5 px-5 py-3 bg-green-50 border-b border-green-100">
+            <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
+              <IndianRupee className="w-3.5 h-3.5 text-green-600" />
             </div>
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Repair Info</span>
+            <span className="text-xs font-bold text-green-800 uppercase tracking-wider">Repair Info</span>
           </div>
           <div className="p-5 space-y-4">
             <div>

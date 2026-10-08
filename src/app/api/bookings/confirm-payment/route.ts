@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
           advancePaymentProof: paymentProof || null,
           advancePaymentDate: new Date(),
           paymentMethod: paymentMethod || 'BANK_TRANSFER',
-          paymentStatus: 'PENDING',
+          paymentStatus: 'SUBMITTED',
         },
       });
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
           advancePaymentProof: paymentProof || null,
           advancePaymentDate: new Date(),
           paymentMethod: paymentMethod || 'BANK_TRANSFER',
-          paymentStatus: 'PENDING',
+          paymentStatus: 'SUBMITTED',
         },
       });
 
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
           advancePaymentProof: paymentProof || null,
           advancePaymentDate: new Date(),
           paymentMethod: paymentMethod || 'BANK_TRANSFER',
-          paymentStatus: 'PENDING',
+          paymentStatus: 'SUBMITTED',
         },
       });
 
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
           advancePaymentProof: paymentProof || null,
           advancePaymentDate: new Date(),
           paymentMethod: paymentMethod || 'BANK_TRANSFER',
-          paymentStatus: 'PENDING',
+          paymentStatus: 'SUBMITTED',
         },
       });
 
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
         where: { id: bookingId },
         data: {
           status: 'PAYMENT_SUBMITTED',
-          paymentStatus: 'PENDING',
+          paymentStatus: 'SUBMITTED',
           advancePaid: amount || packersBooking.advanceAmount,
           advancePaidAt: new Date(),
         },
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
         where: { id: bookingId },
         data: {
           status: 'PAYMENT_SUBMITTED',
-          paymentStatus: 'PENDING',
+          paymentStatus: 'SUBMITTED',
           advancePaid: amount || equipmentBooking.advanceAmount,
           advancePaidAt: new Date(),
         },

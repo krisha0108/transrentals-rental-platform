@@ -19,6 +19,8 @@ export interface TrackedItem {
   serviceSlug: string;
   locationName: string;
   createdAt: Date;
+  /** Only set on inquiries — every quote-request table shares the same enum. */
+  status?: string;
 }
 
 const customerSelect = { select: { name: true, phone: true } } as const;
@@ -29,7 +31,15 @@ const customerSelect = { select: { name: true, phone: true } } as const;
 // undercount rather than a crash.
 const MAX_ROWS_PER_TABLE = 5000;
 
-export interface PageParams { page?: number; limit?: number; search?: string }
+export interface PageParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  /** Exact city name — wins over `cityNamesInState` when both are given. */
+  cityName?: string;
+  /** Every city name belonging to one state, for a state-level filter. */
+  cityNamesInState?: string[];
+}
 export interface PaginatedResult<T> { items: T[]; total: number; page: number; limit: number; totalPages: number }
 
 // Every list in this file is built up in memory (it's a cross-table diff/join,
@@ -56,24 +66,111 @@ function matchesTrackedItemSearch(item: TrackedItem, q: string) {
 
 export async function getAllInquiries(dateFilterObj: DateFilterObj): Promise<TrackedItem[]> {
   const [bike, bus, selfDrive, equipment, luxury, packers, truck] = await Promise.all([
-    prisma.bike_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, locationName: true, customers: customerSelect } }).catch(() => []),
-    prisma.bus_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, customers: customerSelect } }).catch(() => []),
-    prisma.self_drive_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, locationName: true, customers: customerSelect } }).catch(() => []),
-    prisma.equipment_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, deliveryCity: true, customers: customerSelect } }).catch(() => []),
-    prisma.luxury_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, customers: customerSelect } }).catch(() => []),
-    prisma.packers_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, customers: customerSelect } }).catch(() => []),
-    prisma.truck_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, customers: customerSelect } }).catch(() => []),
+    prisma.bike_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, locationName: true, status: true, customers: customerSelect } }).catch(() => []),
+    prisma.bus_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, status: true, customers: customerSelect } }).catch(() => []),
+    prisma.self_drive_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, locationName: true, status: true, customers: customerSelect } }).catch(() => []),
+    prisma.equipment_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, deliveryCity: true, status: true, customers: customerSelect } }).catch(() => []),
+    prisma.luxury_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, status: true, customers: customerSelect } }).catch(() => []),
+    prisma.packers_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, status: true, customers: customerSelect } }).catch(() => []),
+    prisma.truck_quote_requests.findMany({ where: dateFilterObj, take: MAX_ROWS_PER_TABLE, select: { id: true, requestNumber: true, customerName: true, customerPhone: true, createdAt: true, pickupCity: true, status: true, customers: customerSelect } }).catch(() => []),
   ]);
 
   return [
-    ...bike.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Bike Rental', serviceSlug: 'bike-rental', locationName: r.locationName, createdAt: r.createdAt })),
-    ...bus.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Bus Rental', serviceSlug: 'bus-rental', locationName: r.pickupCity, createdAt: r.createdAt })),
-    ...selfDrive.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Self Drive', serviceSlug: 'self-drive', locationName: r.locationName, createdAt: r.createdAt })),
-    ...equipment.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Equipment Rental', serviceSlug: 'equipment-rental', locationName: r.deliveryCity, createdAt: r.createdAt })),
-    ...luxury.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Luxury Cars', serviceSlug: 'luxury-car-rental', locationName: r.pickupCity, createdAt: r.createdAt })),
-    ...packers.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Packers & Movers', serviceSlug: 'packers-and-movers', locationName: r.pickupCity, createdAt: r.createdAt })),
-    ...truck.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Truck Transport', serviceSlug: 'truck-transport', locationName: r.pickupCity, createdAt: r.createdAt })),
+    ...bike.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Bike Rental', serviceSlug: 'bike-rental', locationName: r.locationName, createdAt: r.createdAt, status: r.status })),
+    ...bus.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Bus Rental', serviceSlug: 'bus-rental', locationName: r.pickupCity, createdAt: r.createdAt, status: r.status })),
+    ...selfDrive.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Self Drive', serviceSlug: 'self-drive', locationName: r.locationName, createdAt: r.createdAt, status: r.status })),
+    ...equipment.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Equipment Rental', serviceSlug: 'equipment-rental', locationName: r.deliveryCity, createdAt: r.createdAt, status: r.status })),
+    ...luxury.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Luxury Cars', serviceSlug: 'luxury-car-rental', locationName: r.pickupCity, createdAt: r.createdAt, status: r.status })),
+    ...packers.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Packers & Movers', serviceSlug: 'packers-and-movers', locationName: r.pickupCity, createdAt: r.createdAt, status: r.status })),
+    ...truck.map((r: any) => ({ id: r.id, requestNumber: r.requestNumber, customerName: r.customers?.name || r.customerName, customerPhone: r.customers?.phone || r.customerPhone, serviceName: 'Truck Transport', serviceSlug: 'truck-transport', locationName: r.pickupCity, createdAt: r.createdAt, status: r.status })),
   ];
+}
+
+// ── Inquiries by geography — where inquiries are coming from, and what
+// state they're stuck in, for a picked time period. ──
+
+export interface InquiryGeoBreakdown {
+  total: number;
+  byStatus: { status: string; count: number }[];
+  byState: { name: string; count: number }[];
+  byCity: { name: string; count: number }[];
+  topState: { name: string; count: number } | null;
+  topCity: { name: string; count: number } | null;
+}
+
+// Cities never agreed on a shared schema (some store a locationId, several
+// only ever stored a free-text city name), so a city's state comes from a
+// best-effort name lookup — the first `locations` row matching that name,
+// picked deterministically (ordered by id) so a duplicate city name always
+// resolves to the same state on every call.
+export async function getCityToStateMap(): Promise<Map<string, string>> {
+  const cityRows = await prisma.locations.findMany({
+    where: { type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] } },
+    select: { name: true, locations: { select: { name: true } } },
+    orderBy: { id: 'asc' },
+  });
+  const cityToState = new Map<string, string>();
+  for (const c of cityRows) {
+    if (!cityToState.has(c.name)) cityToState.set(c.name, c.locations?.name || 'Unknown');
+  }
+  return cityToState;
+}
+
+export interface InquiryGeoFilter {
+  /** Exact city name — from a location dropdown. Wins over the other two. */
+  cityName?: string;
+  /** Every city name belonging to one state — from a state dropdown. */
+  cityNamesInState?: string[];
+  /** Case-insensitive partial state-name match — for free-text callers (the chat assistant). */
+  stateNameContains?: string;
+}
+
+/**
+ * @param filter When given, every returned field — total, byStatus, byCity —
+ * is scoped to just the matching inquiries, not the whole period. Without it,
+ * everything is admin-wide. Keeping the two modes in one function means a
+ * caller can never accidentally mix a scoped count with an unscoped
+ * city/status list (which reads, to whoever consumes it, as if that whole
+ * list belonged to the filtered slice).
+ */
+export async function getInquiryGeoBreakdown(dateFilterObj: DateFilterObj, filter?: InquiryGeoFilter): Promise<InquiryGeoBreakdown> {
+  const inquiries = await getAllInquiries(dateFilterObj);
+  const cityToState = await getCityToStateMap();
+  const stateQuery = filter?.stateNameContains?.toLowerCase();
+
+  const statusCounts = new Map<string, number>();
+  const stateCounts = new Map<string, number>();
+  const cityCounts = new Map<string, number>();
+  let total = 0;
+
+  for (const inq of inquiries) {
+    const city = inq.locationName || 'Unknown';
+    const state = cityToState.get(city) || 'Unknown';
+
+    if (filter?.cityName && city !== filter.cityName) continue;
+    if (!filter?.cityName && filter?.cityNamesInState && !filter.cityNamesInState.includes(city)) continue;
+    if (stateQuery && !state.toLowerCase().includes(stateQuery)) continue;
+
+    total += 1;
+    const status = inq.status || 'UNKNOWN';
+    statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+    cityCounts.set(city, (cityCounts.get(city) || 0) + 1);
+    stateCounts.set(state, (stateCounts.get(state) || 0) + 1);
+  }
+
+  const toSortedArray = (m: Map<string, number>) =>
+    Array.from(m.entries()).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  const byState = toSortedArray(stateCounts);
+  const byCity = toSortedArray(cityCounts);
+
+  return {
+    total,
+    byStatus: Array.from(statusCounts.entries()).map(([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count),
+    byState,
+    byCity,
+    topState: byState[0] || null,
+    topCity: byCity[0] || null,
+  };
 }
 
 // ── Bookings (admin-wide) ──
@@ -119,22 +216,48 @@ async function splitByActioned(items: TrackedItem[], recordType: 'INQUIRY' | 'BO
   };
 }
 
+// Resolves the Operations Tracker's `location`/`state` query params (ids from
+// the filter dropdowns) down to a city name / list of city names — the same
+// shape every geo-aware list & breakdown function here filters on. A specific
+// location always wins over a state.
+export async function resolveGeoFilterParams(searchParams: URLSearchParams): Promise<{ cityName?: string; cityNamesInState?: string[] }> {
+  const locationId = searchParams.get('location') || '';
+  const stateId = searchParams.get('state') || '';
+  if (locationId) {
+    const loc = await prisma.locations.findUnique({ where: { id: locationId }, select: { name: true } });
+    return loc?.name ? { cityName: loc.name } : {};
+  }
+  if (stateId) {
+    const cities = await prisma.locations.findMany({ where: { parentId: stateId, isActive: true }, select: { name: true } });
+    return { cityNamesInState: Array.from(new Set(cities.map((c) => c.name))) };
+  }
+  return {};
+}
+
+// Narrows a tracked-items list to one city (exact) or one state's cities —
+// the accurate, dropdown-backed equivalent of the free-text search box.
+function filterByGeo(items: TrackedItem[], page: PageParams): TrackedItem[] {
+  if (page.cityName) return items.filter((i) => i.locationName === page.cityName);
+  if (page.cityNamesInState) return items.filter((i) => page.cityNamesInState!.includes(i.locationName));
+  return items;
+}
+
 export async function getUntouchedInquiries(dateFilterObj: DateFilterObj, page: PageParams = {}) {
-  const all = await getAllInquiries(dateFilterObj);
-  const { untouched, actionedCount } = await splitByActioned(all, 'INQUIRY');
+  const geoScoped = filterByGeo(await getAllInquiries(dateFilterObj), page);
+  const { untouched, actionedCount } = await splitByActioned(geoScoped, 'INQUIRY');
   const q = page.search?.trim().toLowerCase();
   const filtered = q ? untouched.filter((i) => matchesTrackedItemSearch(i, q)) : untouched;
   const paged = paginate(filtered, page.page, page.limit);
-  return { total: all.length, actioned: actionedCount, untouchedTotal: paged.total, items: paged.items, page: paged.page, limit: paged.limit, totalPages: paged.totalPages };
+  return { total: geoScoped.length, actioned: actionedCount, untouchedTotal: paged.total, items: paged.items, page: paged.page, limit: paged.limit, totalPages: paged.totalPages };
 }
 
 export async function getUntouchedBookings(dateFilterObj: DateFilterObj, page: PageParams = {}) {
-  const all = await getAllBookings(dateFilterObj);
-  const { untouched, actionedCount } = await splitByActioned(all, 'BOOKING');
+  const geoScoped = filterByGeo(await getAllBookings(dateFilterObj), page);
+  const { untouched, actionedCount } = await splitByActioned(geoScoped, 'BOOKING');
   const q = page.search?.trim().toLowerCase();
   const filtered = q ? untouched.filter((i) => matchesTrackedItemSearch(i, q)) : untouched;
   const paged = paginate(filtered, page.page, page.limit);
-  return { total: all.length, actioned: actionedCount, untouchedTotal: paged.total, items: paged.items, page: paged.page, limit: paged.limit, totalPages: paged.totalPages };
+  return { total: geoScoped.length, actioned: actionedCount, untouchedTotal: paged.total, items: paged.items, page: paged.page, limit: paged.limit, totalPages: paged.totalPages };
 }
 
 // ── Vendors needing action — stuck in a non-terminal status and nobody has
@@ -208,7 +331,10 @@ export async function getCoverageGaps(dateFilterObj: DateFilterObj, page: PagePa
 
 export interface IdleLocationSummary {
   locationName: string;
+  /** Sum of per-service vendor counts — a vendor offering 3 idle services here counts 3 times. Kept for the chart's bar length. */
   total: number;
+  /** Distinct vendors idle at this location in at least one service — the honest headcount. */
+  uniqueVendors: number;
   serviceCount: number;
   services: { serviceName: string; vendorCount: number }[];
 }
@@ -218,13 +344,29 @@ interface VendorCoverageEntry { locationName: string; serviceName: string; servi
 // Shared by getIdleVendorCoverage (supply side) and getDemandCoverage (demand
 // side) — every (location, service) combo with at least one active approved
 // vendor, and how many vendors cover it.
-async function getVendorCoverageCounts(): Promise<Map<string, VendorCoverageEntry>> {
+//
+// `vendorPairs` is the same data keyed the other way round — which
+// (location, service) pairs each individual vendor covers. Location
+// approvals and service approvals are independent grants (a vendor can be
+// approved for 500 locations and 8 services as two separate decisions), so
+// `coverageCount` is a full cross-product: one vendor with broad location +
+// service approval contributes to hundreds of pair rows on its own. That's
+// correct for "how many vendors could in principle serve this exact pair",
+// but it means `coverageCount.size` / a per-pair idle count is NOT a vendor
+// headcount — `vendorPairs` exists so callers that need an actual distinct
+// vendor count (not a pair count) can compute one instead of silently
+// reporting the inflated pair total as if it were vendors.
+async function getVendorCoverageCounts(): Promise<{
+  coverageCount: Map<string, VendorCoverageEntry>;
+  vendorPairs: Map<string, Set<string>>;
+}> {
   const approvedLinks = await prisma.vendor_approved_locations.findMany({
     where: { isActive: true, vendors: { status: 'APPROVED' } },
     select: { vendorId: true, locationId: true, locations: { select: { name: true } } },
   });
   const coverageCount = new Map<string, VendorCoverageEntry>();
-  if (approvedLinks.length === 0) return coverageCount;
+  const vendorPairs = new Map<string, Set<string>>();
+  if (approvedLinks.length === 0) return { coverageCount, vendorPairs };
 
   const vendorIds = [...new Set(approvedLinks.map((l) => l.vendorId))];
   const serviceLinks = await prisma.vendor_approved_services.findMany({
@@ -245,13 +387,15 @@ async function getVendorCoverageCounts(): Promise<Map<string, VendorCoverageEntr
       const key = `${locationName}::${service.slug}`;
       if (!coverageCount.has(key)) coverageCount.set(key, { locationName, serviceName: service.name, serviceSlug: service.slug, vendorCount: 0 });
       coverageCount.get(key)!.vendorCount += 1;
+      if (!vendorPairs.has(link.vendorId)) vendorPairs.set(link.vendorId, new Set());
+      vendorPairs.get(link.vendorId)!.add(key);
     }
   }
-  return coverageCount;
+  return { coverageCount, vendorPairs };
 }
 
 export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: PageParams = {}) {
-  const [coverageCount, inquiries] = await Promise.all([
+  const [{ coverageCount, vendorPairs }, inquiries] = await Promise.all([
     getVendorCoverageCounts(),
     getAllInquiries(dateFilterObj),
   ]);
@@ -263,12 +407,35 @@ export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: 
     const key = `${item.locationName}::${item.serviceSlug}`;
     inquiryCounts.set(key, (inquiryCounts.get(key) || 0) + 1);
   }
+  const hasDemand = (key: string) => (inquiryCounts.get(key) || 0) > 0;
 
   let idle: { locationName: string; serviceName: string; vendorCount: number }[] = [];
   for (const [key, entry] of coverageCount.entries()) {
-    if (!inquiryCounts.has(key) || inquiryCounts.get(key) === 0) idle.push({ locationName: entry.locationName, serviceName: entry.serviceName, vendorCount: entry.vendorCount });
+    if (!hasDemand(key)) idle.push({ locationName: entry.locationName, serviceName: entry.serviceName, vendorCount: entry.vendorCount });
   }
   idle.sort((a, b) => b.vendorCount - a.vendorCount);
+
+  // The actual headcount: a vendor only counts as "idle" if EVERY pair
+  // they're approved for has zero demand — not if they merely show up in one
+  // idle pair row (which, with broad multi-location/service approval, nearly
+  // every vendor would).
+  let idleVendorCount = 0;
+  // Per-location version of the same idea — which distinct vendors have at
+  // least one idle service AT this specific location (a looser bar than the
+  // global headcount above, which requires ALL of a vendor's pairs anywhere
+  // to be idle; this one is scoped to one location so a vendor busy in
+  // Mumbai but idle in Pune still counts toward Pune's number).
+  const idleVendorsByLocation = new Map<string, Set<string>>();
+  for (const [vendorId, pairs] of vendorPairs.entries()) {
+    if ([...pairs].every((key) => !hasDemand(key))) idleVendorCount += 1;
+    for (const key of pairs) {
+      if (!hasDemand(key)) {
+        const locationName = key.split('::')[0];
+        if (!idleVendorsByLocation.has(locationName)) idleVendorsByLocation.set(locationName, new Set());
+        idleVendorsByLocation.get(locationName)!.add(vendorId);
+      }
+    }
+  }
 
   const q = page.search?.trim().toLowerCase();
   if (q) idle = idle.filter((row) => row.locationName.toLowerCase().includes(q) || row.serviceName.toLowerCase().includes(q));
@@ -282,15 +449,23 @@ export async function getIdleVendorCoverage(dateFilterObj: DateFilterObj, page: 
   // actually asking. Built from the same (searched) `idle` rows.
   const byLocationMap = new Map<string, IdleLocationSummary>();
   for (const row of idle) {
-    if (!byLocationMap.has(row.locationName)) byLocationMap.set(row.locationName, { locationName: row.locationName, total: 0, serviceCount: 0, services: [] });
+    if (!byLocationMap.has(row.locationName)) {
+      byLocationMap.set(row.locationName, {
+        locationName: row.locationName,
+        total: 0,
+        uniqueVendors: idleVendorsByLocation.get(row.locationName)?.size || 0,
+        serviceCount: 0,
+        services: [],
+      });
+    }
     const entry = byLocationMap.get(row.locationName)!;
     entry.total += row.vendorCount;
     entry.serviceCount += 1;
     entry.services.push({ serviceName: row.serviceName, vendorCount: row.vendorCount });
   }
-  const byLocation = [...byLocationMap.values()].sort((a, b) => b.total - a.total).slice(0, 8);
+  const byLocation = [...byLocationMap.values()].sort((a, b) => b.uniqueVendors - a.uniqueVendors).slice(0, 8);
 
-  return { ...paginate(idle, page.page, page.limit), byLocation };
+  return { ...paginate(idle, page.page, page.limit), byLocation, idleVendorCount };
 }
 
 // ── Demand coverage (the flip side of idle vendor coverage) — every
@@ -310,7 +485,7 @@ export interface DemandCoverageItem {
 }
 
 export async function getDemandCoverage(dateFilterObj: DateFilterObj, page: PageParams & { maxVendors?: number } = {}) {
-  const [coverageCount, inquiries] = await Promise.all([
+  const [{ coverageCount }, inquiries] = await Promise.all([
     getVendorCoverageCounts(),
     getAllInquiries(dateFilterObj),
   ]);

@@ -10,13 +10,13 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
-  Modal,
   RefreshControl,
   Alert,
   StatusBar,
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -25,7 +25,7 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import DateTimePicker from '@react-native-community/datetimepicker';
 import fleetService from '../../services/fleetService';
 import api, { BASE_URL } from '../../api';
-import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel, getEarliestPickup, clampPickup, toLocalDateString } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
 import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
@@ -85,10 +85,10 @@ const SelfDriveFleetScreen = () => {
   const [showBookingAlert, setShowBookingAlert] = useState(false);
 
   // Dates
-  const [pickupDate, setPickupDate] = useState(() => passedPickupDate ? new Date(passedPickupDate) : new Date());
+  const [pickupDate, setPickupDate] = useState(() => passedPickupDate ? clampPickup(new Date(passedPickupDate)) : getEarliestPickup());
   const [dropDate, setDropDate] = useState(() => {
     if (passedDropDate) return new Date(passedDropDate);
-    const tomorrow = new Date();
+    const tomorrow = getEarliestPickup();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow;
   });
@@ -298,9 +298,9 @@ const SelfDriveFleetScreen = () => {
         minSeats: selectedCar.seatingCapacity,
         locationId: locationId,
         locationName: locationName,
-        pickupDate: pickupDate.toISOString().split('T')[0],
+        pickupDate: toLocalDateString(pickupDate),
         pickupTime: pickupDate.toTimeString().slice(0, 5),
-        dropDate: dropDate.toISOString().split('T')[0],
+        dropDate: toLocalDateString(dropDate),
         dropTime: dropDate.toTimeString().slice(0, 5),
         budgetMin: selectedCar.lowestPrice || null,
         budgetMax: selectedCar.highestPrice || null,
@@ -446,9 +446,11 @@ const SelfDriveFleetScreen = () => {
         current.getHours(), current.getMinutes()
       );
       if (datePickerTarget === 'pickup') {
-        setPickupDate(merged);
-        if (dropDate <= merged) {
-          const newDrop = new Date(merged);
+        // Keep the chosen time unless it is now too soon on the new date.
+        const pickup = clampPickup(merged);
+        setPickupDate(pickup);
+        if (dropDate <= pickup) {
+          const newDrop = new Date(pickup);
           newDrop.setDate(newDrop.getDate() + 1);
           setDropDate(newDrop);
         }
@@ -471,6 +473,14 @@ const SelfDriveFleetScreen = () => {
         const upd = new Date(pickupDate);
         upd.setHours(selected.getHours(), selected.getMinutes());
         if (isPickupTooSoon(upd)) {
+          // Too close to now for a driver to reach: snap to the earliest slot.
+          const earliest = getEarliestPickup();
+          setPickupDate(earliest);
+          if (dropDate <= earliest) {
+            const newDrop = new Date(earliest);
+            newDrop.setDate(newDrop.getDate() + 1);
+            setDropDate(newDrop);
+          }
           setDatePickerVisible(false);
           setShowBookingAlert(true);
           return;

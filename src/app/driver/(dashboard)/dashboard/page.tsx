@@ -24,8 +24,10 @@ import {
   Radio,
   Zap,
   ExternalLink,
+  Wallet,
 } from 'lucide-react';
-import BackrCard from '@/components/backr/BackrCard';
+// BackrCard import kept alongside the commented-out usage below — re-enable when ready to launch.
+// import BackrCard from '@/components/backr/BackrCard';
 
 interface Booking {
   id: string;
@@ -56,6 +58,16 @@ interface Stats {
 interface DriverInfo {
   userType?: string;
   id?: string;
+  name?: string;
+  bankDetailsComplete?: boolean;
+}
+
+/** Morning / afternoon / evening, by the driver's own clock. */
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -119,20 +131,36 @@ export default function DriverDashboardPage() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [driverInfo, setDriverInfo] = useState<DriverInfo>({});
   const [availableCount, setAvailableCount] = useState(0);
+  // null until the fleet call answers, so the prompt never flashes up for a
+  // driver who does have vehicles.
+  const [fleetCount, setFleetCount] = useState<number | null>(null);
   useEffect(() => {
     fetchAll();
   }, []);
 
   const fetchAll = async () => {
     try {
-      const [meRes, bookingsRes] = await Promise.all([
+      const [meRes, bookingsRes, fleetRes] = await Promise.all([
         fetch('/api/driver/auth/me'),
         fetch('/api/driver/bookings?filter=active'),
+        fetch('/api/driver/fleet'),
       ]);
       const meData = await meRes.json();
       const bookingsData = await bookingsRes.json();
 
-      if (meData.success) setDriverInfo({ userType: meData.driver?.userType, id: meData.driver?.id });
+      const fleetData = await fleetRes.json().catch(() => null);
+      if (fleetData?.success) {
+        setFleetCount((fleetData.vehicles || fleetData.fleet || []).length);
+      }
+
+      if (meData.success) {
+        setDriverInfo({
+          userType: meData.driver?.userType,
+          id: meData.driver?.id,
+          name: meData.driver?.name,
+          bankDetailsComplete: meData.driver?.bankDetailsComplete,
+        });
+      }
       if (bookingsData.success) {
         setBookings(bookingsData.bookings);
         setStats(bookingsData.stats);
@@ -154,7 +182,7 @@ export default function DriverDashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
       </div>
     );
   }
@@ -162,86 +190,86 @@ export default function DriverDashboardPage() {
   return (
     <div className="space-y-5">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 sm:p-8 text-white">
-        <h1 className="text-lg sm:text-xl font-bold">Welcome Back!</h1>
-        <p className="text-emerald-100 mt-1 text-sm">Here's your trip summary for today</p>
+      <div className="dv-hero">
+        <div className="dv-hero-copy">
+          <p className="dv-hero-eyebrow">{greeting()}</p>
+          <h1 className="dv-hero-title">{driverInfo.name ? driverInfo.name.split(' ')[0] : 'Welcome back'}</h1>
+          <p className="dv-hero-sub">
+            {stats.active > 0
+              ? `You have ${stats.active} trip${stats.active > 1 ? 's' : ''} on the go right now.`
+              : 'No trips on the go right now — you are all clear.'}
+          </p>
+        </div>
+        <Link href="/driver/bookings" className="dv-hero-cta">
+          View my trips <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
+
+      {/* Bank Details Banner — every new driver hits this until they fill it in,
+          since payouts have nowhere to go without it. */}
+      {driverInfo.bankDetailsComplete === false && (
+        <Link href="/driver/profile/edit" className="dv-prompt dv-prompt-amber">
+          <span className="dv-prompt-icon"><Wallet className="w-5 h-5" /></span>
+          <span className="dv-prompt-text">
+            <span className="dv-prompt-title">Add your bank details to get paid</span>
+            <span className="dv-prompt-sub">Your trip earnings can&apos;t be paid out until this is set up — takes under a minute</span>
+          </span>
+          <ArrowRight className="w-5 h-5 shrink-0 opacity-60" />
+        </Link>
+      )}
+
+      {/* Fleet Banner — a driver with nothing on file cannot be matched to a
+          trip, so it sits beside the bank prompt rather than being something
+          they have to go looking for. */}
+      {fleetCount === 0 && (
+        <Link href="/driver/fleet/add" className="dv-prompt dv-prompt-green">
+          <span className="dv-prompt-icon"><Car className="w-5 h-5" /></span>
+          <span className="dv-prompt-text">
+            <span className="dv-prompt-title">Add your fleet</span>
+            <span className="dv-prompt-sub">No vehicle on your account yet — add one so you can be given trips</span>
+          </span>
+          <ArrowRight className="w-5 h-5 shrink-0 opacity-60" />
+        </Link>
+      )}
 
       {/* Available Trips Banner — independent drivers only */}
       {driverInfo.userType === 'independent' && (
-        <Link
-          href="/driver/available-trips"
-          className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-4 sm:p-5 hover:bg-blue-100 transition"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Radio className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-blue-900">Available Trips</p>
-              <p className="text-sm text-blue-600">
-                {availableCount > 0 ? `${availableCount} trip${availableCount > 1 ? 's' : ''} waiting for acceptance` : 'Check for new trips near you'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {availableCount > 0 && (
-              <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">{availableCount}</span>
-            )}
-            <ArrowRight className="w-5 h-5 text-blue-500" />
-          </div>
+        <Link href="/driver/available-trips" className="dv-prompt dv-prompt-blue">
+          <span className="dv-prompt-icon"><Radio className="w-5 h-5" /></span>
+          <span className="dv-prompt-text">
+            <span className="dv-prompt-title">Available Trips</span>
+            <span className="dv-prompt-sub">
+              {availableCount > 0
+                ? `${availableCount} trip${availableCount > 1 ? 's' : ''} waiting for acceptance`
+                : 'Check for new trips near you'}
+            </span>
+          </span>
+          {availableCount > 0 && (
+            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full shrink-0">{availableCount}</span>
+          )}
+          <ArrowRight className="w-5 h-5 shrink-0 opacity-60" />
         </Link>
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
-          <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-gray-900">{stats.active}</p>
-              <p className="text-sm text-gray-500 mt-0.5">Active Trips</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
-          <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-gray-900">{stats.completed}</p>
-              <p className="text-sm text-gray-500 mt-0.5">Completed</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {[
+          { label: 'Active Trips', value: stats.active, icon: AlertCircle, accent: 'bg-amber-400', wrap: 'bg-amber-100 text-amber-600' },
+          { label: 'Completed', value: stats.completed, icon: CheckCircle, accent: 'bg-green-400', wrap: 'bg-green-100 text-green-600' },
+          { label: 'Total Trips', value: stats.total, icon: Calendar, accent: 'bg-blue-400', wrap: 'bg-blue-100 text-blue-600' },
+          { label: 'Earnings', value: `₹${stats.totalEarnings.toLocaleString('en-IN')}`, icon: TrendingUp, accent: 'bg-teal-400', wrap: 'bg-teal-100 text-teal-600' },
+        ].map(({ label, value, icon: Icon, accent, wrap }) => (
+          <div key={label} className="dv-stat">
+            <span className={`dv-stat-accent ${accent}`} />
+            <div className="dv-stat-body">
+              <span className={`dv-stat-icon ${wrap}`}><Icon className="w-5 h-5" /></span>
+              <div className="min-w-0">
+                <p className="dv-stat-value truncate">{value}</p>
+                <p className="dv-stat-label">{label}</p>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
-          <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-              <p className="text-sm text-gray-500 mt-0.5">Total Trips</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
-          <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">₹{stats.totalEarnings.toLocaleString()}</p>
-              <p className="text-sm text-gray-500 mt-0.5">Earnings</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Active Trips */}
@@ -250,7 +278,7 @@ export default function DriverDashboardPage() {
           <h2 className="text-xl font-bold text-gray-900">Active Trips</h2>
           <Link
             href="/driver/bookings"
-            className="text-emerald-600 text-sm font-medium flex items-center gap-1 hover:underline"
+            className="text-green-600 text-sm font-medium flex items-center gap-1 hover:underline"
           >
             View All <ArrowRight className="w-4 h-4" />
           </Link>
@@ -269,7 +297,7 @@ export default function DriverDashboardPage() {
                 onClick={() => setServiceFilter(tab.value)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
                   serviceFilter === tab.value
-                    ? 'bg-emerald-600 text-white shadow'
+                    ? 'bg-green-600 text-white shadow'
                     : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -292,12 +320,23 @@ export default function DriverDashboardPage() {
 
           if (filtered.length === 0) {
             return (
-              <div className="bg-white rounded-2xl border p-10 sm:p-14 text-center">
-                <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="font-medium text-gray-900 mb-1">No Active Trips</h3>
-                <p className="text-sm text-gray-500">
-                  {serviceFilter === 'all' ? "You don't have any assigned trips right now" : `No active ${serviceFilter} trips`}
+              <div className="dv-empty">
+                <span className="dv-empty-icon"><Car className="w-7 h-7" /></span>
+                <p className="dv-empty-title">No active trips</p>
+                <p className="dv-empty-sub">
+                  {serviceFilter === 'all'
+                    ? 'Nothing is assigned to you right now. New trips show up here the moment they are.'
+                    : `No active ${serviceFilter} trips at the moment.`}
                 </p>
+                {driverInfo.userType === 'independent' ? (
+                  <Link href="/driver/available-trips" className="dv-empty-cta">
+                    Browse available trips <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  <Link href="/driver/bookings" className="dv-empty-cta">
+                    See past trips <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
               </div>
             );
           }
@@ -322,7 +361,7 @@ export default function DriverDashboardPage() {
                 if (isPackers) return { bg: 'bg-cyan-100', text: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' };
                 if (isEquipment) return { bg: 'bg-amber-100', text: 'text-amber-600', badge: 'bg-amber-100 text-amber-700' };
                 if (isLuxury) return { bg: 'bg-purple-100', text: 'text-purple-600', badge: 'bg-purple-100 text-purple-700' };
-                return { bg: 'bg-emerald-100', text: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' };
+                return { bg: 'bg-green-100', text: 'text-green-600', badge: 'bg-green-100 text-green-700' };
               };
               const serviceColors = getServiceColors();
 
@@ -337,11 +376,15 @@ export default function DriverDashboardPage() {
               };
 
               return (
-                <Link
+                <div
                   key={booking.id}
-                  href={`/driver/bookings/${booking.bookingNumber}`}
-                  className="block bg-white rounded-2xl border shadow-sm p-5 sm:p-6 hover:shadow-md transition"
+                  className="relative bg-white rounded-2xl border shadow-sm p-5 sm:p-6 transition hover:shadow-md hover:border-green-200 focus-within:ring-2 focus-within:ring-green-400"
                 >
+                  <Link
+                    href={`/driver/bookings/${booking.bookingNumber}`}
+                    aria-label={`Open trip ${booking.bookingNumber}`}
+                    className="absolute inset-0 z-0 rounded-2xl"
+                  />
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${serviceColors.bg}`}>
@@ -356,7 +399,7 @@ export default function DriverDashboardPage() {
                             {getServiceLabel()}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-gray-900 mt-1">
+                        <h3 className="text-[15px] font-semibold text-gray-900 mt-1">
                           {booking.carCategoryName}
                         </h3>
                         <p className="text-xs text-gray-500">
@@ -375,7 +418,7 @@ export default function DriverDashboardPage() {
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <MapPin className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Route</p>
                         <p className="font-medium">
@@ -387,7 +430,7 @@ export default function DriverDashboardPage() {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <Clock className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <Clock className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Pickup</p>
                         <p className="font-medium">
@@ -401,7 +444,7 @@ export default function DriverDashboardPage() {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <User className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <User className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Customer</p>
                         <p className="font-medium">{booking.customerName}</p>
@@ -409,13 +452,12 @@ export default function DriverDashboardPage() {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <Phone className="w-4 h-4 text-emerald-500 mt-0.5" />
+                      <Phone className="w-4 h-4 text-green-500 mt-0.5" />
                       <div>
                         <p className="text-gray-500 text-xs">Phone</p>
                         <a
                           href={`tel:${booking.customerPhone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-medium text-emerald-600"
+                          className="relative z-10 font-medium text-green-600 hover:underline"
                         >
                           {booking.customerPhone}
                         </a>
@@ -433,7 +475,7 @@ export default function DriverDashboardPage() {
                       booking.status === 'DELIVERED' ? 'bg-blue-50' :
                       booking.status === 'IN_USE' ? 'bg-purple-50' :
                       booking.status === 'PICKUP_SCHEDULED' ? 'bg-orange-50' :
-                      'bg-emerald-50'
+                      'bg-green-50'
                     }`}>
                       <div className={`flex items-center gap-2 ${
                         booking.status === 'LOADING' ? 'text-blue-700' :
@@ -443,7 +485,7 @@ export default function DriverDashboardPage() {
                         booking.status === 'DELIVERED' ? 'text-blue-700' :
                         booking.status === 'IN_USE' ? 'text-purple-700' :
                         booking.status === 'PICKUP_SCHEDULED' ? 'text-orange-700' :
-                        'text-emerald-700'
+                        'text-green-700'
                       }`}>
                         <Navigation className="w-4 h-4 animate-pulse" />
                         <span className="text-sm font-medium">
@@ -460,7 +502,7 @@ export default function DriverDashboardPage() {
                       </div>
                     </div>
                   )}
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -468,8 +510,8 @@ export default function DriverDashboardPage() {
         })()}
       </div>
 
-      {/* BACKR Rewards */}
-      <BackrCard type="driver" />
+      {/* BACKR Rewards — hidden for now, not ready to launch yet */}
+      {/* <BackrCard type="driver" /> */}
     </div>
   );
 }

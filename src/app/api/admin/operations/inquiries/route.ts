@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
-import { getDateRange, getUntouchedInquiries } from '@/lib/admin-operations';
+import { getDateRange, getUntouchedInquiries, resolveGeoFilterParams } from '@/lib/admin-operations';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +27,9 @@ export async function GET(request: NextRequest) {
     const page = Number(searchParams.get('page')) || 1;
     const limit = Number(searchParams.get('limit')) || 20;
     const search = searchParams.get('search') || undefined;
+    const geo = await resolveGeoFilterParams(searchParams);
 
-    const result = await getUntouchedInquiries(dateFilterObj, { page, limit, search });
+    const result = await getUntouchedInquiries(dateFilterObj, { page, limit, search, ...geo });
     return NextResponse.json({ success: true, ...result });
   } catch (error: any) {
     logger.error('Operations tracker inquiries fetch error', error);

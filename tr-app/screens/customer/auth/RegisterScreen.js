@@ -17,7 +17,7 @@ import {
   Platform
 } from "react-native";
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, getToken } from '@react-native-firebase/messaging';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import { authService } from '../../services';
@@ -214,7 +214,7 @@ export default function RegisterScreen({ navigation }) {
 
         // Get and save FCM token
         try {
-          const fcmToken = await messaging().getToken();
+          const fcmToken = await getToken(getMessaging());
           await authService.saveFcmToken(response.customers.id, fcmToken);
         } catch (err) {
           // FCM token save failed silently
@@ -252,7 +252,7 @@ export default function RegisterScreen({ navigation }) {
 
         // Get and save FCM token
         try {
-          const fcmToken = await messaging().getToken();
+          const fcmToken = await getToken(getMessaging());
           await authService.saveFcmToken(response.customers.id, fcmToken);
         } catch (err) {
           // FCM token save failed silently

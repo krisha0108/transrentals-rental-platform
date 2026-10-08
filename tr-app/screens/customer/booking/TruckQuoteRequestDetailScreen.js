@@ -8,10 +8,11 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  Modal,
   StatusBar,
   Platform,
 } from 'react-native';
+import Modal from '../../../components/SafeModal';
+import SwipeTabsView from '../../../components/SwipeTabsView';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -27,6 +28,8 @@ const STATUS_CONFIG = {
   EXPIRED: { label: 'Expired', color: '#EF4444', icon: 'close-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#6B7280', icon: 'close-circle' },
 };
+
+const DETAILS_TABS = ['overview', 'inclusions', 'exclusions', 'terms'];
 
 export default function TruckQuoteRequestDetailScreen() {
   const route = useRoute();
@@ -496,11 +499,11 @@ export default function TruckQuoteRequestDetailScreen() {
                         <Text style={styles.quoteDetailText}>{quote.vehicleName}</Text>
                       </View>
                     )}
-                    {quote.inclusions && (
+                    {parseListData(quote.inclusions).length > 0 && (
                       <View style={styles.quoteDetailRow}>
                         <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
                         <Text style={styles.quoteDetailText}>
-                          {parseListData(quote.inclusions).join(', ') || quote.inclusions}
+                          {parseListData(quote.inclusions).join(', ')}
                         </Text>
                       </View>
                     )}
@@ -757,11 +760,11 @@ export default function TruckQuoteRequestDetailScreen() {
                         </View>
                       )}
 
-                      {selectedQuote.inclusions && (
+                      {parseListData(selectedQuote.inclusions).length > 0 && (
                         <View style={styles.confirmDetailRow}>
                           <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
                           <Text style={styles.confirmDetailText}>
-                            {parseListData(selectedQuote.inclusions).join(', ') || selectedQuote.inclusions}
+                            {parseListData(selectedQuote.inclusions).join(', ')}
                           </Text>
                         </View>
                       )}
@@ -890,7 +893,7 @@ export default function TruckQuoteRequestDetailScreen() {
               </View>
 
               {/* Tab Content */}
-              <View style={styles.detailsTabContent}>
+              <SwipeTabsView style={styles.detailsTabContent} tabs={DETAILS_TABS} activeTab={detailsTab} onChange={setDetailsTab}>
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
@@ -1127,7 +1130,8 @@ export default function TruckQuoteRequestDetailScreen() {
                       <Text style={styles.detailsSectionTitle}>Terms & Conditions</Text>
                     </View>
                     {(() => {
-                      const terms = parseListData(viewingQuote.termsConditions || viewingQuote.terms);
+                      const conditions = parseListData(viewingQuote.termsConditions);
+                      const terms = conditions.length > 0 ? conditions : parseListData(viewingQuote.terms);
 
                       // If we got an array with multiple items, show as bullet points
                       if (terms.length > 1) {
@@ -1152,11 +1156,11 @@ export default function TruckQuoteRequestDetailScreen() {
                       }
 
                       // If single item or plain text, show as paragraph
-                      if (terms.length === 1 || viewingQuote.termsConditions || viewingQuote.terms) {
+                      if (terms.length === 1) {
                         return (
                           <View style={styles.detailsTermsCard}>
                             <Text style={styles.detailsTermsText}>
-                              {terms.length === 1 ? terms[0] : (viewingQuote.termsConditions || viewingQuote.terms)}
+                              {terms[0]}
                             </Text>
                           </View>
                         );
@@ -1172,7 +1176,7 @@ export default function TruckQuoteRequestDetailScreen() {
                     })()}
                   </View>
                 )}
-              </View>
+              </SwipeTabsView>
 
               {/* Bottom Actions */}
               <View style={styles.detailsActions}>
@@ -2259,11 +2263,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: hp('5%'),
+    alignSelf: 'stretch',
+    minHeight: hp('26%'),
   },
   detailsEmptyText: {
     fontSize: wp('3.2%'),
     color: TEXT_MUTED,
     marginTop: hp('1.2%'),
+    textAlign: 'center',
   },
 
   // Bottom Actions in Details Modal
