@@ -14,6 +14,7 @@ import {
   Platform,
   FlatList,
   StatusBar,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -416,7 +417,7 @@ export default function LuxuryCarRentalScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Static header — always visible, doesn't scroll away or fade in. */}
       <View style={styles.hero}>
         <LinearGradient
@@ -447,6 +448,7 @@ export default function LuxuryCarRentalScreen() {
         </LinearGradient>
       </View>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -1019,6 +1021,7 @@ export default function LuxuryCarRentalScreen() {
 
         <View style={{ height: hp('5%') }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Location Picker Modal */}
       <Modal
@@ -1228,7 +1231,8 @@ const styles = StyleSheet.create({
   heroGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: hp('2.2%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('2.2%') : hp('2.2%'),
+    paddingBottom: hp('2.2%'),
     paddingHorizontal: wp('4.5%'),
     overflow: 'hidden',
     borderBottomLeftRadius: 26,

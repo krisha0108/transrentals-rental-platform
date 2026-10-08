@@ -10,6 +10,7 @@ import {
   Image,
   Alert,
   StatusBar,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -269,6 +270,7 @@ export default function SelfDriveScreen() {
         </View>
       </LinearGradient>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
@@ -277,6 +279,7 @@ export default function SelfDriveScreen() {
         onScrollBeginDrag={() => {
           if (!dropdownTouching.current) setShowSuggestions(false);
         }}
+        contentContainerStyle={{ paddingBottom: hp('8%') }}
       >
         {/* Search Card */}
         <View style={styles.formCard}>
@@ -602,6 +605,7 @@ export default function SelfDriveScreen() {
 
         <View style={{ height: hp('5%') }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Android DateTimePicker */}
       {androidPickerVisible && Platform.OS === 'android' && (

@@ -840,18 +840,6 @@ const OnboardingScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Skip Button with fixed positioning */}
-      <Animated.View 
-        style={[
-          styles.skipButtonContainer,
-          { opacity: skipButtonOpacity }
-        ]}
-      >
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
       <Animated.FlatList
         ref={slideRef}
         data={slides}
@@ -870,21 +858,28 @@ const OnboardingScreen = ({ navigation }) => {
 
       <View style={styles.controlArea}>
         <Pagination />
-        <Animated.View
-          style={[
-            styles.nextButtonWrapper,
-            { 
-              backgroundColor: isLastSlide ? PALETTE.Secondary : PALETTE.Primary,
-              transform: [{ scale: buttonScale }]
-            },
-          ]}
-        >
-          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-            <Text style={styles.nextButtonText}>
-              {slides[currentIndex].ctaText}
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+        <View style={styles.rightControls}>
+          <Animated.View style={{ opacity: skipButtonOpacity }}>
+            <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+              <Text style={styles.skipText}>Skip</Text>
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.nextButtonWrapper,
+              {
+                backgroundColor: isLastSlide ? PALETTE.Secondary : PALETTE.Primary,
+                transform: [{ scale: buttonScale }]
+              },
+            ]}
+          >
+            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+              <Text style={styles.nextButtonText}>
+                {slides[currentIndex].ctaText}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
       </View>
     </View>
   );
@@ -895,30 +890,21 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: PALETTE.Background 
   },
-  // Skip button container with absolute positioning
-  skipButtonContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? scaleHeight(70) : scaleHeight(10),
-    right: scaleWidth(20),
-    zIndex: 10,
+  // Skip now lives in the footer next to Next (see rightControls) instead of
+  // floating over the slide art, so it can never sit inside the status bar.
+  rightControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scaleWidth(14),
   },
   skipButton: {
-    paddingHorizontal: scaleWidth(16),
+    paddingHorizontal: scaleWidth(6),
     paddingVertical: scaleHeight(8),
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: scaleWidth(20),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: scaleHeight(2) },
-    shadowRadius: scaleWidth(6),
-    elevation: 8,
   },
   skipText: {
-    color: '#FFFFFF',
-    fontSize: moderateScale(16),
-    fontWeight: '600',
+    color: PALETTE.TextMuted,
+    fontSize: moderateScale(15),
+    fontWeight: '700',
   },
   image: { 
     width: '110%', 

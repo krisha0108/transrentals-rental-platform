@@ -671,6 +671,10 @@ export default function StoryViewer({ story, backUrl = '/stories', readonly = fa
     const dt = Date.now() - start.time;
     if (dy > 80 && Math.abs(dx) < 50 && dt < 500) { router.push(backUrl); return; }
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 300) {
+      // Stop the browser's emulated click that follows a touch tap — without
+      // this, the tap-zone overlay's onClick fires right after and advances
+      // a second slide for the same physical tap.
+      e.preventDefault();
       if (e.changedTouches[0].clientX < window.innerWidth / 3) goPrev();
       else goNext();
     }

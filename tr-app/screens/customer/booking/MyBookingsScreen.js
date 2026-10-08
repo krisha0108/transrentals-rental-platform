@@ -19,7 +19,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -76,6 +76,7 @@ const STATUS_GROUPS = {
 
 const MyBookingsScreen = ({route}) => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [allBookings, setAllBookings] = useState(null);
@@ -615,13 +616,13 @@ const MyBookingsScreen = ({route}) => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <LinearGradient
         colors={[TEAL_DEEP, TEAL_MID, '#047857']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + hp('2%') }]}
       >
         {/* Decorative circles */}
         <View style={[styles.decoCircle, { width: wp('35%'), height: wp('35%'), top: -wp('10%'), right: -wp('5%') }]} pointerEvents="none" />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Platform, Dimensions, Animated, ActivityIndicator, Pressable, StatusBar,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Platform, Dimensions, Animated, ActivityIndicator, Pressable, StatusBar, KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
@@ -321,7 +321,8 @@ export default function TruckRentalScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: hp('2%') }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: hp('8%') }}>
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
             <View style={{ flex: 1 }}>
@@ -652,6 +653,7 @@ export default function TruckRentalScreen() {
           })}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal visible={isPhoneModal} transparent animationType="fade" onRequestClose={() => setIsPhoneModal(false)}>
         <View style={styles.modalOverlay}>

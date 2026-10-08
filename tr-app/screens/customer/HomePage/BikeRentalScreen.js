@@ -12,6 +12,7 @@ import {
   Dimensions,
   Animated,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -291,6 +292,7 @@ export default function BikeRentalScreen() {
         </TouchableOpacity>
       </View>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -605,8 +607,9 @@ export default function BikeRentalScreen() {
           })}
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
       <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );

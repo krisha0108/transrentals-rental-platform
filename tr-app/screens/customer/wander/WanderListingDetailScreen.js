@@ -2,11 +2,11 @@
  * WanderListingDetailScreen.js
  * Tour detail + Quote Request — matches TransRentals app design language
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Image, ActivityIndicator, Dimensions,
-  Alert, Platform, Linking, KeyboardAvoidingView, Share, StatusBar,
+  Alert, Platform, Linking, KeyboardAvoidingView, Share, StatusBar, Animated,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import wanderService from '../../services/wanderService';
 import { BASE_URL } from '../../api';
 import StoriesRail from '../../../components/StoriesRail';
+import { TEAL_DEEP, TEAL_MID } from '../../../theme';
 
 const { width } = Dimensions.get('window');
 const GREEN = '#09B368';
@@ -112,7 +113,7 @@ function normaliseItinerary(raw) {
 }
 
 /* ─── Hero gallery ──────────────────────────────────────────────────────── */
-function HeroGallery({ images, topInset, category, title, city, duration, onBack, onShare, onSaved }) {
+function HeroGallery({ images, category, title, city, duration }) {
   const [idx, setIdx] = useState(0);
   const uris = images.map(getImg).filter(Boolean);
   return (
@@ -135,19 +136,6 @@ function HeroGallery({ images, topInset, category, title, city, duration, onBack
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={[styles.heroBar, { top: topInset + 8 }]}>
-        <TouchableOpacity style={styles.heroBtn} onPress={onBack} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={21} color="#fff" />
-        </TouchableOpacity>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TouchableOpacity style={styles.heroBtn} onPress={onShare} accessibilityLabel="Share tour">
-            <Ionicons name="share-social-outline" size={20} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.heroBtn} onPress={onSaved} accessibilityLabel="My trips">
-            <Ionicons name="bookmark-outline" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
       <View style={styles.heroText} pointerEvents="none">
         {category ? <Text style={styles.heroCategory}>{category.toUpperCase()}</Text> : null}
         <Text style={styles.heroTitle} numberOfLines={3}>{title}</Text>
@@ -172,6 +160,56 @@ function HeroGallery({ images, topInset, category, title, city, duration, onBack
           <Text style={styles.heroCounterText}>{idx + 1}/{uris.length}</Text>
         </View>
       )}
+    </View>
+  );
+}
+
+// Pinned above the scrolling content so the back/share/save buttons and the
+// status bar stay readable no matter what part of the hero photo has
+// scrolled underneath — a thin scrim backs them near the top, and a solid
+// gradient + the tour title fade in together as the hero scrolls away.
+const STICKY_HEADER_HEIGHT = 56;
+function StickyHeader({ scrollY, topInset, title, onBack, onShare, onSaved }) {
+  const fadeStart = HERO_HEIGHT * 0.35;
+  const fadeEnd = HERO_HEIGHT * 0.72;
+  const solidOpacity = scrollY.interpolate({
+    inputRange: [fadeStart, fadeEnd],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const barHeight = topInset + STICKY_HEADER_HEIGHT;
+
+  return (
+    <View style={[styles.stickyHeader, { height: barHeight }]} pointerEvents="box-none">
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0)']}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity: solidOpacity }]}>
+        <LinearGradient
+          colors={[TEAL_DEEP, '#09B368']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+      <View style={[styles.stickyHeaderRow, { top: topInset + 8 }]}>
+        <TouchableOpacity style={styles.heroBtn} onPress={onBack} accessibilityLabel="Go back">
+          <Ionicons name="arrow-back" size={21} color="#fff" />
+        </TouchableOpacity>
+        <Animated.Text numberOfLines={1} style={[styles.stickyHeaderTitle, { opacity: solidOpacity }]}>
+          {title}
+        </Animated.Text>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity style={styles.heroBtn} onPress={onShare} accessibilityLabel="Share tour">
+            <Ionicons name="share-social-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.heroBtn} onPress={onSaved} accessibilityLabel="My trips">
+            <Ionicons name="bookmark-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -215,11 +253,15 @@ export default function WanderListingDetailScreen() {
   const [openDays, setOpenDays]     = useState({});
   const [includeTab, setIncludeTab] = useState('in');
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
 
-  // The photo runs under the status bar on this screen only.
+  // The photo runs under the status bar on this screen only — but while
+  // loading/errored there's no photo yet, just the plain white topBar, so
+  // the status bar needs dark (not light) content to stay visible there.
+  const showsPhotoHeader = !isLoading && !error && !!listing;
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle('light-content');
+      StatusBar.setBarStyle(showsPhotoHeader ? 'light-content' : 'dark-content');
       if (Platform.OS === 'android') {
         StatusBar.setTranslucent(true);
         StatusBar.setBackgroundColor('transparent');
@@ -231,7 +273,7 @@ export default function WanderListingDetailScreen() {
           StatusBar.setBackgroundColor('#FFFFFF');
         }
       };
-    }, []),
+    }, [showsPhotoHeader]),
   );
 
   useEffect(() => {
@@ -405,19 +447,23 @@ export default function WanderListingDetailScreen() {
   /* ── Render ── */
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+      >
 
         {/* HERO */}
         <HeroGallery
           images={heroImages}
-          topInset={insets.top}
           category={listing.category?.name}
           title={listing.title}
           city={city}
           duration={listing.duration}
-          onBack={() => navigation.goBack()}
-          onShare={shareTour}
-          onSaved={() => navigation.navigate('MyWanderBookings')}
         />
 
         <View style={styles.sheet}>
@@ -646,7 +692,16 @@ export default function WanderListingDetailScreen() {
 
           <View style={{ height: 24 }} />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      <StickyHeader
+        scrollY={scrollY}
+        topInset={insets.top}
+        title={listing.title}
+        onBack={() => navigation.goBack()}
+        onShare={shareTour}
+        onSaved={() => navigation.navigate('MyWanderBookings')}
+      />
 
       {/* STICKY CTA */}
       <View style={styles.ctaBar}>
@@ -762,7 +817,7 @@ export default function WanderListingDetailScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
 
             {/* Tour name pill */}
@@ -1093,8 +1148,12 @@ const styles = StyleSheet.create({
   hero: { width, height: HERO_HEIGHT, backgroundColor: '#0F172A' },
   heroImg: { width, height: HERO_HEIGHT },
   heroEmpty: { justifyContent: 'center', alignItems: 'center' },
-  heroBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   heroBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(15,23,42,0.45)', justifyContent: 'center', alignItems: 'center' },
+
+  // Sticky header — pinned above the ScrollView, fades from scrim to solid
+  stickyHeader: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
+  stickyHeaderRow: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  stickyHeaderTitle: { flex: 1, color: '#fff', fontSize: 16, fontWeight: '800', marginHorizontal: 12, textAlign: 'center' },
   heroText: { position: 'absolute', left: 18, right: 18, bottom: 40 },
   heroCategory: { color: '#A7F3D0', fontSize: 11, fontWeight: '800', letterSpacing: 1.4, marginBottom: 6 },
   heroTitle: { color: '#fff', fontSize: 25, fontWeight: '800', lineHeight: 31 },

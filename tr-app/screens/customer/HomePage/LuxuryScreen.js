@@ -12,6 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
@@ -410,6 +411,7 @@ export default function LuxuryScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
@@ -418,7 +420,7 @@ export default function LuxuryScreen() {
         onScrollBeginDrag={() => {
           if (!dropdownTouching.current) setShowSuggestions(false);
         }}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: 80 }}
       >
         {/* FORM CARD */}
         <View style={styles.formCard}>
@@ -770,6 +772,7 @@ export default function LuxuryScreen() {
           })}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* PHONE MODAL */}
       <Modal visible={isPhoneModal} transparent animationType="fade" onRequestClose={() => setIsPhoneModal(false)}>

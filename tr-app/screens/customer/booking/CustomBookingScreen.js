@@ -1530,7 +1530,7 @@ export default function CustomBookingScreen() {
 
       {renderStepBar()}
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView ref={scrollRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }} keyboardShouldPersistTaps="handled">
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}

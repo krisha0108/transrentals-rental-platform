@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
-  Platform, ActivityIndicator, StatusBar, Alert,
+  Platform, ActivityIndicator, StatusBar, Alert, KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
@@ -365,6 +365,7 @@ export default function PackerMoverScreen() {
         </View>
       </LinearGradient>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -874,6 +875,7 @@ export default function PackerMoverScreen() {
           })}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Phone modal */}
       <Modal visible={isPhoneModal} transparent animationType="fade" onRequestClose={() => setIsPhoneModal(false)}>

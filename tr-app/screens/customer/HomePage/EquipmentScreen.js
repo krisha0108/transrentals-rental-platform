@@ -14,6 +14,7 @@ import {
   StatusBar,
   Alert,
   Animated,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -432,6 +433,7 @@ export default function EquipmentScreen() {
         </View>
       </LinearGradient>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -440,7 +442,7 @@ export default function EquipmentScreen() {
         onScrollBeginDrag={() => {
           if (!dropdownTouching.current) setShowSuggestions(false);
         }}
-        contentContainerStyle={{ paddingBottom: hp('2%') }}
+        contentContainerStyle={{ paddingBottom: hp('8%') }}
       >
         {/* FORM CARD */}
         <View style={styles.formCard}>
@@ -841,6 +843,7 @@ export default function EquipmentScreen() {
           })}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* PHONE MISSING MODAL */}
       <Modal

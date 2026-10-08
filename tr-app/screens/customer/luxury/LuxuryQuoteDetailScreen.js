@@ -332,7 +332,7 @@ export default function LuxuryQuoteDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
@@ -356,7 +356,7 @@ export default function LuxuryQuoteDetailScreen() {
 
   if (!quoteRequest) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
           <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
           <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
@@ -397,7 +397,7 @@ export default function LuxuryQuoteDetailScreen() {
   const statusConfig = STATUS_CONFIG[quoteRequest.status] || STATUS_CONFIG.PENDING;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
         <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
@@ -1265,7 +1265,7 @@ export default function LuxuryQuoteDetailScreen() {
         animationType="slide"
         onRequestClose={handleCloseQuoteDetails}
       >
-        <SafeAreaView style={styles.qdModalContainer} edges={['top']}>
+        <SafeAreaView style={styles.qdModalContainer} edges={[]}>
           <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.qdModalHeader}>
             <View style={[styles.decoCircle, { top: -20, right: -10, width: 80, height: 80 }]} pointerEvents="none" />
             <View style={styles.qdModalHeaderRow}>
@@ -2530,6 +2530,7 @@ const styles = StyleSheet.create({
   },
   qdModalHeader: {
     paddingHorizontal: wp('4%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1.5%'),
     paddingBottom: hp('1.5%'),
     overflow: 'hidden',
   },

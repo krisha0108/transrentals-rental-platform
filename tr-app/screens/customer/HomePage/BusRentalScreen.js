@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Pressable,
   Alert,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import Icon from 'react-native-vector-icons/Feather';
@@ -565,7 +566,8 @@ export default function BusRentalScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 20 }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardDismissMode="on-drag" contentContainerStyle={{ paddingBottom: 80 }}>
         {/* form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
@@ -961,6 +963,7 @@ export default function BusRentalScreen() {
           })}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* PHONE MODAL */}
       <Modal

@@ -317,7 +317,7 @@ export default function BookingChatScreen() {
   // ── Loading State ─────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={wp(5.5)} color="#FFFFFF" />
@@ -344,7 +344,7 @@ export default function BookingChatScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* ── Header ─────────────────────────────────────────── */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -452,7 +452,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: wp(4),
-    paddingVertical: hp(1.8),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp(1.8) : hp(1.8),
+    paddingBottom: hp(1.8),
     borderBottomLeftRadius: wp(6),
     borderBottomRightRadius: wp(6),
     overflow: 'hidden',

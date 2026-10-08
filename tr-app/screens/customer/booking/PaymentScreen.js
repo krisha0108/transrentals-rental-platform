@@ -11,6 +11,7 @@ import {
   Image,
   StatusBar,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -264,7 +265,7 @@ export default function PaymentScreen() {
   // ── Loading State ──
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.loadingHeader}>
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
@@ -276,7 +277,7 @@ export default function PaymentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* ── Gradient Header ── */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
         <View style={styles.decorCircle1} />
@@ -305,6 +306,7 @@ export default function PaymentScreen() {
         </View>
       </LinearGradient>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp('5%') }}>
 
         {/* ── Razorpay Primary Card ── */}
@@ -550,6 +552,7 @@ export default function PaymentScreen() {
           <Text style={styles.helpText}>Need help? Call {SUPPORT_PHONE}</Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ── Custom Alert Modal ── */}
       <Modal visible={alertModal.visible} transparent animationType="fade">
@@ -672,7 +675,7 @@ const styles = StyleSheet.create({
 
   // ── Header ──
   header: {
-    paddingTop: hp('1%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
     paddingBottom: hp('3%'),
     paddingHorizontal: wp('5%'),
     overflow: 'hidden',

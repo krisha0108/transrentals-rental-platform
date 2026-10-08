@@ -620,6 +620,16 @@ export default function CustomerDashboard() {
     }, [])
   );
 
+  // ────── STATUS BAR ──────
+  // Header is a dark gradient that runs behind the status bar, so it always
+  // needs light-content here — asserted on every focus rather than relying
+  // on whichever screen was visited before leaving the right style behind.
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+    }, [])
+  );
+
   // ────── PREVENT BACK NAVIGATION FROM CUSTOMER DASHBOARD ──────
   useFocusEffect(
     React.useCallback(() => {
@@ -1454,7 +1464,7 @@ export default function CustomerDashboard() {
 
       {/* REQUIREMENT MODAL */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Animated.View style={[styles.modalOverlay, { transform: [{ translateY: modalSlide }] }]}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHead}>

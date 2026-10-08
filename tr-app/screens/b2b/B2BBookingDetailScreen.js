@@ -1235,7 +1235,7 @@ export default function B2BBookingDetailScreen({ navigation, route }) {
 
       {/* Cancel Modal */}
       <Modal visible={showCancelModal} transparent animationType="fade">
-        <KeyboardAvoidingView style={s.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={s.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={s.cancelModal}>
             <Text style={s.cancelModalTitle}>Cancel Booking</Text>
             <Text style={s.cancelModalSub}>Please provide a reason for cancellation:</Text>

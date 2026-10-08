@@ -959,7 +959,7 @@ const SelfDriveFleetScreen = () => {
       transparent={true}
       onRequestClose={() => setShowBookingModal(false)}
     >
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.modalOverlay}>
         <View style={styles.bookingModal}>
           {/* Accent stripe */}

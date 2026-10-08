@@ -639,7 +639,7 @@ const HelpDeskScreen = () => {
 
       {/* Slide-up Modal */}
       <Modal visible={modalVisible} transparent animationType="none">
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Animated.View style={[styles.modalOverlay, {opacity: fadeAnim}]}>
           <TouchableOpacity
             style={styles.modalBackdrop}

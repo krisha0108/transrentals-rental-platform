@@ -15,6 +15,8 @@ import {
   Dimensions,
   RefreshControl,
   ImageBackground,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -386,6 +388,7 @@ export default function WanderScreen() {
         </TouchableOpacity>
       </View>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
@@ -396,6 +399,7 @@ export default function WanderScreen() {
             loadMore();
           }
         }}
+        contentContainerStyle={{ paddingBottom: 80 }}
       >
         {/* ── HERO BANNER ── */}
         <LinearGradient
@@ -685,6 +689,7 @@ export default function WanderScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

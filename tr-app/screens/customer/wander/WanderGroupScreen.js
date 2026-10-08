@@ -273,7 +273,7 @@ export default function WanderGroupScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={{ padding: 20 }}>
             {/* Tour context */}
             {listingTitle && (

@@ -1354,7 +1354,7 @@ export default function BusRentalFleetScreen() {
       {renderStepIndicator()}
 
       {/* Content */}
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}

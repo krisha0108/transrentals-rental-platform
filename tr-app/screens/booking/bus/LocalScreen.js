@@ -472,7 +472,7 @@ const handleBookingSubmit = async () => {
           return null;
       }
     };
-    return <SafeAreaView style={styles.container}><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{renderStep()}</KeyboardAvoidingView><BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} /></SafeAreaView>;
+    return <SafeAreaView style={styles.container}><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>{renderStep()}</KeyboardAvoidingView><BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} /></SafeAreaView>;
   };
   const styles = StyleSheet.create({
     container: { flex: 1, padding: 20, backgroundColor: '#fff' },

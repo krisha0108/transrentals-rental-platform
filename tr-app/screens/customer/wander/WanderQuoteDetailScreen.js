@@ -6,7 +6,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, Linking, Image,
-  Dimensions, TextInput, FlatList,
+  Dimensions, TextInput, FlatList, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import Modal from '../../../components/SafeModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -1039,6 +1039,7 @@ export default function WanderQuoteDetailScreen() {
     <SafeAreaView style={styles.safe}>
       <TopBar title={`Request ${data.requestId || ''}`} onBack={() => navigation.goBack()} />
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* IMAGE CAROUSEL */}
@@ -1162,6 +1163,7 @@ export default function WanderQuoteDetailScreen() {
 
         <View style={{ height: 36 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* CONFIRM MODAL */}
       <ConfirmModal
